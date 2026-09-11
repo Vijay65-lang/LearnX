@@ -1,0 +1,6 @@
+{
+  "name": "LearnX – AI-Powered Personalized Learning & Student Mastery Platform",
+  "description": "A student-only personalized learning platform that understands the individual learner through strict question comprehension, adaptive doubt resolution, dynamic mastery tracking, and real course progress.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
