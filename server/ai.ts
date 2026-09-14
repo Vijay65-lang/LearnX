@@ -494,6 +494,170 @@ const ACADEMIC_KNOWLEDGE_BASE: ConceptMasteryEntry[] = [
       correct: "A",
       explanation: "Without a base case to terminate recursion, the function calls itself indefinitely, exhausting the allocated call stack space and triggering a Stack Overflow."
     }
+  },
+  {
+    subject: "Computer Science & Programming",
+    topic: "Object-Oriented Programming (OOP)",
+    concept: "The 4 Pillars of OOP",
+    keywords: ["oop", "object oriented", "encapsulation", "polymorphism", "inheritance", "abstraction", "classes and objects"],
+    plainEnglish: "**Object-Oriented Programming (OOP)** is a programming model organized around **Objects** (data entities) rather than just functions. Its foundation rests on **4 Pillars**: **Encapsulation**, **Abstraction**, **Inheritance**, and **Polymorphism**.",
+    analogy: "Think of a modern Smartphone:\n- **Encapsulation**: Internal circuits, battery, and chips are sealed inside the phone casing so you cannot accidentally short-circuit them.\n- **Abstraction**: You interact with an intuitive touchscreen interface without needing to understand radio frequency equations or CPU voltages.\n- **Inheritance**: An 'iPhone 15 Pro' inherits camera, calling, and WiFi features from the base 'Phone' blueprint without reinventing them from scratch.\n- **Polymorphism**: The single power button performs different behaviors depending on how you press it (quick press = lock screen, long press = power off/Siri).",
+    howItWorks: [
+      "**1. Encapsulation**: Bundling data attributes and methods that operate on that data inside a class while restricting direct external access via private/protected modifiers and getters/setters.",
+      "**2. Abstraction**: Hiding complex internal implementation details and exposing only the essential public interface (e.g. abstract classes and interfaces).",
+      "**3. Inheritance**: A child class inherits attributes and methods from a parent class (`class Dog extends Animal`), promoting code reuse and hierarchical taxonomy.",
+      "**4. Polymorphism**: 'Many forms' — the ability of different classes to respond to the same method call in their own specific way (Method Overriding at runtime, Method Overloading at compile-time)."
+    ],
+    realWorldExample: "```python\nclass Animal:\n    def speak(self):\n        return \"Some generic sound\"\n\nclass Dog(Animal):\n    def speak(self):  # Polymorphism (Method Overriding)\n        return \"Woof! Woof!\"\n\nclass Cat(Animal):\n    def speak(self):\n        return \"Meow!\"\n\nfor animal in [Dog(), Cat()]:\n    print(animal.speak())\n# Output:\n# Woof! Woof!\n# Meow!\n```",
+    keyTakeaways: [
+      "Encapsulation protects internal object state (`private` variables with accessors).",
+      "Abstraction simplifies complexity by showing *what* an object does rather than *how* it does it.",
+      "Inheritance establishes an 'is-a' relationship (`Dog is an Animal`).",
+      "Polymorphism allows treating derived objects as instances of their parent interface."
+    ],
+    mcq: {
+      question: "Which pillar of Object-Oriented Programming is demonstrated when a subclass provides its own specific implementation of a method defined in its parent class?",
+      a: "Polymorphism (Method Overriding)",
+      b: "Encapsulation",
+      c: "Data Shadowing",
+      d: "Garbage Collection",
+      correct: "A",
+      explanation: "Polymorphism (specifically runtime method overriding) allows a derived subclass to provide a specific implementation of a method that is already defined in its superclass."
+    },
+    mcqs: [
+      {
+        question: "Hiding internal data representations and restricting direct outside modification by making variables private is an example of which OOP pillar?",
+        a: "Encapsulation",
+        b: "Inheritance",
+        c: "Polymorphism",
+        d: "Recursion",
+        correct: "A",
+        explanation: "Encapsulation bundles data and methods together and prevents unauthorized direct manipulation of an object's internal fields."
+      }
+    ]
+  },
+  {
+    subject: "Data Structures & Algorithms",
+    topic: "Searching Algorithms",
+    concept: "Binary Search",
+    keywords: ["binary search", "search sorted array", "log n search", "divide and conquer search"],
+    plainEnglish: "**Binary Search** is an extremely fast search algorithm that finds the position of a target value within a **strictly sorted array**. By repeatedly dividing the search interval in half, it finds elements in **O(log n)** time.",
+    analogy: "Imagine opening a physical English Dictionary to look up the word 'Network'. You don't read page by page from the letter 'A'. Instead, you flip open to the exact middle (letter 'M'). Since 'N' comes after 'M', you discard the entire first half of the book and repeat the search in the remaining right half!",
+    howItWorks: [
+      "**Precondition**: The input array MUST be sorted.",
+      "**Step 1**: Calculate the middle index: `mid = low + (high - low) // 2` (prevents integer overflow in languages like C++/Java).",
+      "**Step 2**: Compare `arr[mid]` with the `target`:",
+      "- If `arr[mid] === target`: Target found! Return index.",
+      "- If `arr[mid] < target`: Target must be in right half; set `low = mid + 1`.",
+      "- If `arr[mid] > target`: Target must be in left half; set `high = mid - 1`.",
+      "**Step 3**: Repeat while `low <= high`. If `low > high`, target does not exist in array."
+    ],
+    realWorldExample: "```python\ndef binary_search(arr, target):\n    low, high = 0, len(arr) - 1\n    while low <= high:\n        mid = (low + high) // 2\n        if arr[mid] == target:\n            return mid  # Found!\n        elif arr[mid] < target:\n            low = mid + 1\n        else:\n            high = mid - 1\n    return -1  # Not found\n\nnumbers = [10, 23, 35, 48, 59, 72, 88, 99]\nprint(binary_search(numbers, 59))  # Returns index 4\n```",
+    keyTakeaways: [
+      "Time Complexity: **Best Case O(1)** (found at middle on first try), **Average and Worst Case O(log n)**.",
+      "Space Complexity: **O(1)** iterative, **O(log n)** recursive due to call stack frames.",
+      "Crucial requirement: Array must be sorted prior to searching. Searching 1 billion elements takes only ~30 comparisons!"
+    ],
+    mcq: {
+      question: "What is the maximum number of comparisons needed to find an element in a sorted array of 1,024 items using Binary Search?",
+      a: "10 comparisons (log2(1024))",
+      b: "512 comparisons",
+      c: "1,024 comparisons",
+      d: "100 comparisons",
+      correct: "A",
+      explanation: "Since binary search cuts the search space in half each step, log2(1024) = 10, meaning at most 10 comparisons are needed."
+    }
+  },
+  {
+    subject: "Database Management Systems",
+    topic: "Indexing & Query Optimization",
+    concept: "Database Indexes & B-Trees",
+    keywords: ["database index", "b-tree", "b+ tree", "sql index", "table scan", "clustered index"],
+    plainEnglish: "A **Database Index** is a specialized auxiliary data structure (typically a **B+ Tree**) that allows the database engine to locate specific rows in milliseconds without scanning every row in the table.",
+    analogy: "Think of an Index at the back of a 1,000-page textbook: if you want to find where 'Transistors' are discussed, you look up the word alphabetically in the index, which tells you 'page 412'. Without an index, you would have to read all 1,000 pages line by line (a Full Table Scan)!",
+    howItWorks: [
+      "**B+ Tree Structure**: Balanced tree where all leaf nodes reside at the exact same depth and are linked as a doubly linked list for rapid range queries (`BETWEEN` or `>=`).",
+      "**Clustered Index**: Dictates the physical storage order of data rows on disk (usually the Primary Key). A table can have only ONE clustered index.",
+      "**Non-Clustered Index**: A separate structure containing sorted keys and pointers (row IDs) back to the actual data rows.",
+      "**Trade-off**: Indexes make `SELECT` queries dramatically faster, but slightly slow down `INSERT`, `UPDATE`, and `DELETE` because the tree must be rebalanced."
+    ],
+    realWorldExample: "```sql\n-- Without an index, this scans 10,000,000 rows (Takes ~3.8 seconds):\nSELECT name, email FROM students WHERE roll_number = '24981A051N';\n\n-- Create B-Tree index on roll_number:\nCREATE INDEX idx_student_roll ON students(roll_number);\n\n-- With index: Binary tree traversal takes ~0.4 milliseconds!\n```",
+    keyTakeaways: [
+      "Indexes trade disk storage space and write performance for massive read query acceleration.",
+      "B+ Trees provide **O(log N)** lookup, insertion, and deletion times.",
+      "Avoid indexing columns with very low cardinality (e.g. boolean flags like `is_active`)."
+    ],
+    mcq: {
+      question: "Why do B+ Trees serve as the primary data structure for relational database indexes instead of standard Binary Search Trees?",
+      a: "B+ Trees have higher branching factors, minimizing expensive disk block I/O operations",
+      b: "B+ Trees require zero storage space on the hard drive",
+      c: "Binary Search Trees cannot store numeric numbers",
+      d: "B+ Trees eliminate the need for primary keys",
+      correct: "A",
+      explanation: "Disk I/O is the primary database bottleneck. B+ Trees have a high fan-out (hundreds of children per node), meaning tree depth remains very shallow (3-4 levels for millions of rows), minimizing disk head reads."
+    }
+  },
+  {
+    subject: "Computer Networks",
+    topic: "Transport Layer Protocols",
+    concept: "TCP vs UDP",
+    keywords: ["tcp", "udp", "transmission control protocol", "user datagram protocol", "3-way handshake", "reliable transport"],
+    plainEnglish: "**TCP** and **UDP** are the two primary protocols of the Internet's **Transport Layer**. **TCP** is reliable, connection-oriented, and guarantees ordered delivery (at the cost of overhead). **UDP** is connectionless, lightweight, and prioritizes raw speed with zero transmission guarantees.",
+    analogy: "- **TCP** is like a **Certified Courier Letter**: You receive a tracking receipt, the recipient signs for it, and if it gets lost in transit, the courier re-sends it.\n- **UDP** is like a **Live TV Broadcast or Megaphone**: The host speaks in real-time. If you miss a word because a siren drove by, the speaker doesn't pause to repeat it—the broadcast moves forward continuously!",
+    howItWorks: [
+      "**TCP (Transmission Control Protocol)**:",
+      "1. **3-Way Handshake**: `SYN` -> `SYN-ACK` -> `ACK` establishes connection before sending payload.",
+      "2. **Reliability**: Every packet has a Sequence Number; lost packets are automatically retransmitted.",
+      "3. **Flow & Congestion Control**: Dynamically adjusts data rate to prevent crashing slow routers or receivers.",
+      "**UDP (User Datagram Protocol)**:",
+      "1. **Connectionless**: Shoots packets directly to IP and Port without any handshake or setup delay.",
+      "2. **Zero Retransmission**: Missing packets are dropped; no packet ordering overhead."
+    ],
+    realWorldExample: "- **Use TCP for**: Web pages (HTTP/HTTPS), email (SMTP/IMAP), file downloads, and database queries where missing 1 byte breaks the whole file.\n- **Use UDP for**: Multiplayer gaming (Apex, Fortnite, Valorant), live Zoom video calls, voice (VoIP), and DNS lookups where speed and low latency matter far more than recovering a single dropped video pixel.",
+    keyTakeaways: [
+      "TCP: Reliable, ordered, slower, 3-way handshake, heavy 20-byte header.",
+      "UDP: Unreliable, unordered, ultra-fast, connectionless, lightweight 8-byte header.",
+      "TCP uses sliding window flow control and congestion avoidance algorithms."
+    ],
+    mcq: {
+      question: "Which of the following applications is BEST suited to use UDP rather than TCP?",
+      a: "Real-time competitive multiplayer game movement updates",
+      b: "Online banking money transfer",
+      c: "Downloading a software operating system ISO",
+      d: "Loading an HTML webpage document",
+      correct: "A",
+      explanation: "Live gaming requires lowest possible latency. If a player position packet is dropped, retransmitting it milliseconds later is useless because newer position coordinates have already arrived."
+    }
+  },
+  {
+    subject: "Operating Systems",
+    topic: "Process Synchronization & Concurrency",
+    concept: "Deadlock & The 4 Coffman Conditions",
+    keywords: ["deadlock", "coffman conditions", "bankers algorithm", "mutual exclusion", "circular wait", "hold and wait"],
+    plainEnglish: "A **Deadlock** is a state in an operating system where a set of processes are permanently blocked because each process is holding a resource and waiting for another resource held by another process in the group.",
+    analogy: "Picture a 4-way traffic intersection with no traffic light: Car A enters from the North and blocks Car B. Car B blocks Car C from the East. Car C blocks Car D from the South. Car D blocks Car A from the West. No car can move forward until another car backs up, but none of them can back up—traffic is completely frozen forever!",
+    howItWorks: [
+      "For a deadlock to occur, all **4 Coffman Conditions** MUST hold simultaneously:",
+      "1. **Mutual Exclusion**: At least one resource is held in a non-shareable mode (only one process can use it at a time).",
+      "2. **Hold and Wait**: A process is holding at least one resource and actively waiting to acquire additional resources held by other processes.",
+      "3. **No Preemption**: Resources cannot be forcefully confiscated from a process; they can only be released voluntarily after completion.",
+      "4. **Circular Wait**: A closed loop exists: $P_0$ waits for $P_1$, $P_1$ waits for $P_2$ ... and $P_n$ waits for $P_0$."
+    ],
+    realWorldExample: "```python\n# Classic deadlock in multi-threaded programming:\n# Thread 1 locks Resource A, attempts to lock Resource B\n# Thread 2 locks Resource B, attempts to lock Resource A\n# Result: Both threads freeze permanently waiting on each other.\n```",
+    keyTakeaways: [
+      "To prevent deadlock, breaking **any one** of the four Coffman conditions guarantees deadlock cannot occur.",
+      "Deadlock handling strategies: **Prevention**, **Avoidance** (Banker's Algorithm), **Detection & Recovery** (Resource Allocation Graph cycles), or **Ostrich Algorithm** (ignore it if rare).",
+      "Circular wait is typically broken by enforcing a global resource ordering hierarchy."
+    ],
+    mcq: {
+      question: "Which of the following is NOT one of the four necessary Coffman conditions required for a deadlock to occur?",
+      a: "Asynchronous Message Passing",
+      b: "Mutual Exclusion",
+      c: "Hold and Wait",
+      d: "Circular Wait",
+      correct: "A",
+      explanation: "The four Coffman conditions are Mutual Exclusion, Hold and Wait, No Preemption, and Circular Wait. Asynchronous message passing is a communication paradigm, not a Coffman condition."
+    }
   }
 ];
 

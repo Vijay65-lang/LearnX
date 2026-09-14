@@ -12,7 +12,9 @@ import {
   FileText,
   AlertCircle,
   Plus,
-  Sparkles
+  Sparkles,
+  ChevronRight,
+  Code2
 } from "lucide-react";
 import { Course, CourseModule, CourseLesson, StudentProfile, Certificate } from "../types";
 import {
@@ -21,8 +23,11 @@ import {
   enrollInCourse,
   getLesson,
   completeLesson,
-  createCourse
+  createCourse,
+  getLocalCertificates
 } from "../api";
+import { W3CodeRunner } from "./W3CodeRunner";
+import { CertificateModal } from "./CertificateModal";
 
 interface CoursesViewProps {
   student: StudentProfile;
@@ -48,6 +53,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ student, onViewCertifi
   const [selectedAssessmentOption, setSelectedAssessmentOption] = useState<string | null>(null);
   const [assessmentResult, setAssessmentResult] = useState<any | null>(null);
   const [completingLesson, setCompletingLesson] = useState(false);
+  const [activeCodeSnippet, setActiveCodeSnippet] = useState<any | null>(null);
 
   // Earned certificate modal popup
   const [earnedCert, setEarnedCert] = useState<Certificate | null>(null);
@@ -83,6 +89,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ student, onViewCertifi
     setActiveLesson(null);
     setLessonContent(null);
     setLessonAssessment(null);
+    setActiveCodeSnippet(null);
     try {
       const res = await getCourseDetails(courseId);
       setSelectedCourse(res.course);
@@ -113,6 +120,41 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ student, onViewCertifi
       setLessonAssessment(res.assessment);
       setSelectedAssessmentOption(null);
       setAssessmentResult(null);
+
+      // Setup interactive W3-Style Code Runner
+      if (res.codeSnippet) {
+        setActiveCodeSnippet(res.codeSnippet);
+      } else if (selectedCourse) {
+        const textToAnalyze = `${selectedCourse.title} ${lesson.title}`.toLowerCase();
+        if (textToAnalyze.includes("python") || textToAnalyze.includes("data structure") || textToAnalyze.includes("algorithm")) {
+          setActiveCodeSnippet({
+            language: "python",
+            initialCode: `# Interactive Python Lab: ${lesson.title}\n# Try modifying this code and click 'Run Code'!\n\ndef practice():\n    topic = "${lesson.title}"\n    items = [10, 20, 30, 40, 50]\n    print(f"Practicing: {topic}")\n    print("Items:", items)\n    print("Total Sum:", sum(items))\n    print("Average:", sum(items) / len(items))\n\npractice()`,
+            description: "Instant Python interpreter running in your browser.",
+            expectedOutput: `Practicing: ${lesson.title}`
+          });
+        } else if (textToAnalyze.includes("sql") || textToAnalyze.includes("database") || textToAnalyze.includes("dbms")) {
+          setActiveCodeSnippet({
+            language: "sql",
+            initialCode: `-- Interactive SQL Query Console\nSELECT name, department, gpa FROM students WHERE gpa >= 3.5 ORDER BY gpa DESC;`,
+            description: "Interactive SQL query sandbox with pre-loaded mock tables."
+          });
+        } else if (textToAnalyze.includes("html") || textToAnalyze.includes("css") || textToAnalyze.includes("web")) {
+          setActiveCodeSnippet({
+            language: "html",
+            initialCode: `<div style="font-family: sans-serif; padding: 20px; background: #0f172a; color: white; border-radius: 12px; border: 1px solid #334155;">\n  <h2 style="color: #6366f1; margin: 0 0 8px 0;">Interactive Web Preview</h2>\n  <p style="color: #94a3b8; font-size: 14px;">Edit this HTML code and click Run to see the live rendering!</p>\n  <button style="padding: 8px 16px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">LearnX Action</button>\n</div>`,
+            description: "Live HTML and CSS rendering sandbox."
+          });
+        } else {
+          setActiveCodeSnippet({
+            language: "javascript",
+            initialCode: `// Interactive JavaScript Lab: ${lesson.title}\nconsole.log("Starting Lesson Lab: ${lesson.title}");\n\nconst testScores = [85, 92, 78, 96, 88];\nconst highestScore = Math.max(...testScores);\nconsole.log("Highest Score Achieved:", highestScore);`,
+            description: "Safe JavaScript runtime sandbox."
+          });
+        }
+      } else {
+        setActiveCodeSnippet(null);
+      }
     } catch (err) {
       console.error("Failed to load lesson:", err);
     }
@@ -281,49 +323,38 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ student, onViewCertifi
   // Check which lessons are completed
   const completedLessonIds: string[] = [];
   if (progress && progress.completed_lessons) {
-    try {
-      const parsed = JSON.parse(progress.completed_lessons);
-      if (Array.isArray(parsed)) {
-        completedLessonIds.push(...parsed);
-      }
-    } catch {}
+    if (Array.isArray(progress.completed_lessons)) {
+      completedLessonIds.push(...progress.completed_lessons);
+    } else {
+      try {
+        const parsed = JSON.parse(progress.completed_lessons);
+        if (Array.isArray(parsed)) {
+          completedLessonIds.push(...parsed);
+        }
+      } catch {}
+    }
   }
+
+  // Course lessons navigation list
+  const allCourseLessons = modules.flatMap((m) => m.lessons || []);
+  const activeLessonIndex = activeLesson
+    ? allCourseLessons.findIndex((l) => l.id === activeLesson.id)
+    : -1;
+  const prevLesson = activeLessonIndex > 0 ? allCourseLessons[activeLessonIndex - 1] : null;
+  const nextLesson =
+    activeLessonIndex >= 0 && activeLessonIndex < allCourseLessons.length - 1
+      ? allCourseLessons[activeLessonIndex + 1]
+      : null;
 
   return (
     <div id="courses-view" className="max-w-5xl mx-auto px-4 py-6 sm:px-6 space-y-6 pb-24 md:pb-12 text-slate-100">
-      {/* Earned Certificate Modal Banner */}
+      {/* Earned Certificate Modal with Instant Download */}
       {earnedCert && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-emerald-500/50 rounded-2xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
-              <Award className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-bold text-white">Course Completed!</h3>
-            <p className="text-xs text-slate-300">
-              Congratulations {earnedCert.student_name}! You have mastered all modules in <span className="font-semibold text-indigo-400">{earnedCert.course_name}</span>.
-            </p>
-            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono text-emerald-400">
-              Certificate ID: {earnedCert.certificate_id}
-            </div>
-            <div className="pt-2 flex gap-2">
-              <button
-                onClick={() => {
-                  if (onViewCertificate) onViewCertificate(earnedCert);
-                  setEarnedCert(null);
-                }}
-                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold"
-              >
-                View Certificate
-              </button>
-              <button
-                onClick={() => setEarnedCert(null)}
-                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+        <CertificateModal
+          certificate={earnedCert}
+          student={student}
+          onClose={() => setEarnedCert(null)}
+        />
       )}
 
       {/* Header & Search */}
@@ -420,21 +451,70 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ student, onViewCertifi
 
             {/* Progress status */}
             {progress ? (
-              <div className="space-y-2 p-3 bg-slate-950/60 rounded-xl border border-slate-800">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-300 font-medium">
-                    Status: <span className="capitalize text-indigo-400">{progress.status}</span>
-                  </span>
-                  <span className="font-mono font-bold text-indigo-300">
-                    {progress.completion_percentage}% Completed
-                  </span>
+              <div className="space-y-3">
+                <div className="space-y-2 p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-300 font-medium">
+                      Status: <span className="capitalize text-indigo-400">{progress.status}</span>
+                    </span>
+                    <span className="font-mono font-bold text-indigo-300">
+                      {progress.completion_percentage}% Completed
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-indigo-500 rounded-full transition-all"
+                      style={{ width: `${progress.completion_percentage}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-indigo-500 rounded-full transition-all"
-                    style={{ width: `${progress.completion_percentage}%` }}
-                  />
-                </div>
+
+                {/* Certificate Banner if 100% complete */}
+                {progress.completion_percentage >= 100 && (
+                  <div className="p-4 bg-gradient-to-r from-emerald-950/60 to-indigo-950/60 border border-emerald-500/40 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                        <Award className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-emerald-300 block">
+                          Course Completed — Official Certificate Ready
+                        </span>
+                        <span className="text-[11px] text-slate-300">
+                          Download high-resolution certificate with cryptographic verification.
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const certs = getLocalCertificates();
+                        const existing = certs.find(
+                          (c) =>
+                            c.course_id === selectedCourse.id ||
+                            c.course_name?.toLowerCase() === selectedCourse.title?.toLowerCase()
+                        );
+                        if (existing) {
+                          setEarnedCert(existing);
+                        } else if (onViewCertificate) {
+                          onViewCertificate({
+                            id: "cert_" + selectedCourse.id,
+                            certificate_id: "LX-" + Date.now().toString(36).toUpperCase(),
+                            student_id: student.id,
+                            student_name: student.name,
+                            course_id: selectedCourse.id,
+                            course_name: selectedCourse.title,
+                            completion_date: new Date().toISOString().split("T")[0],
+                            issued_at: new Date().toISOString(),
+                          });
+                        }
+                      }}
+                      className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold rounded-lg transition flex items-center gap-1.5 shrink-0 shadow"
+                    >
+                      <Award className="w-4 h-4" />
+                      <span>View &amp; Download</span>
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <button
@@ -467,6 +547,27 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ student, onViewCertifi
               <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 text-xs sm:text-sm text-slate-200 leading-relaxed whitespace-pre-line">
                 {lessonContent.body_markdown}
               </div>
+
+              {/* Interactive W3-Style Code Lab */}
+              {activeCodeSnippet && (
+                <div className="pt-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Code2 className="w-4 h-4 text-indigo-400" />
+                    <span className="text-xs font-bold text-indigo-300">
+                      Interactive Code Lab (W3Schools Style)
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 font-mono font-semibold">
+                      {activeCodeSnippet.language?.toUpperCase() || "CODE"}
+                    </span>
+                  </div>
+                  <W3CodeRunner
+                    language={activeCodeSnippet.language || "javascript"}
+                    initialCode={activeCodeSnippet.initialCode || activeCodeSnippet.code || ""}
+                    description={activeCodeSnippet.description}
+                    expectedOutput={activeCodeSnippet.expectedOutput}
+                  />
+                </div>
+              )}
 
               {/* Lesson Assessment Quiz */}
               {lessonAssessment && (
@@ -556,6 +657,37 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ student, onViewCertifi
                   <span>{completedLessonIds.includes(activeLesson.id) ? "Lesson Completed" : "Mark as Completed"}</span>
                 </button>
               )}
+
+              {/* Lesson Navigation Controls */}
+              <div className="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  disabled={!prevLesson}
+                  onClick={() => prevLesson && handleOpenLesson(prevLesson)}
+                  className="px-3 py-2 bg-slate-800 hover:bg-slate-750 disabled:opacity-30 disabled:hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-medium transition flex items-center gap-1.5"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Previous:</span>
+                  <span className="truncate max-w-[140px]">{prevLesson ? prevLesson.title : "Start"}</span>
+                </button>
+
+                <div className="text-[11px] text-slate-400 font-mono font-medium">
+                  Lesson {activeLessonIndex + 1} of {allCourseLessons.length}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={!nextLesson}
+                  onClick={() => nextLesson && handleOpenLesson(nextLesson)}
+                  className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-sm"
+                >
+                  <span>Next</span>
+                  <span className="hidden sm:inline truncate max-w-[140px]">
+                    {nextLesson ? `: ${nextLesson.title}` : "Course End"}
+                  </span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
 

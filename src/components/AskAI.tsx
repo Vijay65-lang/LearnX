@@ -70,7 +70,7 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
 
   // Model Selection & Offline Model State
   const [selectedModel, setSelectedModel] = useState<AIModelType>(() => {
-    return (localStorage.getItem("learnx_preferred_model") as AIModelType) || "qwen-2.5";
+    return (localStorage.getItem("learnx_preferred_model") as AIModelType) || "academic-engine";
   });
   const [ollamaEndpoint, setOllamaEndpoint] = useState<string>(() => {
     return localStorage.getItem("learnx_ollama_endpoint") || "http://localhost:11434";

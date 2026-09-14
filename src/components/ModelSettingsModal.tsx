@@ -131,7 +131,50 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
           {/* TAB 1: MODEL SELECTOR */}
           {activeTab === "models" && (
             <div className="space-y-3">
-              {/* Option 1: Qwen 2.5 (Recommended) */}
+              {/* Option 1: Academic Knowledge Engine (Permanent & Built-in, 0 Download) */}
+              <div
+                onClick={() => onSelectModel("academic-engine")}
+                className={`p-4 rounded-xl border transition cursor-pointer ${
+                  selectedModel === "academic-engine"
+                    ? "bg-emerald-950/40 border-emerald-500/70 shadow-sm shadow-emerald-500/10"
+                    : "bg-slate-850/60 border-slate-750 hover:bg-slate-800"
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+                      <BookOpen className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-bold text-white">LearnX Academic Engine (Built-in Permanent Offline)</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold">
+                          Default &bull; 0 Download
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono">
+                          All Devices (Mobile/PC)
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                        The permanent, built-in offline educational intelligence engine. Works instantly across all mobile phones, tablets, and laptops without downloading large AI files. Provides verified, accurate explanations, step-by-step logic, code walkthroughs, and automatic mastery MCQs.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="shrink-0 ml-2">
+                    <div
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                        selectedModel === "academic-engine"
+                          ? "border-emerald-500 bg-emerald-500 text-slate-950"
+                          : "border-slate-600"
+                      }`}
+                    >
+                      {selectedModel === "academic-engine" && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Option 2: Qwen 2.5 (Local LLM via Ollama) */}
               <div
                 onClick={() => onSelectModel("qwen-2.5")}
                 className={`p-4 rounded-xl border transition cursor-pointer ${
@@ -147,16 +190,13 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-white">Qwen 2.5 (100% Offline AI)</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold">
-                          Recommended
-                        </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono">
-                          Zero Latency
+                        <span className="text-sm font-bold text-white">Qwen 2.5 (Local Ollama LLM)</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">
+                          Optional Local Model
                         </span>
                       </div>
                       <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                        Alibaba&apos;s premier open reasoning model. Built directly into LearnX. Requires no cloud API keys, zero internet bandwidth, and produces structured proofs, exam traps, and real-time MCQs.
+                        Alibaba&apos;s open reasoning model. If installed locally via Ollama (<code>ollama run qwen2.5</code>), LearnX connects directly via localhost for full neural generation.
                       </p>
                     </div>
                   </div>
@@ -347,47 +387,7 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                 </div>
               </div>
 
-              {/* Option 3: Academic Knowledge Engine */}
-              <div
-                onClick={() => onSelectModel("academic-engine")}
-                className={`p-4 rounded-xl border transition cursor-pointer ${
-                  selectedModel === "academic-engine"
-                    ? "bg-amber-950/40 border-amber-500/70 shadow-sm shadow-amber-500/10"
-                    : "bg-slate-850/60 border-slate-750 hover:bg-slate-800"
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
-                      <BookOpen className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-white">Academic Knowledge Engine</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono">
-                          Curriculum Verified
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                        Curriculum-indexed academic explanations covering university B.Tech, Intermediate, and Science syllabi with verified answer keys.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="shrink-0 ml-2">
-                    <div
-                      className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                        selectedModel === "academic-engine"
-                          ? "border-amber-500 bg-amber-500 text-slate-950"
-                          : "border-slate-600"
-                      }`}
-                    >
-                      {selectedModel === "academic-engine" && <CheckCircle2 className="w-3.5 h-3.5" />}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Option 4: Cloud Gemini */}
+              {/* Option 5: Cloud Gemini */}
               <div
                 onClick={() => onSelectModel("cloud-gemini")}
                 className={`p-4 rounded-xl border transition cursor-pointer ${
