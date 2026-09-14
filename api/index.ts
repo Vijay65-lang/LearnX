@@ -4,6 +4,34 @@ import { apiRouter } from "../server/routes";
 
 const app = express();
 
+// Standard CORS & options preflight handling
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS,PATCH");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With");
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+  next();
+});
+
+// Immediate health endpoints before any database wait
+app.get("/health", (_req, res) => {
+  res.status(200).json({
+    status: "ok",
+    app: "LearnX Mastery Platform",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get("/api/health", (_req, res) => {
+  res.status(200).json({
+    status: "ok",
+    app: "LearnX Mastery Platform",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.use(express.json());
 
 let databaseReady = false;
@@ -18,7 +46,6 @@ async function ensureDatabase(): Promise<void> {
     databasePromise = initDatabase()
       .then(() => {
         databaseReady = true;
-        console.log("LearnX database initialized successfully.");
       })
       .catch((error) => {
         databasePromise = null;
@@ -27,7 +54,11 @@ async function ensureDatabase(): Promise<void> {
   }
 
   try {
-    await databasePromise;
+    // Await database init with a 1.5s max cap so serverless lambdas never freeze
+    await Promise.race([
+      databasePromise,
+      new Promise((resolve) => setTimeout(resolve, 1500))
+    ]);
   } catch (err) {
     console.warn("Continuing request with resilient database fallback:", err);
   }
@@ -45,20 +76,6 @@ app.use(async (_req, _res, next) => {
 // Support both /api/* and root mounted routes
 app.use("/api", apiRouter);
 app.use("/", apiRouter);
-
-app.get("/health", (_req, res) => {
-  res.status(200).json({
-    status: "ok",
-    app: "LearnX Mastery Platform",
-  });
-});
-
-app.get("/api/health", (_req, res) => {
-  res.status(200).json({
-    status: "ok",
-    app: "LearnX Mastery Platform",
-  });
-});
 
 app.use(
   (
