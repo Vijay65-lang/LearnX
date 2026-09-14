@@ -6,7 +6,8 @@ import {
   BarChart2,
   User,
   Sparkles,
-  GraduationCap
+  GraduationCap,
+  Users
 } from "lucide-react";
 import { StudentProfile } from "../types";
 
@@ -16,12 +17,14 @@ interface NavigationProps {
   currentTab: TabType;
   onSelectTab: (tab: TabType) => void;
   student: StudentProfile | null;
+  onOpenManifesto?: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
   currentTab,
   onSelectTab,
-  student
+  student,
+  onOpenManifesto
 }) => {
   const getLevelLabel = () => {
     if (!student) return "";
@@ -95,9 +98,21 @@ export const Navigation: React.FC<NavigationProps> = ({
             })}
           </nav>
 
-          {/* Profile Badge */}
-          {student && (
-            <div className="flex items-center gap-2">
+          {/* Team LearnX Manifesto & Profile Badge */}
+          <div className="flex items-center gap-2">
+            {onOpenManifesto && (
+              <button
+                id="header-team-manifesto-btn"
+                onClick={onOpenManifesto}
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-indigo-950/70 border border-indigo-700/50 text-indigo-300 hover:text-white hover:bg-indigo-900/70 text-xs font-semibold transition"
+                title="Read Team LearnX Mission & Standard"
+              >
+                <Users className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Team LearnX</span>
+              </button>
+            )}
+
+            {student && (
               <div
                 onClick={() => onSelectTab("profile")}
                 className="cursor-pointer flex items-center gap-2 bg-slate-800/90 hover:bg-slate-800 border border-slate-700 px-2.5 py-1.5 rounded-xl transition"
@@ -110,8 +125,8 @@ export const Navigation: React.FC<NavigationProps> = ({
                   <div className="text-[10px] text-slate-400 font-mono">{getLevelLabel()}</div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </header>
 

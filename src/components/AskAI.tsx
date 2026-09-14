@@ -590,6 +590,20 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
                   <span className="font-semibold text-emerald-300">Qwen 2.5 (Offline)</span>
                 </>
               )}
+              {selectedModel === "deepseek-r1" && (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                  <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                  <span className="font-semibold text-blue-300">DeepSeek R1 (Offline)</span>
+                </>
+              )}
+              {selectedModel === "llama-3.2" && (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse"></span>
+                  <Cpu className="w-3.5 h-3.5 text-violet-400" />
+                  <span className="font-semibold text-violet-300">Llama 3.2 (Offline)</span>
+                </>
+              )}
               {selectedModel === "ollama" && (
                 <>
                   <span className={`w-2 h-2 rounded-full ${ollamaStatus?.online ? "bg-cyan-400" : "bg-amber-400"}`}></span>
@@ -635,6 +649,10 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
             <span>
               {selectedModel === "qwen-2.5" ? (
                 <><strong>Offline AI Mode Active:</strong> Running Qwen 2.5 locally. MCQs, progress tracking, certificates, and PDF reports work 100%.</>
+              ) : selectedModel === "deepseek-r1" ? (
+                <><strong>DeepSeek R1 Offline:</strong> Advanced chain-of-thought reasoning active for mathematics, algorithms, and proofs.</>
+              ) : selectedModel === "llama-3.2" ? (
+                <><strong>Llama 3.2 Offline:</strong> Fast Meta tutor model active for swift conceptual explanations.</>
               ) : selectedModel === "ollama" ? (
                 <><strong>Ollama Bridge Active:</strong> Connected to local host at <code>{ollamaEndpoint}</code>. All features operational.</>
               ) : selectedModel === "academic-engine" ? (
@@ -953,6 +971,79 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
                                   </span>
                                 </div>
                               </div>
+
+                              {/* Strong Concept Teaching Box for Wrong Answers */}
+                              {!result.is_correct && (
+                                <div
+                                  id={`concept-coach-${msg.id}`}
+                                  className="p-4 rounded-xl bg-amber-950/40 border border-amber-500/50 space-y-3 animate-in fade-in duration-200"
+                                >
+                                  <div className="flex items-center justify-between flex-wrap gap-2">
+                                    <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
+                                      <Sparkles className="w-4 h-4 text-amber-400" />
+                                      <span>Team LearnX Deep Concept Recovery Coach</span>
+                                    </div>
+                                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold">
+                                      Mastery Reinforcement
+                                    </span>
+                                  </div>
+
+                                  <div className="p-3 bg-slate-900/90 rounded-lg border border-amber-900/50 space-y-2 text-xs">
+                                    <div className="flex items-start gap-2">
+                                      <span className="px-1.5 py-0.5 rounded bg-rose-900/60 text-rose-300 font-mono text-[10px] font-bold shrink-0">
+                                        Selected Trap: Option {selectedAnswer}
+                                      </span>
+                                      <span className="text-slate-300 text-xs">
+                                        {selectedAnswer === "A" && activeMcq.option_a}
+                                        {selectedAnswer === "B" && activeMcq.option_b}
+                                        {selectedAnswer === "C" && activeMcq.option_c}
+                                        {selectedAnswer === "D" && activeMcq.option_d}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-start gap-2 pt-1.5 border-t border-slate-800">
+                                      <span className="px-1.5 py-0.5 rounded bg-emerald-900/60 text-emerald-300 font-mono text-[10px] font-bold shrink-0">
+                                        Ground Truth: Option {activeMcq.correct_option}
+                                      </span>
+                                      <span className="text-emerald-200 text-xs font-semibold">
+                                        {activeMcq.correct_option === "A" && activeMcq.option_a}
+                                        {activeMcq.correct_option === "B" && activeMcq.option_b}
+                                        {activeMcq.correct_option === "C" && activeMcq.option_c}
+                                        {activeMcq.correct_option === "D" && activeMcq.option_d}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-1.5">
+                                    <div className="text-[11px] font-bold text-amber-200 uppercase tracking-wider flex items-center gap-1.5">
+                                      <span>💡 Core Conceptual Principle &amp; Mental Anchor:</span>
+                                    </div>
+                                    <div className="text-xs text-slate-200 leading-relaxed bg-slate-950/70 p-3 rounded-lg border border-slate-800 space-y-1.5">
+                                      <p>{activeMcq.explanation}</p>
+                                      <p className="text-indigo-300 text-[11px] font-medium pt-1 border-t border-slate-800/80">
+                                        Key Takeaway: Focus on the fundamental definition of {activeMcq.concept || activeMcq.topic || "this topic"} rather than memorizing option patterns.
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center justify-between pt-1 gap-2 flex-wrap">
+                                    <p className="text-[11px] text-amber-200/85 italic">
+                                      Remember: Team LearnX will study with you until your doubt is completely cleared!
+                                    </p>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setInputQuestion(
+                                          `I made a mistake on this question about "${activeMcq.concept || activeMcq.topic}". Can you teach me this concept strongly from first principles with a clear analogy and step-by-step real-world examples?`
+                                        );
+                                      }}
+                                      className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition flex items-center gap-1.5 shadow-sm"
+                                    >
+                                      <Sparkles className="w-3.5 h-3.5 text-indigo-200" />
+                                      <span>Coach Me On This Doubt</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
 
                               {/* Infinite Next Question / Stop Controls */}
                               <div className="flex items-center gap-2">

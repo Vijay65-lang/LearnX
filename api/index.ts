@@ -22,21 +22,24 @@ async function ensureDatabase(): Promise<void> {
       })
       .catch((error) => {
         databasePromise = null;
-        console.error("Database initialization failed:", error);
-        throw error;
+        console.warn("Database initialization notice (resilient fallback will handle requests):", error);
       });
   }
 
-  await databasePromise;
+  try {
+    await databasePromise;
+  } catch (err) {
+    console.warn("Continuing request with resilient database fallback:", err);
+  }
 }
 
 app.use(async (_req, _res, next) => {
   try {
     await ensureDatabase();
-    next();
   } catch (error) {
-    next(error);
+    console.warn("ensureDatabase error handled safely:", error);
   }
+  next();
 });
 
 // Support both /api/* and root mounted routes

@@ -365,6 +365,29 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
               )}
             </button>
           </form>
+
+          {/* Student Team Manifesto Card (Requested by User) */}
+          <div
+            id="team-learnx-manifesto-card"
+            className="mt-6 pt-5 border-t border-slate-800 text-xs text-slate-300 space-y-3"
+          >
+            <div className="flex items-center gap-2 text-indigo-400 font-bold uppercase tracking-wider text-[11px]">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Created by Student Team LearnX</span>
+            </div>
+
+            <p className="leading-relaxed text-slate-300 text-xs">
+              This application was built by a passionate student team—<strong>Team LearnX</strong>. Our mission is to help fellow students exponentially increase their knowledge with our AI to reach and exceed their goals.
+            </p>
+
+            <div className="p-3 rounded-xl bg-indigo-950/40 border border-indigo-800/40 text-indigo-200 text-xs leading-relaxed font-medium">
+              🎯 <strong>Our Core Commitment:</strong> We will study with you and guide you step-by-step until every single doubt is 100% understood and cleared!
+            </div>
+
+            <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-800/40 text-amber-200/90 text-[11px] leading-relaxed">
+              ⚠️ <strong>A Candid Note for Serious Learners:</strong> This app is built exclusively for students who are serious about learning and driven to excel. It is not intended for casual browsing or idling. If you are ready to commit to smart, disciplined hard work powered by our AI tutor, we warmly welcome you!
+            </div>
+          </div>
         </div>
       </div>
     </div>

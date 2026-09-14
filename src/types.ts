@@ -1,12 +1,20 @@
 export type EducationLevel = "School" | "Intermediate" | "Degree" | "B.Tech";
 
-export type AIModelType = "qwen-2.5" | "academic-engine" | "ollama" | "cloud-gemini";
+export type AIModelType =
+  | "qwen-2.5"
+  | "deepseek-r1"
+  | "llama-3.2"
+  | "academic-engine"
+  | "ollama"
+  | "cloud-gemini";
 
 export interface OllamaStatus {
   online: boolean;
   models: string[];
   recommendedModel: string;
   hasQwen: boolean;
+  hasDeepSeek?: boolean;
+  hasLlama?: boolean;
 }
 
 export type MasteryState =

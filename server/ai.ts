@@ -12,10 +12,12 @@ export async function checkOllamaStatus(endpoint: string = "http://localhost:114
   models: string[];
   recommendedModel: string;
   hasQwen: boolean;
+  hasDeepSeek: boolean;
+  hasLlama: boolean;
 }> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1200);
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
     const cleanEndpoint = endpoint.replace(/\/+$/, "");
     const res = await fetch(`${cleanEndpoint}/api/tags`, { signal: controller.signal });
     clearTimeout(timeoutId);
@@ -23,13 +25,20 @@ export async function checkOllamaStatus(endpoint: string = "http://localhost:114
       const data = await res.json();
       const models = Array.isArray(data.models) ? data.models.map((m: any) => m.name) : [];
       const hasQwen = models.some((m: string) => m.toLowerCase().includes("qwen"));
-      const recommendedModel = models.find((m: string) => m.toLowerCase().includes("qwen")) || models[0] || "qwen2.5:1.5b";
-      return { online: true, models, recommendedModel, hasQwen };
+      const hasDeepSeek = models.some((m: string) => m.toLowerCase().includes("deepseek"));
+      const hasLlama = models.some((m: string) => m.toLowerCase().includes("llama"));
+      const recommendedModel =
+        models.find((m: string) => m.toLowerCase().includes("deepseek")) ||
+        models.find((m: string) => m.toLowerCase().includes("qwen")) ||
+        models.find((m: string) => m.toLowerCase().includes("llama")) ||
+        models[0] ||
+        "qwen2.5:1.5b";
+      return { online: true, models, recommendedModel, hasQwen, hasDeepSeek, hasLlama };
     }
   } catch {
     // Offline or unreachable
   }
-  return { online: false, models: [], recommendedModel: "qwen2.5:1.5b", hasQwen: false };
+  return { online: false, models: [], recommendedModel: "qwen2.5:1.5b", hasQwen: false, hasDeepSeek: false, hasLlama: false };
 }
 
 export async function queryOllama(
@@ -957,15 +966,36 @@ Hope that makes it super clear! Let me know if you want to dive deeper into any 
     };
   }
 
-  // 3. If student connects Ollama local runtime
-  if (preferredModel === "ollama" || preferredModel === "qwen-2.5") {
+  // 3. If student connects Ollama local runtime with offline models (Qwen 2.5, DeepSeek R1, Llama 3.2)
+  if (
+    preferredModel === "ollama" ||
+    preferredModel === "qwen-2.5" ||
+    preferredModel === "deepseek-r1" ||
+    preferredModel === "llama-3.2"
+  ) {
     const ollamaStatus = await checkOllamaStatus(ollamaEndpoint || "http://localhost:11434");
     if (ollamaStatus.online) {
-      const ollamaModel = ollamaStatus.recommendedModel || "qwen2.5:1.5b";
-      const systemPrompt = `You are LearnX AI, a friendly, encouraging, and clear tutor like ChatGPT. 
-Explain the student's question clearly in plain English, with a simple analogy, step-by-step logic, code/examples, and memorable key takeaways. Avoid cold robotic bureaucratic language.`;
+      let targetModel = ollamaStatus.recommendedModel;
+      if (preferredModel === "deepseek-r1") {
+        targetModel =
+          ollamaStatus.models.find((m) => m.toLowerCase().includes("deepseek")) || "deepseek-r1:7b";
+      } else if (preferredModel === "llama-3.2") {
+        targetModel =
+          ollamaStatus.models.find((m) => m.toLowerCase().includes("llama")) || "llama3.2:3b";
+      } else if (preferredModel === "qwen-2.5") {
+        targetModel =
+          ollamaStatus.models.find((m) => m.toLowerCase().includes("qwen")) || "qwen2.5:1.5b";
+      }
+
+      const systemPrompt = `You are LearnX AI, a warm, encouraging, and brilliant academic mentor like ChatGPT.
+Explain the student's question clearly in plain English, with an intuitive real-world analogy, step-by-step logic, concrete examples or code, and memorable exam takeaways. Avoid robotic or cold bureaucratic boilerplate. Always encourage the student and build their confidence.`;
       const prompt = `Student Question: "${question}"\nEducation Level: ${educationLevel || "Student"}`;
-      const ollamaResponse = await queryOllama(ollamaEndpoint || "http://localhost:11434", ollamaModel, prompt, systemPrompt);
+      const ollamaResponse = await queryOllama(
+        ollamaEndpoint || "http://localhost:11434",
+        targetModel,
+        prompt,
+        systemPrompt
+      );
       if (ollamaResponse && ollamaResponse.length > 50) {
         return {
           explanation: ollamaResponse,
@@ -973,7 +1003,7 @@ Explain the student's question clearly in plain English, with a simple analogy, 
           detected_topic: analysis.detected_topic,
           detected_concept: analysis.detected_concept,
           validation_passed: true,
-          validation_notes: `Powered by local runtime (${ollamaModel})`
+          validation_notes: `Powered by offline AI model (${targetModel})`,
         };
       }
     }
@@ -1219,9 +1249,25 @@ export async function generateValidatedMCQ(
   }
 
   // 2. If local Ollama is active
-  if (preferredModel === "ollama" || preferredModel === "qwen-2.5") {
+  if (
+    preferredModel === "ollama" ||
+    preferredModel === "qwen-2.5" ||
+    preferredModel === "deepseek-r1" ||
+    preferredModel === "llama-3.2"
+  ) {
     const ollamaStatus = await checkOllamaStatus(ollamaEndpoint || "http://localhost:11434");
     if (ollamaStatus.online) {
+      let targetModel = ollamaStatus.recommendedModel;
+      if (preferredModel === "deepseek-r1") {
+        targetModel =
+          ollamaStatus.models.find((m) => m.toLowerCase().includes("deepseek")) || "deepseek-r1:7b";
+      } else if (preferredModel === "llama-3.2") {
+        targetModel =
+          ollamaStatus.models.find((m) => m.toLowerCase().includes("llama")) || "llama3.2:3b";
+      } else if (preferredModel === "qwen-2.5") {
+        targetModel =
+          ollamaStatus.models.find((m) => m.toLowerCase().includes("qwen")) || "qwen2.5:1.5b";
+      }
       const prompt = `Generate multiple-choice question #${qNum} testing "${concept}" in ${subject} (${topic}).
 Difficulty: ${computedDifficulty}.
 Previous questions to NOT repeat: ${previousQuestions.slice(-3).join(" | ")}.

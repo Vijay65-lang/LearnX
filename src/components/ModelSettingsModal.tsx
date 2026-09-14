@@ -16,7 +16,8 @@ import {
   Download,
   ExternalLink,
   ChevronRight,
-  HardDrive
+  HardDrive,
+  Sparkles
 } from "lucide-react";
 import { AIModelType, OllamaStatus } from "../types";
 
@@ -155,7 +156,7 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                         </span>
                       </div>
                       <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                        Alibaba's premier open reasoning model. Built directly into LearnX. Requires no cloud API keys, zero internet bandwidth, and produces structured proofs, exam traps, and real-time MCQs.
+                        Alibaba&apos;s premier open reasoning model. Built directly into LearnX. Requires no cloud API keys, zero internet bandwidth, and produces structured proofs, exam traps, and real-time MCQs.
                       </p>
                     </div>
                   </div>
@@ -173,7 +174,93 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                 </div>
               </div>
 
-              {/* Option 2: Local Ollama Host */}
+              {/* Option 2: DeepSeek R1 (Offline Chain-of-Thought Reasoning) */}
+              <div
+                onClick={() => onSelectModel("deepseek-r1")}
+                className={`p-4 rounded-xl border transition cursor-pointer ${
+                  selectedModel === "deepseek-r1"
+                    ? "bg-blue-950/40 border-blue-500/70 shadow-sm shadow-blue-500/10"
+                    : "bg-slate-850/60 border-slate-750 hover:bg-slate-800"
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 mt-0.5">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-white">DeepSeek R1 (Offline Reasoning)</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-semibold">
+                          Deep Logic
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">
+                          Math &amp; Code
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                        Top-tier open reasoning model. Excels at complex mathematical derivations, computer science algorithms, step-by-step proofs, and deep conceptual breakdown.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="shrink-0 ml-2">
+                    <div
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                        selectedModel === "deepseek-r1"
+                          ? "border-blue-500 bg-blue-500 text-slate-950"
+                          : "border-slate-600"
+                      }`}
+                    >
+                      {selectedModel === "deepseek-r1" && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Option 3: Llama 3.2 (Offline Fast Tutor) */}
+              <div
+                onClick={() => onSelectModel("llama-3.2")}
+                className={`p-4 rounded-xl border transition cursor-pointer ${
+                  selectedModel === "llama-3.2"
+                    ? "bg-violet-950/40 border-violet-500/70 shadow-sm shadow-violet-500/10"
+                    : "bg-slate-850/60 border-slate-750 hover:bg-slate-800"
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-violet-400 shrink-0 mt-0.5">
+                      <Cpu className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-white">Llama 3.2 (Offline Fast Tutor)</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 font-semibold">
+                          Meta Open AI
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">
+                          High Speed
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                        Meta&apos;s latest high-efficiency model. Delivers prompt, friendly, and structured student explanations with quick analogies and immediate takeaways.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="shrink-0 ml-2">
+                    <div
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                        selectedModel === "llama-3.2"
+                          ? "border-violet-500 bg-violet-500 text-slate-950"
+                          : "border-slate-600"
+                      }`}
+                    >
+                      {selectedModel === "llama-3.2" && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Option 4: Local Ollama Host */}
               <div
                 onClick={() => onSelectModel("ollama")}
                 className={`p-4 rounded-xl border transition cursor-pointer ${
@@ -396,13 +483,24 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                     Download Ollama from <a href="https://ollama.com" target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">ollama.com</a> and install it.
                   </li>
                   <li>
-                    Open your terminal (Command Prompt or Terminal) and run:
-                    <div className="mt-1 p-2 bg-slate-900 border border-slate-800 rounded-lg text-emerald-400 font-mono text-xs flex items-center justify-between">
-                      <code>ollama run qwen2.5:1.5b</code>
+                    Open your terminal (Command Prompt, PowerShell, or macOS Terminal) and choose your preferred model:
+                    <div className="mt-2 space-y-1.5">
+                      <div className="p-2 bg-slate-900 border border-emerald-800/40 rounded-lg text-emerald-400 font-mono text-xs flex items-center justify-between">
+                        <code>ollama run qwen2.5:1.5b</code>
+                        <span className="text-[10px] text-slate-400 font-sans"># High STEM accuracy</span>
+                      </div>
+                      <div className="p-2 bg-slate-900 border border-blue-800/40 rounded-lg text-blue-400 font-mono text-xs flex items-center justify-between">
+                        <code>ollama run deepseek-r1:7b</code>
+                        <span className="text-[10px] text-slate-400 font-sans"># Deep reasoning &amp; proofs</span>
+                      </div>
+                      <div className="p-2 bg-slate-900 border border-violet-800/40 rounded-lg text-violet-400 font-mono text-xs flex items-center justify-between">
+                        <code>ollama run llama3.2</code>
+                        <span className="text-[10px] text-slate-400 font-sans"># Meta fast lightweight</span>
+                      </div>
                     </div>
                   </li>
                   <li>
-                    That's it! LearnX connects automatically to <code>http://localhost:11434</code>.
+                    That&apos;s it! LearnX connects automatically to <code>http://localhost:11434</code> with zero cloud API keys.
                   </li>
                 </ol>
               </div>

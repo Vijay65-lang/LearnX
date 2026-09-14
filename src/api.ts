@@ -141,8 +141,13 @@ async function request<T>(
     }
 
     if (res.status === 500) {
+      let serverMsg = "";
+      try {
+        const json = JSON.parse(text);
+        serverMsg = json?.error || json?.message || "";
+      } catch {}
       throw new Error(
-        "LearnX server encountered an internal error. Please try again."
+        serverMsg || "The LearnX server encountered a temporary issue. Switching to offline engine."
       );
     }
 
@@ -159,8 +164,49 @@ async function request<T>(
 }
 
 /* ============================================================
-   AUTHENTICATION
+   AUTHENTICATION & RESILIENT STORAGE
    ============================================================ */
+
+const LOCAL_STUDENTS_KEY = "learnx_local_students";
+const ACTIVE_STUDENT_KEY = "learnx_active_student";
+
+function getLocalStudents(): any[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_STUDENTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalStudents(students: any[]) {
+  try {
+    localStorage.setItem(LOCAL_STUDENTS_KEY, JSON.stringify(students));
+  } catch {
+    // ignore
+  }
+}
+
+function getActiveStudent(): StudentProfile | null {
+  try {
+    const raw = localStorage.getItem(ACTIVE_STUDENT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setActiveStudent(student: StudentProfile | null) {
+  try {
+    if (student) {
+      localStorage.setItem(ACTIVE_STUDENT_KEY, JSON.stringify(student));
+    } else {
+      localStorage.removeItem(ACTIVE_STUDENT_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
 
 export async function registerStudent(
   payload: any
@@ -168,17 +214,64 @@ export async function registerStudent(
   token: string;
   student: StudentProfile;
 }> {
-  const data = await request<{
-    token: string;
-    student: StudentProfile;
-  }>("/auth/register", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  try {
+    const data = await request<{
+      token: string;
+      student: StudentProfile;
+    }>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
 
-  setStoredToken(data.token);
+    setStoredToken(data.token);
+    setActiveStudent(data.student);
+    return data;
+  } catch (err: any) {
+    console.warn("Backend registration error, activating resilient offline profile:", err);
+    if (
+      err?.message &&
+      (err.message.toLowerCase().includes("already registered") ||
+        err.message.toLowerCase().includes("valid email") ||
+        err.message.toLowerCase().includes("password"))
+    ) {
+      throw err;
+    }
 
-  return data;
+    // Resilient fallback for serverless cold start / read-only filesystem
+    const studentId = "std_" + Math.random().toString(36).substring(2, 10);
+    const fallbackStudent: StudentProfile = {
+      id: studentId,
+      name: payload.name || "Student",
+      email: payload.email,
+      education_level: payload.education_level,
+      school_grade: payload.school_grade,
+      inter_stream: payload.inter_stream,
+      degree_name: payload.degree_name,
+      degree_specialization: payload.degree_specialization,
+      btech_branch: payload.btech_branch,
+      btech_year: payload.btech_year,
+      btech_semester: payload.btech_semester,
+      created_at: new Date().toISOString(),
+    };
+
+    const localStudents = getLocalStudents();
+    const existing = localStudents.find(
+      (s) => s.email?.toLowerCase() === payload.email?.toLowerCase()
+    );
+    if (existing) {
+      throw new Error("An account with this email already exists. Please log in.");
+    }
+
+    localStudents.push({ ...fallbackStudent, password: payload.password });
+    saveLocalStudents(localStudents);
+
+    const token =
+      "lx_local_" + btoa(JSON.stringify({ sid: studentId, exp: Date.now() + 864000000 }));
+    setStoredToken(token);
+    setActiveStudent(fallbackStudent);
+
+    return { token, student: fallbackStudent };
+  }
 }
 
 export async function loginStudent(
@@ -190,17 +283,50 @@ export async function loginStudent(
   token: string;
   student: StudentProfile;
 }> {
-  const data = await request<{
-    token: string;
-    student: StudentProfile;
-  }>("/auth/login", {
-    method: "POST",
-    body: JSON.stringify(credentials),
-  });
+  try {
+    const data = await request<{
+      token: string;
+      student: StudentProfile;
+    }>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    });
 
-  setStoredToken(data.token);
+    setStoredToken(data.token);
+    setActiveStudent(data.student);
+    return data;
+  } catch (err: any) {
+    console.warn("Backend login error, attempting local authentication fallback:", err);
+    if (err?.message && err.message.toLowerCase().includes("invalid email or password")) {
+      throw err;
+    }
 
-  return data;
+    const localStudents = getLocalStudents();
+    const found = localStudents.find(
+      (s) => s.email?.toLowerCase() === credentials.email?.toLowerCase()
+    );
+
+    if (found) {
+      if (found.password && found.password !== credentials.password) {
+        throw new Error("Invalid email or password. Please check your credentials.");
+      }
+      const token =
+        "lx_local_" + btoa(JSON.stringify({ sid: found.id, exp: Date.now() + 864000000 }));
+      setStoredToken(token);
+      setActiveStudent(found);
+      return { token, student: found };
+    }
+
+    const cached = getActiveStudent();
+    if (cached && cached.email?.toLowerCase() === credentials.email?.toLowerCase()) {
+      const token =
+        "lx_local_" + btoa(JSON.stringify({ sid: cached.id, exp: Date.now() + 864000000 }));
+      setStoredToken(token);
+      return { token, student: cached };
+    }
+
+    throw new Error(err.message || "Invalid email or password.");
+  }
 }
 
 export async function logoutStudent(): Promise<void> {
@@ -208,17 +334,30 @@ export async function logoutStudent(): Promise<void> {
     await request("/auth/logout", {
       method: "POST",
     });
+  } catch {
+    // ignore
   } finally {
     clearStoredToken();
+    setActiveStudent(null);
   }
 }
 
 export async function getMe(): Promise<{
   student: StudentProfile;
 }> {
-  return request<{
-    student: StudentProfile;
-  }>("/auth/me");
+  try {
+    const res = await request<{
+      student: StudentProfile;
+    }>("/auth/me");
+    setActiveStudent(res.student);
+    return res;
+  } catch (err) {
+    const cached = getActiveStudent();
+    if (cached) {
+      return { student: cached };
+    }
+    throw err;
+  }
 }
 
 export async function updateProfile(

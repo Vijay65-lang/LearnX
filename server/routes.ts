@@ -16,16 +16,50 @@ import {
 
 export const apiRouter = Router();
 
-// In-memory token-to-student session mapping
+// Session secret for stateless HMAC signed tokens across distributed serverless workers
+const AUTH_SECRET = process.env.JWT_SECRET || process.env.AUTH_SECRET || "learnx_mastery_session_secret_2026";
 const sessions = new Map<string, { studentId: string; expiresAt: number }>();
 
 function createSession(studentId: string): string {
-  const token = crypto.randomBytes(32).toString("hex");
-  sessions.set(token, {
-    studentId,
-    expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000 // 30 days
-  });
+  const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
+  const payload = JSON.stringify({ sid: studentId, exp: expiresAt });
+  const encoded = Buffer.from(payload).toString("base64url");
+  const sig = crypto.createHmac("sha256", AUTH_SECRET).update(encoded).digest("base64url");
+  const token = `${encoded}.${sig}`;
+
+  // Also retain in-memory for local environment
+  sessions.set(token, { studentId, expiresAt });
   return token;
+}
+
+function verifySessionToken(token: string): string | null {
+  if (!token) return null;
+
+  // 1. Try stateless HMAC token verification
+  const parts = token.split(".");
+  if (parts.length === 2) {
+    try {
+      const [encoded, sig] = parts;
+      const expectedSig = crypto.createHmac("sha256", AUTH_SECRET).update(encoded).digest("base64url");
+      if (crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig))) {
+        const payloadStr = Buffer.from(encoded, "base64url").toString("utf8");
+        const payload = JSON.parse(payloadStr);
+        if (payload?.sid && payload?.exp && payload.exp > Date.now()) {
+          return payload.sid;
+        }
+      }
+    } catch {
+      // Fall through to memory lookup
+    }
+  }
+
+  // 2. Try in-memory sessions lookup fallback
+  const session = sessions.get(token);
+  if (session && session.expiresAt > Date.now()) {
+    return session.studentId;
+  }
+
+  return null;
 }
 
 interface AuthRequest extends Request {
@@ -38,12 +72,11 @@ function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
     return res.status(401).json({ error: "Unauthorized: Please log in." });
   }
   const token = authHeader.substring(7);
-  const session = sessions.get(token);
-  if (!session || session.expiresAt < Date.now()) {
-    if (session) sessions.delete(token);
+  const studentId = verifySessionToken(token);
+  if (!studentId) {
     return res.status(401).json({ error: "Session expired or invalid. Please log in again." });
   }
-  req.studentId = session.studentId;
+  req.studentId = studentId;
   next();
 }
 

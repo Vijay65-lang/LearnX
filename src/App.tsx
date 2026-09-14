@@ -14,6 +14,7 @@ import { CoursesView } from "./components/CoursesView";
 import { ProgressView } from "./components/ProgressView";
 import { ProfileView } from "./components/ProfileView";
 import { CertificateModal } from "./components/CertificateModal";
+import { TeamManifestoModal } from "./components/TeamManifestoModal";
 
 export default function App() {
   const [student, setStudent] = useState<StudentProfile | null>(null);
@@ -25,6 +26,9 @@ export default function App() {
 
   // Active certificate to view in modal
   const [selectedCertificate, setSelectedCertificate] = useState<Certificate | null>(null);
+
+  // Team Manifesto Modal
+  const [showManifesto, setShowManifesto] = useState<boolean>(false);
 
   useEffect(() => {
     checkAuth();
@@ -89,6 +93,7 @@ export default function App() {
           setCurrentTab(tab);
         }}
         student={student}
+        onOpenManifesto={() => setShowManifesto(true)}
       />
 
       {/* Main View Container */}
@@ -135,6 +140,12 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Team LearnX Manifesto Modal */}
+      <TeamManifestoModal
+        isOpen={showManifesto}
+        onClose={() => setShowManifesto(false)}
+      />
 
       {/* Certificate Viewer Modal */}
       {selectedCertificate && (
