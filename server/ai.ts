@@ -4,7 +4,7 @@ let aiClient: GoogleGenAI | null = null;
 let cloudApiBlockedOrRestricted = false;
 
 // ============================================================================
-// OLLAMA & QWEN 2.5 OFFLINE AI ENGINE INTEGRATION
+// OLLAMA & LOCAL MODEL DETECTION
 // ============================================================================
 
 export async function checkOllamaStatus(endpoint: string = "http://localhost:11434"): Promise<{
@@ -48,7 +48,7 @@ export async function queryOllama(
       body: JSON.stringify({
         model: model || "qwen2.5:1.5b",
         prompt,
-        system: systemPrompt || "You are Qwen 2.5, an authoritative academic tutor for university students. Provide precise, step-by-step explanations.",
+        system: systemPrompt || "You are LearnX AI, a friendly, encouraging, and highly knowledgeable tutor like ChatGPT. Explain clearly with analogies, step-by-step logic, code/examples, and key takeaways.",
         stream: false,
       }),
       signal: controller.signal,
@@ -56,7 +56,7 @@ export async function queryOllama(
     clearTimeout(timeoutId);
     if (res.ok) {
       const data = await res.json();
-      if (data.response && typeof data.response === "string" && data.response.trim().length > 30) {
+      if (data.response && typeof data.response === "string" && data.response.trim().length > 20) {
         return data.response.trim();
       }
     }
@@ -76,7 +76,7 @@ function getAI(): GoogleGenAI | null {
         apiKey: process.env.GEMINI_API_KEY,
         httpOptions: {
           headers: {
-            'User-Agent': 'aistudio-build',
+            "User-Agent": "aistudio-build",
           },
         },
       });
@@ -89,6 +89,7 @@ function getAI(): GoogleGenAI | null {
 
 export interface QuestionAnalysis {
   is_unclear: boolean;
+  is_conversational?: boolean;
   clarification_question?: string;
   detected_subject: string;
   detected_topic: string;
@@ -102,6 +103,7 @@ export interface ExplanationResult {
   detected_topic: string;
   detected_concept: string;
   validation_passed: boolean;
+  is_conversational?: boolean;
   validation_notes?: string;
 }
 
@@ -121,7 +123,7 @@ export interface GeneratedMCQ {
 }
 
 // ============================================================================
-// ACADEMIC KNOWLEDGE BASE FOR ROBUST LOCAL PEDAGOGICAL REASONING
+// FRIENDLY ACADEMIC KNOWLEDGE BASE (CHATGPT-STYLE CLARITY & WARMTH)
 // ============================================================================
 
 interface ConceptMasteryEntry {
@@ -129,11 +131,11 @@ interface ConceptMasteryEntry {
   topic: string;
   concept: string;
   keywords: string[];
-  definition: string;
-  whyItMatters: string;
-  keyPrinciples: string[];
-  workedExample: string;
-  examTakeaways: string[];
+  plainEnglish: string;
+  analogy: string;
+  howItWorks: string[];
+  realWorldExample: string;
+  keyTakeaways: string[];
   mcq: {
     question: string;
     a: string;
@@ -142,382 +144,350 @@ interface ConceptMasteryEntry {
     d: string;
     correct: "A" | "B" | "C" | "D";
     explanation: string;
+    difficulty?: "Easy" | "Medium" | "Hard";
   };
+  mcqs?: Array<{
+    question: string;
+    a: string;
+    b: string;
+    c: string;
+    d: string;
+    correct: "A" | "B" | "C" | "D";
+    explanation: string;
+    difficulty?: "Easy" | "Medium" | "Hard";
+  }>;
 }
 
 const ACADEMIC_KNOWLEDGE_BASE: ConceptMasteryEntry[] = [
   {
-    subject: "Data Structures & Algorithms",
-    topic: "Searching Algorithms",
-    concept: "Binary Search",
-    keywords: ["binary search", "binary searching", "bsearch", "divide and conquer search", "logarithmic search", "sorted array search"],
-    definition: "Binary Search is an efficient algorithm for locating a target value within a strictly sorted array or collection by repeatedly halving the search interval.",
-    whyItMatters: "Unlike Linear Search which takes O(n) time, Binary Search eliminates half of the remaining elements at each step, operating in O(log n) logarithmic time. In a dataset of 1,000,000 items, Binary Search finds an element in at most 20 comparisons.",
-    keyPrinciples: [
-      "**Prerequisite**: The input array must be sorted in ascending or descending order.",
-      "**Two-Pointer Logic**: Maintain `low` and `high` pointers, calculating `mid = low + Math.floor((high - low) / 2)` to prevent 32-bit integer overflow.",
-      "**Comparison Conditions**: If `arr[mid] === target`, target is found. If `target < arr[mid]`, narrow search to left half (`high = mid - 1`). If `target > arr[mid]`, narrow search to right half (`low = mid + 1`).",
-      "**Termination**: Loop terminates when `low > high`, indicating the element does not exist in the collection."
-    ],
-    workedExample: "```ts\nfunction binarySearch(arr: number[], target: number): number {\n  let low = 0;\n  let high = arr.length - 1;\n\n  while (low <= high) {\n    const mid = low + Math.floor((high - low) / 2);\n    if (arr[mid] === target) return mid; // Found at index mid\n    if (arr[mid] < target) low = mid + 1; // Search right half\n    else high = mid - 1; // Search left half\n  }\n  return -1; // Not found\n}\n```",
-    examTakeaways: [
-      "Best-Case Time Complexity: O(1) (element is at the middle).",
-      "Average & Worst-Case Time Complexity: O(log n).",
-      "Space Complexity: O(1) for iterative; O(log n) call stack frames for recursive.",
-      "Can only be applied directly on random-access data structures (like arrays); not efficient on standard singly linked lists due to O(n) pointer traversal."
-    ],
-    mcq: {
-      question: "What is the worst-case time complexity of Binary Search on a sorted array of size n?",
-      a: "O(n)",
-      b: "O(log n)",
-      c: "O(n log n)",
-      d: "O(1)",
-      correct: "B",
-      explanation: "Binary Search divides the search space in half during each iteration, yielding a worst-case logarithmic time complexity of O(log n)."
-    }
-  },
-  {
-    subject: "Data Structures & Algorithms",
-    topic: "Sorting Algorithms",
-    concept: "QuickSort",
-    keywords: ["quicksort", "quick sort", "partition sort", "pivot sorting", "lomuto", "hoare partition"],
-    definition: "QuickSort is a highly efficient, in-place, divide-and-conquer sorting algorithm that partitions an array around a chosen pivot element.",
-    whyItMatters: "QuickSort has excellent cache locality, making it practically faster in CPU memory than MergeSort and HeapSort despite its theoretical O(n²) worst case.",
-    keyPrinciples: [
-      "**Pivot Selection**: Choose an element as pivot (first, last, random, or median-of-three).",
-      "**Partitioning**: Rearrange the array so elements smaller than the pivot appear before it, and elements greater appear after it.",
-      "**Recursive Divide & Conquer**: Recursively apply QuickSort to the left and right subarrays.",
-      "**In-Place Operation**: Does not require auxiliary array allocations like MergeSort."
-    ],
-    workedExample: "```ts\nfunction quickSort(arr: number[], low = 0, high = arr.length - 1): void {\n  if (low < high) {\n    const pIndex = partition(arr, low, high);\n    quickSort(arr, low, pIndex - 1);\n    quickSort(arr, pIndex + 1, high);\n  }\n}\n```",
-    examTakeaways: [
-      "Average Time Complexity: O(n log n).",
-      "Worst-Case Time Complexity: O(n²) (when pivot is consistently minimum or maximum, e.g. already sorted array with last element as pivot).",
-      "Space Complexity: O(log n) auxiliary stack space for average recursion.",
-      "QuickSort is an unstable sorting algorithm in its standard in-place implementation."
-    ],
-    mcq: {
-      question: "Under which condition does standard QuickSort exhibit its worst-case time complexity of O(n²)?",
-      a: "When all elements in the array are identical or already sorted and the extreme element is always chosen as pivot",
-      b: "When the array length is an exact power of two",
-      c: "When the pivot is selected via median-of-three sampling",
-      d: "When the array contains exclusively negative numbers",
-      correct: "A",
-      explanation: "If the chosen pivot repeatedly partitions the array into subproblems of size 0 and n-1 (as occurs with already sorted data and naive pivot choice), recursion depth becomes n, degrading performance to O(n²)."
-    }
-  },
-  {
-    subject: "Operating Systems",
-    topic: "Process Synchronization & Concurrency",
-    concept: "Deadlock",
-    keywords: ["deadlock", "deadlocks", "coffman conditions", "banker algorithm", "circular wait", "deadlock prevention"],
-    definition: "A deadlock is a system state where a set of concurrent processes are permanently blocked because each process holds a resource and waits for another resource held by another process in the set.",
-    whyItMatters: "Deadlocks freeze critical system threads, halt transactional pipelines, and cause resource exhaustion without generating explicit CPU exceptions.",
-    keyPrinciples: [
-      "**The 4 Coffman Conditions (All must hold simultaneously for a deadlock to exist)**:",
-      "1. **Mutual Exclusion**: At least one resource must be held in a non-shareable mode.",
-      "2. **Hold and Wait**: A process must currently hold at least one resource and request additional resources held by other processes.",
-      "3. **No Preemption**: Resources cannot be forcibly seized from a process; they must be released voluntarily.",
-      "4. **Circular Wait**: A closed loop of processes exists, where P0 waits for P1, P1 waits for P2, ..., and Pn waits for P0.",
-      "**Handling Strategies**: Prevention (negate one Coffman condition), Avoidance (Banker's Algorithm using safe states), Detection & Recovery (resource allocation graphs, killing processes), or Ignorance (Ostrich Algorithm)."
-    ],
-    workedExample: "**Deadlock Scenario**:\n- Process A acquires Resource R1 and requests Resource R2.\n- Process B acquires Resource R2 and requests Resource R1.\n- Neither process can make forward progress, causing a permanent circular wait deadlock.",
-    examTakeaways: [
-      "Resource Allocation Graph (RAG): A cycle in a RAG is a necessary and sufficient condition for deadlock if all resources have single instances.",
-      "Banker's Algorithm: Tests whether resource requests leave the system in a 'Safe State' with a valid safe sequence.",
-      "Deadlock Prevention operates by structurally eliminating at least one of the 4 Coffman conditions before execution."
-    ],
-    mcq: {
-      question: "Which of the following is NOT one of the four necessary Coffman conditions for a deadlock to occur?",
-      a: "Mutual Exclusion",
-      b: "Hold and Wait",
-      c: "Preemptive Priority Scheduling",
-      d: "Circular Wait",
-      correct: "C",
-      explanation: "The four Coffman conditions are Mutual Exclusion, Hold and Wait, No Preemption, and Circular Wait. Preemption actually breaks deadlocks rather than causing them."
-    }
-  },
-  {
-    subject: "Database Management Systems",
-    topic: "Transaction Processing",
-    concept: "ACID Properties",
-    keywords: ["acid", "acid properties", "atomicity", "consistency", "isolation", "durability", "transactions", "rdbms transactions"],
-    definition: "ACID is a set of four fundamental properties (Atomicity, Consistency, Isolation, Durability) that guarantee database transactions are processed reliably in relational database management systems.",
-    whyItMatters: "ACID properties prevent financial inconsistencies, double-spending, data corruption from power failures, and concurrency race conditions in production database systems.",
-    keyPrinciples: [
-      "**Atomicity (All or Nothing)**: A transaction must execute completely or have all its effects completely rolled back. Managed by database Undo Logs / Write-Ahead Logging (WAL).",
-      "**Consistency (Valid State)**: The transaction must transform the database from one valid state to another, satisfying all schema constraints, foreign keys, and business rules.",
-      "**Isolation (Independent Concurrency)**: Concurrently executing transactions must execute as if they were running serially without interfering with each other. Governed by transaction isolation levels (Read Uncommitted, Read Committed, Repeatable Read, Serializable).",
-      "**Durability (Permanent Changes)**: Once a transaction commits, its modifications persist permanently, surviving any subsequent hardware crash or power loss. Managed by Redo Logs."
-    ],
-    workedExample: "**Bank Transfer Example**:\nTransferring $500 from Account A to Account B requires two operations: `UPDATE balances SET bal = bal - 500 WHERE id = 'A'` and `UPDATE balances SET bal = bal + 500 WHERE id = 'B'`. If a system crash occurs between the two queries, Atomicity ensures the first update is rolled back, preventing money from vanishing into thin air.",
-    examTakeaways: [
-      "Atomicity & Durability are guaranteed by the DBMS Recovery Subsystem (WAL/Logs).",
-      "Isolation is managed by the Concurrency Control Subsystem (Locks, Two-Phase Locking, MVCC).",
-      "Consistency is maintained collectively by application code and DBMS constraint enforcement."
-    ],
-    mcq: {
-      question: "Which component of the ACID properties guarantees that once a transaction commits, its recorded changes will not be lost even in the event of a system crash?",
-      a: "Atomicity",
-      b: "Consistency",
-      c: "Isolation",
-      d: "Durability",
-      correct: "D",
-      explanation: "Durability guarantees that committed modifications survive power failures, system crashes, or hardware reboots through non-volatile redo write-ahead logging."
-    }
-  },
-  {
-    subject: "Computer Networks",
-    topic: "Network Architecture & Reference Models",
-    concept: "OSI Model",
-    keywords: ["osi model", "osi 7 layers", "open systems interconnection", "layers of network", "application transport network link"],
-    definition: "The Open Systems Interconnection (OSI) model is a conceptual 7-layer framework developed by ISO to standardize telecommunication and computer network protocols.",
-    whyItMatters: "By modularizing network communication into 7 distinct layers, engineers can develop protocols independently at each layer (e.g., upgrading Wi-Fi to 5G without changing HTTP).",
-    keyPrinciples: [
-      "**Layer 7 - Application**: User interface & network applications (HTTP, DNS, SMTP, FTP).",
-      "**Layer 6 - Presentation**: Data translation, encryption, decryption, and compression (SSL/TLS, ASCII, JPEG).",
-      "**Layer 5 - Session**: Establishing, managing, and terminating communication sessions between applications (RPC, NetBIOS).",
-      "**Layer 4 - Transport**: End-to-end communication, segmentation, flow control, and error recovery (TCP, UDP). Data unit: Segment / Datagram.",
-      "**Layer 3 - Network**: Logical addressing, packet forwarding, and path routing across networks (IP, ICMP, OSPF, BGP). Data unit: Packet.",
-      "**Layer 2 - Data Link**: Physical node-to-node framing, MAC addressing, error detection via CRC (Ethernet, Wi-Fi, Switches). Data unit: Frame.",
-      "**Layer 1 - Physical**: Raw transmission of unstructured bit streams over physical media (Cables, Fiber optics, Radio frequencies). Data unit: Bit."
-    ],
-    workedExample: "**Encapsulation Flow (Top to Bottom)**:\nData (App) → Encrypted (Presentation) → Session Managed → Segmented with TCP Ports (Transport) → Packet with IP Addresses (Network) → Frame with MAC Addresses (Data Link) → Bits on wire (Physical).",
-    examTakeaways: [
-      "Mnemonic from Layer 7 to 1: 'All People Seem To Need Data Processing'.",
-      "Mnemonic from Layer 1 to 7: 'Please Do Not Throw Sausage Pizza Away'.",
-      "Switches operate at Layer 2 (Data Link); Routers operate at Layer 3 (Network)."
-    ],
-    mcq: {
-      question: "At which layer of the OSI model does logical IP routing and packet forwarding occur?",
-      a: "Data Link Layer (Layer 2)",
-      b: "Network Layer (Layer 3)",
-      c: "Transport Layer (Layer 4)",
-      d: "Session Layer (Layer 5)",
-      correct: "B",
-      explanation: "Layer 3 (The Network Layer) is responsible for logical addressing (IP addresses), path determination, packet creation, and inter-network routing."
-    }
-  },
-  {
-    subject: "Physics",
-    topic: "Classical Mechanics",
-    concept: "Newton's Laws of Motion",
-    keywords: ["newton's laws", "newton laws", "first law of motion", "second law of motion", "third law of motion", "inertia", "f=ma", "action reaction"],
-    definition: "Newton's Laws of Motion are three fundamental physical laws that describe the relationship between the motion of an object and the external forces acting upon it.",
-    whyItMatters: "These laws form the cornerstone of classical mechanics, enabling the mathematical modeling of everything from automotive braking systems to orbital trajectories of spacecraft.",
-    keyPrinciples: [
-      "**First Law (Law of Inertia)**: An object remains at rest or in uniform motion along a straight line unless acted upon by a non-zero net external force (ΣF = 0 implies a = 0).",
-      "**Second Law (Law of Force & Acceleration)**: The rate of change of momentum of a body is directly proportional to the applied force. For constant mass: F_net = m · a.",
-      "**Third Law (Action and Reaction)**: When object A exerts a force on object B, object B simultaneously exerts an equal and opposite force on object A (F_AB = -F_BA).",
-      "**Key Note on Third Law**: Action and reaction forces act on *different* bodies; therefore, they do not cancel each other out."
-    ],
-    workedExample: "**Calculated Example**:\nA car of mass m = 1200 kg accelerates from rest to 20 m/s in 5 seconds. Acceleration a = Δv / Δt = 20 / 5 = 4 m/s². The net force required according to Newton's Second Law is F = m · a = 1200 kg · 4 m/s² = 4800 N.",
-    examTakeaways: [
-      "Inertia is directly proportional to the mass of the object.",
-      "Newton's Second Law defines force dynamically: F = dp/dt = d(mv)/dt.",
-      "Newton's Third Law forces are always equal in magnitude, opposite in direction, simultaneous, and act on two distinct entities."
-    ],
-    mcq: {
-      question: "According to Newton's Third Law, if a book rests motionless upon a horizontal table, what is the reaction pair to the gravitational force exerted by the Earth on the book?",
-      a: "The normal contact force exerted upward by the table on the book",
-      b: "The gravitational force exerted upward by the book on the Earth",
-      c: "The friction force between the book cover and the table surface",
-      d: "The atmospheric pressure pressing down on the book",
-      correct: "B",
-      explanation: "Action-reaction pairs must share the same physical nature and act between the same two interacting bodies. Since Earth pulls down on the book with gravity, the reaction pair is the book pulling up on the Earth with equal gravitational force."
-    }
-  },
-  {
-    subject: "Mathematics",
-    topic: "Calculus",
-    concept: "Derivative & Chain Rule",
-    keywords: ["derivative", "derivatives", "chain rule", "differentiation", "rate of change", "calculus derivatives"],
-    definition: "The derivative represents the instantaneous rate of change of a function with respect to an independent variable. The Chain Rule provides the method for differentiating composite functions: d/dx [f(g(x))] = f'(g(x)) · g'(x).",
-    whyItMatters: "Derivatives govern gradient descent in machine learning neural networks, kinematic velocity/acceleration calculations in physics, and marginal revenue optimization in economics.",
-    keyPrinciples: [
-      "**Limit Definition**: f'(x) = lim_{h -> 0} [f(x + h) - f(x)] / h.",
-      "**Power Rule**: d/dx [x^n] = n · x^(n-1).",
-      "**Product Rule**: d/dx [u · v] = u'v + uv'.",
-      "**Quotient Rule**: d/dx [u / v] = (u'v - uv') / v².",
-      "**Chain Rule (Composite Functions)**: If y = f(u) and u = g(x), then dy/dx = (dy/du) · (du/dx)."
-    ],
-    workedExample: "**Chain Rule Example**:\nDifferentiate y = (3x² + 5)^4.\n1. Identify outer function: f(u) = u^4, where u = 3x² + 5.\n2. Differentiate outer: dy/du = 4u^3 = 4(3x² + 5)^3.\n3. Differentiate inner: du/dx = 6x.\n4. Multiply via Chain Rule: dy/dx = 4(3x² + 5)^3 · (6x) = 24x(3x² + 5)^3.",
-    examTakeaways: [
-      "Geometric interpretation: The derivative at point x = a equals the slope of the tangent line to the curve at that point.",
-      "Differentiability implies continuity, but continuity does NOT imply differentiability (e.g., f(x) = |x| at x = 0).",
-      "Critical points occur where f'(x) = 0 or f'(x) is undefined."
-    ],
-    mcq: {
-      question: "What is the derivative of the composite function f(x) = sin(2x) with respect to x?",
-      a: "cos(2x)",
-      b: "2 · cos(2x)",
-      c: "-2 · cos(2x)",
-      d: "2 · sin(x)",
-      correct: "B",
-      explanation: "By the Chain Rule: d/dx [sin(u)] = cos(u) · (du/dx). With u = 2x and du/dx = 2, the derivative is 2 · cos(2x)."
-    }
-  },
-  {
     subject: "Theory of Computation & Compiler Design",
     topic: "Formal Grammars & Automata",
     concept: "Context-Free Grammar (CFG)",
-    keywords: [
-      "context free grammar",
-      "cfg",
-      "context-free grammar",
-      "context free language",
-      "cfl",
-      "pushdown automata",
-      "pda",
-      "chomsky hierarchy",
-      "production rules",
-      "type-2 grammar",
-      "type 2 grammar"
+    keywords: ["context free grammar", "cfg", "context-free grammar", "cfl", "pushdown automata", "pda", "chomsky", "type-2 grammar"],
+    plainEnglish: "Think of how grammar works in human languages: you have rules like `Sentence → Subject + Verb + Object`. A **Context-Free Grammar (CFG)** is the exact same idea, but designed for programming languages and mathematical expressions! It is a set of formal recursive rules that generates all grammatically valid strings in a language.",
+    analogy: "It's called **'context-free'** because each rule replaces a single symbol without caring about what words or characters come before or after it. It's like replacing the word `[Fruit]` with `Apple` in a recipe—it doesn't matter if it says 'red [Fruit]' or 'fresh [Fruit]', the substitution rule works anywhere in any context!",
+    howItWorks: [
+      "**Mathematically defined as a 4-Tuple $G = (V, \\Sigma, R, S)$**:",
+      "1. **$V$ (Variables / Non-Terminals)**: Syntactic placeholders that can be expanded (e.g., $E, T, F$).",
+      "2. **$\\Sigma$ (Terminals / Alphabet)**: The actual final tokens/characters (e.g., `+`, `*`, `(`, `)`, `id`). Terminals can never appear on the left-hand side of a rule.",
+      "3. **$R$ (Production Rules)**: Substitution rules strictly of the form $A \\to \\alpha$, where $A \\in V$ (exactly one variable) and $\\alpha \\in (V \\cup \\Sigma)^*$ (any sequence of variables and terminals).",
+      "4. **$S$ (Start Symbol)**: The special variable $S \\in V$ where all derivations begin."
     ],
-    definition: "A Context-Free Grammar (CFG) is a formal grammar defined mathematically as a 4-tuple G = (V, Σ, R, S) where production rules are strictly of the form A → α, with A being a single non-terminal variable (A ∈ V) and α being a string of terminals and non-terminals (α ∈ (V ∪ Σ)*).",
-    whyItMatters: "CFGs are the mathematical backbone of programming language design and compiler syntax analysis. Compilers (e.g., GCC, Clang, Python, Java) use CFG specifications to parse source code tokens into Abstract Syntax Trees (ASTs) and check for syntax errors.",
-    keyPrinciples: [
-      "**The 4-Tuple Components**: G = (V, Σ, R, S) where V is the set of Non-Terminals (Variables), Σ is the set of Terminals (Alphabet, V ∩ Σ = ∅), R is the set of Production Rules, and S is the Start Symbol (S ∈ V).",
-      "**The 'Context-Free' Property**: The Left-Hand Side (LHS) of every production rule must contain *exactly one* variable (|A| = 1). The replacement of A by α does not depend on any symbols to the left or right of A (unlike Context-Sensitive Grammars).",
-      "**Chomsky Hierarchy Classification**: CFGs generate Context-Free Languages (CFLs), which form Type-2 in Noam Chomsky's hierarchy. They strictly subsume Regular Languages (Type-3) and are a subset of Context-Sensitive Languages (Type-1).",
-      "**Automaton Acceptance**: The computational machine that recognizes Context-Free Languages is the Non-deterministic Pushdown Automaton (NPDA), which extends a finite automaton with an auxiliary Last-In First-Out (LIFO) stack memory.",
-      "**Ambiguity**: A CFG is ambiguous if there exists at least one string in its language that has two or more distinct leftmost derivations (or distinct parse trees). In programming languages, ambiguity leads to semantic uncertainty (e.g., the 'dangling else' problem) and must be eliminated."
-    ],
-    workedExample: "### 1. Balanced Parentheses Grammar:\n```text\nV = { S }\nΣ = { (, ) }\nRules: S → (S) | SS | ε\n```\n*Derivation for string `(())`:*\n`S ⇒ (S) ⇒ ((S)) ⇒ (())` (using S → ε).\n\n### 2. Standard Arithmetic Expression Grammar:\n```text\nE → E + T | T\nT → T * F | F\nF → (E) | id\n```\n*This classic CFG correctly enforces operator precedence (* before +) and associativity without ambiguity!*",
-    examTakeaways: [
-      "**Production Rule Constraint**: Every rule MUST be A → α where A ∈ V and α ∈ (V ∪ Σ)*. There can never be terminals or multiple variables on the LHS.",
-      "**Normal Forms**: Chomsky Normal Form (CNF) requires rules of type A → BC or A → a. Greibach Normal Form (GNF) requires rules of type A → aα.",
-      "**Closure Properties**: CFLs are closed under Union, Concatenation, and Kleene Star. CFLs are **NOT** closed under Intersection or Complement!",
-      "**Undecidable Problems**: Determining whether an arbitrary CFG is ambiguous, or whether L(G1) = L(G2), is mathematically undecidable."
+    realWorldExample: "### Real-World Example: Balanced Parentheses Grammar\n```text\nVariables: V = { S }\nTerminals: Σ = { (, ) }\nRules:     S → (S) | SS | ε   (where ε is the empty string)\n```\nTo generate `(())`:\n1. Start with `S`\n2. Apply rule `S → (S)`: gives `(S)`\n3. Apply rule `S → (S)` inside: gives `((S))`\n4. Replace `S` with `ε`: gives `(())` ✨\n\nCompilers (like in Python, C++, and JavaScript) use CFGs to make sure your brackets and syntax are valid before running your code!",
+    keyTakeaways: [
+      "**Chomsky Hierarchy**: CFGs are **Type-2** grammars. They are more expressive than Regular Grammars (Type-3) and a subset of Context-Sensitive Grammars (Type-1).",
+      "**Machine Equivalence**: The computational machine that recognizes Context-Free Languages is the **Pushdown Automaton (PDA)**, which has a Last-In First-Out (LIFO) stack.",
+      "**The Golden Rule**: The left side of every rule must contain **exactly one variable** ($A \\to \\alpha$).",
+      "**Closure Properties**: Closed under Union, Concatenation, and Kleene Star. Not closed under Intersection or Complement."
     ],
     mcq: {
-      question: "In Theory of Computation, what is the defining structural constraint on a production rule A → α in a Context-Free Grammar (CFG)?",
+      question: "What is the defining structural constraint on every production rule A → α in a Context-Free Grammar (CFG)?",
       a: "The left-hand side A must consist of exactly one non-terminal variable",
       b: "The right-hand side α cannot contain any terminal symbols",
       c: "The left-hand side must contain at least one terminal and one non-terminal",
       d: "The length of α on the right-hand side must be strictly greater than 2",
       correct: "A",
-      explanation: "In a Context-Free Grammar (Type-2), every production rule must have the form A → α, where A is a single non-terminal variable (A ∈ V) and α is any string of terminals and non-terminals. Because no contextual symbols surround A on the left side, it is called 'context-free'."
+      explanation: "In a Context-Free Grammar (Type-2), every production rule must have the form A → α, where A is a single non-terminal variable (A ∈ V). Because no surrounding symbols constrain A on the left, it is called 'context-free'."
     }
   },
   {
     subject: "Theory of Computation & Automata",
     topic: "Finite Automata",
     concept: "DFA vs NFA",
-    keywords: [
-      "dfa vs nfa",
-      "deterministic finite automaton",
-      "non-deterministic finite automaton",
-      "finite automata",
-      "dfa",
-      "nfa",
-      "regular language",
-      "epsilon transition"
+    keywords: ["dfa vs nfa", "deterministic finite automaton", "nfa", "dfa", "finite automata", "epsilon transition"],
+    plainEnglish: "Both **DFA** (Deterministic Finite Automaton) and **NFA** (Non-Deterministic Finite Automaton) are abstract state machines used to recognize patterns and regular languages (like regex search in text editors). The big difference is how they make decisions!",
+    analogy: "Think of a **DFA** like following a strict GPS navigation route—at every intersection, there is exactly one sign directing you where to turn. An **NFA** is like exploring a maze with clones—whenever there is a fork in the road or multiple paths, you can conceptually split and explore all choices simultaneously!",
+    howItWorks: [
+      "**DFA (Deterministic)**: For every state and input character, there is **exactly one** next state $(\\delta: Q \\times \\Sigma \\to Q)$. No guessing, no empty $(\\epsilon)$ jumps.",
+      "**NFA (Non-Deterministic)**: For a state and input character, there can be **zero, one, or multiple** next states $(\\delta: Q \\times (\\Sigma \\cup \\{\\epsilon\\}) \\to 2^Q)$. It can also transition on $\\epsilon$ without reading any character.",
+      "**Acceptance**: A DFA accepts if it ends in an accepting state. An NFA accepts if *at least one* of its possible computational paths reaches an accepting state.",
+      "**Equivalence**: Amazingly, DFAs and NFAs have the **exact same computational power**! Any language accepted by an NFA can also be accepted by a DFA via the **Subset Construction** algorithm."
     ],
-    definition: "A Deterministic Finite Automaton (DFA) has exactly one unique transition for each state and input symbol (δ: Q × Σ → Q). A Non-deterministic Finite Automaton (NFA) allows zero, one, or multiple transitions per symbol, including empty ε-transitions (δ: Q × (Σ ∪ {ε}) → 2^Q).",
-    whyItMatters: "Both models are computationally equivalent in expressive power and recognize exactly the class of Regular Languages. NFAs are easier to design for complex regexes, while DFAs execute in predictable O(n) time during lexical analysis in compilers.",
-    keyPrinciples: [
-      "**Transition Functions**: DFA transition is δ: Q × Σ → Q; NFA transition is δ: Q × (Σ ∪ {ε}) → 2^Q (power set of states).",
-      "**Equivalence of Power**: For every NFA with k states, there exists an equivalent DFA with at most 2^k states (Subset Construction / Powerset Algorithm).",
-      "**Backtracking**: DFAs require no backtracking or stack; NFAs conceptually explore multiple execution branches in parallel.",
-      "**Empty Transitions**: NFAs can transition spontaneously on ε without consuming any input character; DFAs cannot."
-    ],
-    workedExample: "Converting an NFA for `(a|b)*abb` into a DFA requires computing the ε-closure of subsets of states. If the NFA has states {q0, q1, q2, q3}, the equivalent DFA states correspond to subsets of {q0, q1, q2, q3}.",
-    examTakeaways: [
-      "Both DFA and NFA recognize precisely Type-3 Regular Languages.",
-      "Subset Construction worst-case state explosion: an NFA with n states can produce a DFA with up to 2^n states.",
-      "Lexer tools (e.g., Lex/Flex) convert Regex → NFA (via Thompson's Construction) → DFA (via Subset Construction) → Minimized DFA (via Hopcroft's Algorithm)."
+    realWorldExample: "When you write a regex like `(a|b)*abb`, it is very easy to draw as an NFA. Compilers (like Lex/Flex) first convert your regex to an NFA, convert the NFA to an equivalent DFA, minimize the DFA, and then run it in lightning-fast $O(n)$ time!",
+    keyTakeaways: [
+      "Both DFA and NFA recognize **Type-3 (Regular Languages)**.",
+      "An NFA with $n$ states can produce an equivalent DFA with up to $2^n$ states in the worst case (state explosion).",
+      "DFAs are faster to run ($O(n)$ time, no backtracking); NFAs are simpler and more compact to design."
     ],
     mcq: {
-      question: "What is the theoretical relationship between the language recognition power of Deterministic Finite Automata (DFA) and Non-deterministic Finite Automata (NFA)?",
-      a: "DFA and NFA have identical expressive power and both recognize exactly the class of Regular Languages",
-      b: "NFA can recognize Context-Free Languages, while DFA can only recognize Regular Languages",
-      c: "DFA is strictly more powerful than NFA because it has deterministic state transitions",
-      d: "NFA requires auxiliary stack memory to simulate DFA execution",
+      question: "Which of the following statements comparing DFA and NFA is TRUE?",
+      a: "DFA and NFA have the exact same expressive power and both recognize Regular Languages",
+      b: "NFA can recognize Context-Free Languages that a DFA cannot",
+      c: "A DFA allows spontaneous transitions on empty string ε",
+      d: "Every DFA requires strictly more states than any equivalent NFA"
+    ,
       correct: "A",
-      explanation: "By the Subset Construction (Powerset) Theorem, any NFA can be converted into an equivalent DFA that accepts the exact same language. Thus, DFA and NFA have identical expressive power (Regular Languages)."
+      explanation: "Via the Powerset (Subset) Construction, every NFA can be converted into an equivalent DFA. Thus, DFA and NFA possess identical computational power and recognize exactly the class of Regular Languages."
     }
   },
   {
     subject: "Operating Systems",
     topic: "CPU Scheduling",
     concept: "Round Robin Scheduling",
-    keywords: [
-      "round robin",
-      "cpu scheduling",
-      "time quantum",
-      "preemptive scheduling",
-      "turnaround time",
-      "context switch"
+    keywords: ["round robin", "cpu scheduling", "time quantum", "preemptive scheduling", "ready queue", "turnaround time"],
+    plainEnglish: "**Round Robin (RR)** is one of the most widely used CPU scheduling algorithms in modern operating systems. It is designed to be fair and responsive, ensuring that every running program gets a turn on the CPU without any single program hogging all resources.",
+    analogy: "Think of Round Robin like sharing a gaming console with your friends using a 10-minute timer. Player 1 plays for 10 minutes. When the timer rings, Player 1 moves to the back of the line, and Player 2 takes their turn for 10 minutes. Nobody starves, and everyone gets regular turns!",
+    howItWorks: [
+      "**Preemptive Algorithm**: The OS sets a fixed slice of CPU time called a **Time Quantum** (typically 10ms to 100ms).",
+      "**Circular Ready Queue**: Processes wait in a FIFO queue. The CPU takes the first process and lets it run.",
+      "**Time Expiration**: If the process doesn't finish within the time quantum, an interrupt triggers, the CPU context-switches, and the process is sent to the back of the queue.",
+      "**Fairness**: Prevents starvation completely. Every process gets $1/n$-th of the CPU in chunks of at most $q$ time units."
     ],
-    definition: "Round Robin (RR) is a preemptive CPU scheduling algorithm designed specifically for time-sharing systems, where each process in a circular ready queue is allocated a fixed slice of CPU time known as a Time Quantum.",
-    whyItMatters: "Round Robin prevents process starvation and provides excellent interactive response time in modern multitasking operating systems like Linux and Windows.",
-    keyPrinciples: [
-      "**Fixed Time Quantum (q)**: Each ready process executes for up to q time units before being preempted and moved to the back of the ready queue.",
-      "**Starvation-Free**: Every process in a queue of n processes waits at most (n - 1) × q time units for its next turn on the CPU.",
-      "**Impact of Time Quantum**: If q is extremely large, RR degrades into First-Come First-Served (FCFS). If q is extremely small, excessive context switching overhead severely reduces CPU throughput.",
-      "**Fair Allocation**: Guarantees equal distribution of CPU time among active runnable threads."
-    ],
-    workedExample: "Processes P1 (burst=5), P2 (burst=3), P3 (burst=2) arrive at time 0 with Quantum q = 2:\n- 0 to 2: P1 runs (remaining: 3)\n- 2 to 4: P2 runs (remaining: 1)\n- 4 to 6: P3 runs (finishes at 6!)\n- 6 to 8: P1 runs (remaining: 1)\n- 8 to 9: P2 runs (finishes at 9!)\n- 9 to 10: P1 runs (finishes at 10!)",
-    examTakeaways: [
-      "Round Robin is strictly preemptive.",
-      "Performance heavily depends on selecting a time quantum such that 80% of CPU bursts are shorter than q.",
-      "Context switch overhead must be kept under 1% of the quantum duration."
+    realWorldExample: "If you have 3 apps open (Browser with 10ms burst, Music with 4ms burst, Code Editor with 6ms burst) and a time quantum $q = 5\\text{ms}$:\n- Browser runs for 5ms (5ms remaining) → moves to back\n- Music runs for 4ms (finishes!) ✨\n- Editor runs for 5ms (1ms remaining) → moves to back\n- Browser runs its remaining 5ms (finishes!) ✨\n- Editor runs its remaining 1ms (finishes!) ✨",
+    keyTakeaways: [
+      "If the Time Quantum $q$ is **very large**, Round Robin degenerates into **First-Come First-Served (FCFS)**.",
+      "If the Time Quantum $q$ is **too small**, the CPU spends too much time on context switching overhead rather than doing useful work.",
+      "Rule of thumb: 80% of CPU bursts should be shorter than the time quantum."
     ],
     mcq: {
-      question: "In CPU scheduling, what happens if the time quantum in a Round Robin algorithm is configured to be arbitrarily large?",
+      question: "What happens if the time quantum in a Round Robin CPU scheduling algorithm is set extremely large?",
       a: "The algorithm behaves identically to First-Come First-Served (FCFS)",
-      b: "The system encounters severe processor thrashing and deadlock",
-      c: "The algorithm becomes Shortest Job First (SJF)",
-      d: "Average response time drops to zero",
+      b: "The system experiences severe CPU context-switching overhead",
+      c: "The algorithm behaves as Shortest Job First (SJF)",
+      d: "Processes suffer from complete starvation",
       correct: "A",
-      explanation: "When the time quantum is larger than the burst time of every process in the queue, no process is preempted before completion. Therefore, processes execute to completion in arrival order, degenerating into FCFS."
+      explanation: "If the time quantum is larger than the burst time of any process, each process finishes in its very first turn without being preempted, effectively turning Round Robin into FCFS."
     }
   },
   {
     subject: "Database Management Systems",
     topic: "Relational Database Design",
     concept: "Database Normalization (1NF, 2NF, 3NF, BCNF)",
-    keywords: [
-      "normalization",
-      "1nf",
-      "2nf",
-      "3nf",
-      "bcnf",
-      "functional dependency",
-      "database normalization",
-      "transitive dependency",
-      "partial dependency"
+    keywords: ["normalization", "1nf", "2nf", "3nf", "bcnf", "database normalization", "functional dependency", "database anomalies"],
+    plainEnglish: "**Database Normalization** is the process of organizing data in a relational database to eliminate messy redundancy (duplicate data) and prevent unwanted bugs called insertion, update, and deletion anomalies.",
+    analogy: "Imagine storing a student's address, phone number, college name, and college principal's name in every single course enrollment row. If the college changes its principal, you would have to update 10,000 rows! If you miss one, your database is corrupted. Normalization splits this into clean tables (`Students`, `Courses`, `Colleges`) linked together logically.",
+    howItWorks: [
+      "**1NF (First Normal Form)**: Eliminate repeating groups. Every column must contain only **atomic (indivisible) values**, and each row must be unique (Primary Key).",
+      "**2NF (Second Normal Form)**: Must be in 1NF AND have **no partial functional dependencies**. Every non-key column must depend on the *entire* primary key, not just a part of a composite key.",
+      "**3NF (Third Normal Form)**: Must be in 2NF AND have **no transitive dependencies**. Non-key attributes must depend directly on the primary key, not through another non-key attribute (*'Every attribute depends on the key, the whole key, and nothing but the key'*).",
+      "**BCNF (Boyce-Codd Normal Form)**: A stricter version of 3NF. For every non-trivial functional dependency $X \\to Y$, $X$ must be a **Super Key**."
     ],
-    definition: "Database Normalization is the systematic process of organizing relational database schemas to minimize data redundancy and eliminate update, insertion, and deletion anomalies through functional dependencies.",
-    whyItMatters: "Without normalization, redundant attributes waste disk space and lead to inconsistent states when records are updated. Normalized schemas ensure data integrity and clean relational design.",
-    keyPrinciples: [
-      "**First Normal Form (1NF)**: All attributes must be atomic (indivisible single values); no repeating groups or arrays allowed.",
-      "**Second Normal Form (2NF)**: Must be in 1NF AND contain no Partial Functional Dependencies (every non-prime attribute must depend on the *entire* candidate key, not a proper subset of it).",
-      "**Third Normal Form (3NF)**: Must be in 2NF AND contain no Transitive Dependencies (non-prime attributes cannot depend on other non-prime attributes; for every X → Y, X is a superkey or Y is prime).",
-      "**Boyce-Codd Normal Form (BCNF)**: A stricter version of 3NF where for every functional dependency X → Y, X must be a Superkey."
-    ],
-    workedExample: "Consider `StudentCourse(StudentID, CourseID, Instructor, InstructorOffice)`:\n- Candidate Key: `(StudentID, CourseID)`.\n- Functional Dependency: `Instructor → InstructorOffice`.\n- Since `Instructor` is not a candidate key and `InstructorOffice` is non-prime, this violates 3NF (transitive dependency).\n- Decompose into: `StudentCourse(StudentID, CourseID, Instructor)` and `InstructorInfo(Instructor, InstructorOffice)`.",
-    examTakeaways: [
-      "1NF: Atomic values only.",
-      "2NF: Eliminate partial dependencies on composite keys.",
-      "3NF: Eliminate transitive dependencies between non-key attributes.",
-      "BCNF: Every determinant must be a candidate key.",
-      "3NF always guarantees lossless join and dependency preservation; BCNF guarantees lossless join but may not always preserve dependencies."
+    realWorldExample: "A table `Orders(OrderID, ProductID, ProductName, SupplierPhone)`:\n- `ProductName` depends only on `ProductID`, not `OrderID` (violates 2NF!).\n- Solution: Split into `OrderItems(OrderID, ProductID)` and `Products(ProductID, ProductName, SupplierID)`.",
+    keyTakeaways: [
+      "Higher normal forms minimize redundancy and prevent data anomalies.",
+      "Trade-off: Highly normalized databases require more table `JOIN`s, which can slow down read-heavy queries. In big data analytics, databases are sometimes intentionally 'denormalized' for speed."
     ],
     mcq: {
-      question: "Which normal form requires the schema to be in 1NF and guarantees that no non-prime attribute is partially dependent on any candidate key of the relation?",
-      a: "Second Normal Form (2NF)",
-      b: "Third Normal Form (3NF)",
-      c: "Boyce-Codd Normal Form (BCNF)",
-      d: "Fourth Normal Form (4NF)",
+      question: "Which normal form specifically requires eliminating transitive dependencies between non-prime attributes?",
+      a: "1NF",
+      b: "2NF",
+      c: "3NF",
+      d: "BCNF",
+      correct: "C",
+      explanation: "Third Normal Form (3NF) requires that a table is in 2NF and has no transitive dependencies (i.e., non-prime attributes must not determine other non-prime attributes)."
+    }
+  },
+  {
+    subject: "Operating Systems",
+    topic: "Process Synchronization & Concurrency",
+    concept: "Deadlock & Prevention",
+    keywords: ["deadlock", "coffman conditions", "banker's algorithm", "mutual exclusion", "circular wait", "resource allocation graph"],
+    plainEnglish: "A **Deadlock** is a situation in computing where two or more processes are permanently stuck because each is waiting for a resource that the other process holds.",
+    analogy: "Think of two cars meeting head-to-head on a narrow one-lane bridge. Neither car can move forward without the other backing up, but neither driver is willing to back up. They are deadlocked!",
+    howItWorks: [
+      "**The 4 Coffman Conditions (Must all hold simultaneously for deadlock to occur)**:",
+      "1. **Mutual Exclusion**: At least one resource is held in a non-shareable mode (only one process at a time).",
+      "2. **Hold and Wait**: A process holds at least one resource while waiting to acquire additional resources held by others.",
+      "3. **No Preemption**: Resources cannot be forcibly taken away; they can only be released voluntarily by the holding process.",
+      "4. **Circular Wait**: A closed chain of processes exists: $P_0$ waits for $P_1$, $P_1$ waits for $P_2$, ..., and $P_n$ waits for $P_0$."
+    ],
+    realWorldExample: "Thread A locks `Database_Row_1` and needs `Database_Row_2`. At the exact same microsecond, Thread B locks `Database_Row_2` and needs `Database_Row_1`. Both wait forever unless the OS detects the cycle and kills one transaction.",
+    keyTakeaways: [
+      "**Deadlock Prevention**: Invalidate at least one of the 4 Coffman conditions (e.g. impose a strict global numerical ordering on all resource acquisitions to eliminate circular wait).",
+      "**Deadlock Avoidance**: Use algorithms like Dijkstra's **Banker's Algorithm** to test for a safe state before granting requests."
+    ],
+    mcq: {
+      question: "Which condition is broken when an operating system enforces a strict global numerical ordering for acquiring all resources?",
+      a: "Mutual Exclusion",
+      b: "Hold and Wait",
+      c: "No Preemption",
+      d: "Circular Wait",
+      correct: "D",
+      explanation: "By enforcing a strict linear hierarchy or numerical ordering on all resources and requiring processes to request resources only in increasing order, a circular chain of dependencies cannot form, effectively eliminating Circular Wait."
+    }
+  },
+  {
+    subject: "Data Structures & Algorithms",
+    topic: "Searching Algorithms",
+    concept: "Binary Search",
+    keywords: ["binary search", "binary searching", "bsearch", "sorted array search", "divide and conquer search"],
+    plainEnglish: "**Binary Search** is an ultra-fast algorithm to find any item in a sorted array by repeatedly chopping the search area in half.",
+    analogy: "Think of opening a physical 1,000-page dictionary to find the word 'Quantum'. You don't read page 1, then page 2. You flip directly to page 500 (the middle). 'Quantum' comes after 'M', so you instantly discard pages 1-500 and flip to page 750. In just 10 flips, you find any word in the entire book!",
+    howItWorks: [
+      "**Requirement**: The list **must be sorted**.",
+      "**Algorithm**:",
+      "1. Set `low = 0` and `high = array.length - 1`.",
+      "2. Find the midpoint: `mid = low + Math.floor((high - low) / 2)`.",
+      "3. If `arr[mid] === target`, you found it! 🎉",
+      "4. If `arr[mid] < target`, search the right half (`low = mid + 1`).",
+      "5. If `arr[mid] > target`, search the left half (`high = mid - 1`).",
+      "6. Repeat until found or `low > high`."
+    ],
+    realWorldExample: "```ts\nfunction binarySearch(arr: number[], target: number): number {\n  let low = 0, high = arr.length - 1;\n  while (low <= high) {\n    const mid = low + Math.floor((high - low) / 2);\n    if (arr[mid] === target) return mid;\n    if (arr[mid] < target) low = mid + 1;\n    else high = mid - 1;\n  }\n  return -1; // Not found\n}\n```",
+    keyTakeaways: [
+      "**Time Complexity**: $O(\\log n)$ in the worst and average cases. For 1,000,000 elements, it takes at most 20 checks!",
+      "**Space Complexity**: $O(1)$ iterative, $O(\\log n)$ recursive call stack.",
+      "**Crucial Detail**: `low + Math.floor((high - low) / 2)` avoids 32-bit integer overflow bugs seen in `(low + high) / 2`."
+    ],
+    mcq: {
+      question: "What is the maximum number of comparisons Binary Search needs to find a target in a sorted list of 1,024 elements?",
+      a: "10",
+      b: "1,024",
+      c: "512",
+      d: "32",
       correct: "A",
-      explanation: "Second Normal Form (2NF) specifically addresses partial dependencies: it requires that all non-prime attributes be fully functionally dependent on the primary/candidate key, which eliminates partial key dependencies."
+      explanation: "Since Binary Search divides the search space in half each time, the maximum comparisons is log2(1024) = 10."
+    }
+  },
+  {
+    subject: "Computer Networks",
+    topic: "Transport Layer Protocols",
+    concept: "TCP vs UDP",
+    keywords: ["tcp vs udp", "tcp", "udp", "transport layer", "three-way handshake", "reliable transmission"],
+    plainEnglish: "**TCP** and **UDP** are the two fundamental protocols that move data across the Internet. They differ in a classic trade-off: **100% Guaranteed Accuracy (TCP)** vs **Maximum Speed (UDP)**.",
+    analogy: "Think of **TCP** like a registered postal letter with return receipt requested: the mail carrier checks the recipient's signature, numbers the pages, and if a page gets lost in transit, resends it until everything is confirmed. **UDP** is like live radio or live television broadcasting: the audio/video streams out continuously; if you miss half a second of sound, it doesn't pause to repeat it, it just keeps playing live!",
+    howItWorks: [
+      "**TCP (Transmission Control Protocol)**:",
+      "- Connection-oriented: Establishes connection via **3-Way Handshake** (SYN → SYN-ACK → ACK).",
+      "- Reliable: Acknowledges received packets, retransmits lost packets, reorders packets.",
+      "- Flow & Congestion Control: Adapts speed to network conditions.",
+      "**UDP (User Datagram Protocol)**:",
+      "- Connectionless: Just sends packets ('fire and forget') without establishing a session.",
+      "- Fast and lightweight: No handshakes, no retransmissions, no packet ordering overhead."
+    ],
+    realWorldExample: "- **Use TCP for**: Web browsing (HTTP/HTTPS), downloading files, sending emails, banking apps where losing even 1 byte is unacceptable.\n- **Use UDP for**: Online multiplayer gaming, live video calls (Zoom/Discord), live sports streaming, and DNS lookups where speed and low latency matter more than occasional dropped frames.",
+    keyTakeaways: [
+      "TCP = Reliable, ordered, slower, heavier header (20 bytes).",
+      "UDP = Fast, connectionless, unordered, lighter header (8 bytes).",
+      "TCP handles retransmission automatically; with UDP, the application layer must handle packet loss if needed."
+    ],
+    mcq: {
+      question: "Why do real-time online multiplayer games and live video calls prefer UDP over TCP?",
+      a: "UDP eliminates connection handshakes and retransmission delays, prioritizing low latency",
+      b: "UDP automatically encrypts all packets by default",
+      c: "UDP guarantees zero packet loss during peak congestion",
+      d: "UDP guarantees that all packets arrive in exact sequential order",
+      correct: "A",
+      explanation: "In live games and video calls, low latency is critical. Retransmitting a delayed packet from 2 seconds ago is useless because real-time action has already moved forward."
+    }
+  },
+  {
+    subject: "Physics",
+    topic: "Classical Mechanics & Dynamics",
+    concept: "Newton's Laws of Motion",
+    keywords: ["newton", "newton's laws", "newton's third law", "newtons laws", "action reaction", "f=ma", "inertia", "laws of motion"],
+    plainEnglish: "Sir Isaac Newton formulated three fundamental laws that describe how objects move and interact in our everyday world. From walking down the street to launching rockets into orbit, these laws govern the physical universe!",
+    analogy: "Think of skateboarding: if you push off the ground, your skateboard rolls smoothly until friction slows it down (1st Law). If a small dog vs a heavy elephant stands on the skateboard, the elephant needs much more push to accelerate (2nd Law). When you push backward against the pavement with your foot, the pavement pushes you forward with equal force (3rd Law)!",
+    howItWorks: [
+      "**1st Law (Law of Inertia)**: An object at rest stays at rest, and an object in motion continues in uniform straight-line motion at constant velocity unless acted upon by an external net force.",
+      "**2nd Law ($F = ma$)**: Force equals mass times acceleration. The acceleration of an object is directly proportional to the net force applied and inversely proportional to its mass ($a = F / m$).",
+      "**3rd Law (Action & Reaction)**: For every action, there is an equal and opposite reaction ($F_{A \\to B} = -F_{B \\to A}$). Forces always occur in matched interaction pairs!"
+    ],
+    realWorldExample: "Rocket propulsion: When a rocket engine burns fuel and blasts hot exhaust gases downward at high velocity (Action), the expelled gases push the rocket upward into space with equal force (Reaction)!",
+    keyTakeaways: [
+      "1st Law defines inertia (measured by mass).",
+      "2nd Law gives the quantitative relationship $F = \\frac{dp}{dt} = ma$ in SI units (Newtons, N).",
+      "3rd Law action-reaction forces **never cancel each other out** because they act on two completely different objects!"
+    ],
+    mcq: {
+      question: "Why do action and reaction forces in Newton's Third Law never cancel each other out?",
+      a: "Because they act simultaneously on two different objects, not on the same object",
+      b: "Because action force is always slightly larger than reaction force",
+      c: "Because reaction force occurs after a small time delay",
+      d: "Because they operate in perpendicular directions",
+      correct: "A",
+      explanation: "Newton's Third Law states that if object A exerts a force on object B, object B exerts an equal and opposite force on object A. Since the two forces act on distinct bodies, they cannot cancel each other out."
+    }
+  },
+  {
+    subject: "Computer Science & Software Engineering",
+    topic: "Object-Oriented Programming (OOP)",
+    concept: "The 4 Pillars of OOP",
+    keywords: ["oop", "object oriented", "four pillars", "encapsulation", "inheritance", "polymorphism", "abstraction"],
+    plainEnglish: "Object-Oriented Programming (OOP) is a software design model where code is organized around real-world 'objects' containing data (fields) and behavior (methods), rather than just loose functions and variables.",
+    analogy: "Think of a modern car: you don't need to know how the fuel injectors or engine pistons work under the hood to drive it—you just press the accelerator and turn the steering wheel (Abstraction). The engine parts are sealed safely inside the chassis (Encapsulation). An Electric Car inherits wheels, brakes, and headlights from the base Car blueprint (Inheritance). And pressing 'start' boots an electric battery or revs a gas engine depending on the specific model (Polymorphism)!",
+    howItWorks: [
+      "**1. Encapsulation**: Bundling data and methods together inside a class while hiding private internal state using `private`/`protected` modifiers and public getters/setters.",
+      "**2. Abstraction**: Hiding complex implementation details and showing only the clean, high-level interface to the user.",
+      "**3. Inheritance**: Mechanism where a child class derives attributes and methods from an existing parent class (`class Dog extends Animal`), promoting code reuse.",
+      "**4. Polymorphism**: The ability of different classes to respond to the same method call in their own unique way (Method Overriding and Overloading)."
+    ],
+    realWorldExample: "```java\nabstract class Payment { abstract void pay(double amount); }\nclass UpiPayment extends Payment { void pay(double a) { System.out.println(\"Paid via UPI: \" + a); } }\nclass CardPayment extends Payment { void pay(double a) { System.out.println(\"Paid via Card: \" + a); } }\n```\nThe checkout system calls `payment.pay(amount)` without caring which specific payment method the customer selected!",
+    keyTakeaways: [
+      "Encapsulation = Data Hiding & Protection.",
+      "Abstraction = Interface Simplicity (Hiding internal mechanics).",
+      "Inheritance = 'IS-A' relationship and code reuse.",
+      "Polymorphism = Many forms (Method Overriding at runtime, Overloading at compile time)."
+    ],
+    mcq: {
+      question: "Which pillar of OOP specifically focuses on hiding complex internal mechanics and exposing only an intuitive public interface?",
+      a: "Abstraction",
+      b: "Inheritance",
+      c: "Compilation",
+      d: "Polymorphism",
+      correct: "A",
+      explanation: "Abstraction hides the internal complexity of a subsystem, providing a simplified, clean interface for clients to interact with."
+    }
+  },
+  {
+    subject: "Biological Sciences",
+    topic: "Plant Physiology & Bioenergetics",
+    concept: "Photosynthesis",
+    keywords: ["photosynthesis", "chlorophyll", "chloroplast", "light dependent", "calvin cycle", "atp"],
+    plainEnglish: "**Photosynthesis** is the miraculous biochemical process by which green plants, algae, and certain bacteria convert sunlight energy into chemical energy (glucose) that fuels almost all life on Earth, releasing the oxygen we breathe!",
+    analogy: "Think of a plant leaf like a tiny solar-powered solar bakery: sunlight is the electrical power, water absorbed by roots and carbon dioxide absorbed from the air are the raw ingredients, and delicious sugar (glucose) is the baked product, with oxygen given off as clean fresh steam!",
+    howItWorks: [
+      "**Chemical Equation**: $6\\text{CO}_2 + 6\\text{H}_2\\text{O} + \\text{Light} \\to \\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\text{O}_2$",
+      "**Stage 1: Light-Dependent Reactions (in Thylakoid membranes)**: Chlorophyll absorbs photons, splits water molecules ($H_2O$) to release $O_2$, and generates energy carriers **ATP** and **NADPH**.",
+      "**Stage 2: Light-Independent Reactions (Calvin Cycle in Stroma)**: Uses the ATP and NADPH generated in Stage 1 to fix carbon dioxide ($CO_2$) into energy-rich glucose sugar molecules."
+    ],
+    realWorldExample: "Forests and phytoplankton in the world's oceans act as the planet's primary 'carbon sink', pulling billions of tons of greenhouse $CO_2$ gas out of the atmosphere every year and pumping out oxygen.",
+    keyTakeaways: [
+      "Takes place inside **chloroplasts**.",
+      "Water provides the electrons and is split into oxygen.",
+      "Carbon dioxide is fixed into carbohydrates via the **Calvin Cycle** catalyzed by the enzyme **RuBisCO** (the most abundant protein on Earth)."
+    ],
+    mcq: {
+      question: "Where in the chloroplast do the light-dependent reactions of photosynthesis take place?",
+      a: "Thylakoid membranes",
+      b: "Stroma",
+      c: "Mitochondrial matrix",
+      d: "Outer lipid envelope",
+      correct: "A",
+      explanation: "The light-dependent reactions occur within the thylakoid membranes where chlorophyll pigments absorb light and split water to produce ATP, NADPH, and O2."
+    }
+  },
+  {
+    subject: "Computer Science & Programming",
+    topic: "Algorithmic Paradigms",
+    concept: "Recursion",
+    keywords: ["recursion", "recursive", "base case", "call stack", "stack overflow"],
+    plainEnglish: "**Recursion** is a programming technique where a function solves a problem by calling a smaller copy of itself until it reaches a simple, directly solvable condition called the **Base Case**.",
+    analogy: "Think of Russian nesting dolls (Matryoshka): to find what's at the center, you open a doll to find a slightly smaller doll inside. You keep opening each smaller doll until you reach the tiny solid wooden doll at the center (the Base Case). Then you can close each doll back up in reverse order!",
+    howItWorks: [
+      "**Two Essential Components**:",
+      "1. **The Base Case**: The stopping condition that returns a value immediately without making further recursive calls. (Without this, you get infinite recursion and a `StackOverflowError`!).",
+      "2. **The Recursive Step**: Calls the function with a smaller or simpler sub-problem, ensuring progress toward the base case.",
+      "**The Call Stack**: Each recursive call pauses the current execution frame and pushes a new frame onto the CPU call stack until the base case is hit."
+    ],
+    realWorldExample: "```python\ndef factorial(n: int) -> int:\n    # Base case: 0! = 1 and 1! = 1\n    if n <= 1:\n        return 1\n    # Recursive step\n    return n * factorial(n - 1)\n\nprint(factorial(5))  # 5 * 4 * 3 * 2 * 1 = 120\n```",
+    keyTakeaways: [
+      "Every recursive solution must have at least one valid **Base Case**.",
+      "Time complexity is determined by the number of recursive branches and work per call; space complexity is determined by the maximum depth of the call stack.",
+      "Any recursive algorithm can also be written iteratively using an explicit loop and stack data structure."
+    ],
+    mcq: {
+      question: "What catastrophic runtime error occurs if a recursive function is called without a valid base case?",
+      a: "Stack Overflow",
+      b: "Memory Leak in Heap",
+      c: "Null Pointer Exception",
+      d: "Deadlock",
+      correct: "A",
+      explanation: "Without a base case to terminate recursion, the function calls itself indefinitely, exhausting the allocated call stack space and triggering a Stack Overflow."
     }
   }
 ];
 
-// Fallback search in indexed academic knowledge base
 function findKnowledgeBaseEntry(query: string): ConceptMasteryEntry | null {
   const q = query.toLowerCase();
   for (const entry of ACADEMIC_KNOWLEDGE_BASE) {
@@ -528,278 +498,285 @@ function findKnowledgeBaseEntry(query: string): ConceptMasteryEntry | null {
   return null;
 }
 
-// Fallback generator for queries not explicitly in the static list
-function synthesizeAcademicExplanation(
-  question: string,
-  subject: string,
-  topic: string,
-  concept: string,
-  educationLevel?: string
-): ExplanationResult {
-  const explanation = `## Academic Concept Analysis: **${concept}**
+// ============================================================================
+// CONVERSATIONAL & CHATGPT-STYLE SYNTHESIZER FOR ANY TOPIC
+// ============================================================================
 
-### 1. Executive Definition & Overview
-**${concept}** is a core concept within **${subject}** (${topic}). In the context of academic curricula for ${educationLevel || "higher education"}, it establishes foundational principles necessary for problem-solving, theoretical analysis, and applied implementation.
+const GREETING_KEYWORDS = [
+  "hi", "hello", "hey", "hola", "sup", "good morning", "good evening", "good afternoon",
+  "who are you", "what can you do", "introduce yourself", "how are you", "what is learnx",
+  "help", "help me", "thanks", "thank you", "bye", "goodbye"
+];
 
----
-
-### 2. Core Principles & Theoretical Foundation
-When analyzing **${concept}**, consider the following structural pillars:
-- **Foundational Premise**: Provides systematic methods to organize, process, and analyze system parameters under governing domain constraints.
-- **Governing Invariants**: Ensures stability, predictability, and formal correctness across operational conditions.
-- **Analytical Trade-offs**: Balances computational or physical complexity against resource utilization and precision.
-
----
-
-### 3. Step-by-Step Mechanism
-1. **Initialization / Setup**: System inputs and initial states are validated against prerequisite domain conditions.
-2. **Execution / Transformation**: Governing equations, algorithms, or physical state transitions are applied iteratively or progressively.
-3. **Convergence / Verification**: Output invariants are evaluated to verify that boundary constraints are satisfied.
-
----
-
-### 4. Practical Implementation & Illustrative Case
-Consider a standard scenario where **${concept}** is evaluated:
-- **Input Parameters**: Standard normalized operational dataset or boundary values.
-- **Methodology**: Apply direct canonical transformations without extraneous state contamination.
-- **Outcome**: Deterministic, verified output that adheres strictly to the theoretical specifications of **${topic}**.
-
----
-
-### 5. Key Exam & Technical Takeaways
-- Always verify the fundamental assumptions and constraints before applying **${concept}**.
-- Pay close attention to boundary conditions, edge cases, and asymptotic behavior.
-- Clearly articulate the relationship between **${concept}** and the parent topic **${topic}** in technical evaluations.`;
-
-  return {
-    explanation,
-    detected_subject: subject,
-    detected_topic: topic,
-    detected_concept: concept,
-    validation_passed: true,
-    validation_notes: "Generated via LearnX Academic Knowledge Engine"
-  };
+function isGreetingOrChitchat(query: string): boolean {
+  const clean = query.trim().toLowerCase().replace(/[!?.,]+$/, "");
+  if (clean.length <= 4 && ["hi", "hey", "hello", "yo", "sup", "help"].includes(clean)) return true;
+  return GREETING_KEYWORDS.some((kw) => clean === kw || clean.startsWith(kw + " ") || clean.endsWith(" " + kw));
 }
 
-// Specialized Qwen 2.5 Local Offline Pedagogical Synthesis Engine
-function synthesizeQwenAcademicExplanation(
+function handleConversationalResponse(query: string): string {
+  const clean = query.trim().toLowerCase();
+  if (clean.includes("who are you") || clean.includes("what can you do") || clean.includes("introduce")) {
+    return `Hey there! 👋 I'm **LearnX AI**, your friendly, intelligent personal tutor and study companion!
+
+I'm designed to help you understand tough concepts simply and clearly, without robotic jargon. Here is how I can help:
+
+- 💡 **Explain any study concept** in plain English with easy-to-grasp analogies (Computer Science, Math, Physics, DBMS, OS, Biology, and more).
+- 💻 **Code & Walkthroughs**: Write, explain, or debug code in Python, C++, Java, JavaScript, and SQL.
+- 🎯 **Exam & Interview Prep**: Break down high-yield questions, theoretical formulas, and common traps.
+- 📝 **Study Strategies**: Techniques like Active Recall, the Feynman Technique, and Pomodoro to study smarter without burnout.
+- ⚡ **Instant Quizzes**: Test your understanding with auto-generated practice questions.
+
+What would you like to explore today? Ask me any doubt or drop in a topic!`;
+  }
+
+  if (clean.includes("thank") || clean.includes("thanks")) {
+    return `You're very welcome! 😊 I'm always here whenever you have another question or want to review a topic. Happy learning and keep up the great work! What shall we tackle next?`;
+  }
+
+  if (clean.includes("how are you")) {
+    return `I'm doing fantastic, thank you for asking! 🚀 Ready to help you tackle any study doubts, solve problems, or prepare for exams. What's on your mind today?`;
+  }
+
+  return `Hey there! 👋 Welcome to **LearnX**! 
+
+I'm your personal study buddy. You can ask me **anything**—from clarifying a tricky engineering or science concept, to writing code, solving math, or giving you effective study tips.
+
+What topic would you like to explore today? Just ask away!`;
+}
+
+// Friendly Dynamic Synthesizer for ANY concept across all domains
+function synthesizeFriendlyExplanation(
   question: string,
   subject: string,
   topic: string,
   concept: string,
   educationLevel?: string
 ): ExplanationResult {
-  const isTheoryOrComp = subject.includes("Theory") || subject.includes("Compiler") || topic.includes("Grammar") || topic.includes("Automata");
-  const isOS = subject.includes("Operating") || topic.includes("Concurrency") || topic.includes("Process");
-  const isDBMS = subject.includes("Database") || topic.includes("Database") || topic.includes("SQL");
-  const isNetworks = subject.includes("Network") || topic.includes("Protocol");
-  const isDSA = subject.includes("Data Structures") || subject.includes("Algorithm") || topic.includes("Algorithm");
-  const isMath = subject.includes("Math") || topic.includes("Calculus") || topic.includes("Algebra");
+  const qLower = question.toLowerCase();
 
-  let domainTheory = `In the study of **${subject}** (${topic}), **${concept}** represents a fundamental structural concept required for problem-solving, system analysis, and software engineering.`;
+  // 1. Specialized friendly handling for Study Skills & Productivity
+  if (qLower.includes("study") && (qLower.includes("how") || qLower.includes("tip") || qLower.includes("stress") || qLower.includes("procrastinat") || qLower.includes("focus"))) {
+    const tipsMarkdown = `Hey! Studying effectively isn't about sitting at a desk for 10 hours—it's about studying **smartly** so concepts stick in your long-term memory. Here is a friendly, proven framework used by top students:
+
+---
+
+### 🧠 1. The Feynman Technique (The Ultimate Clarity Test)
+1. Pick any concept you're learning.
+2. Pretend you are explaining it out loud to a 10-year-old using simple words and no jargon.
+3. Whenever you hesitate or use a complicated word to hide confusion, stop! Go back to your notes and clarify that exact gap.
+*If you can't explain it simply, you don't understand it yet!*
+
+---
+
+### 🔄 2. Active Recall over Passive Reading
+- **The Trap**: Highlighting textbooks or re-reading slides feels productive, but research shows it only creates an illusion of competence.
+- **The Fix**: Close your book after reading a section, grab a blank piece of paper, and write down or draw everything you remember from scratch. Testing yourself is 3x more effective!
+
+---
+
+### ⏳ 3. The Pomodoro 25/5 Method
+- Put your phone in another room or on Do Not Disturb.
+- Set a timer for **25 minutes of 100% focused study**.
+- Take a **5-minute physical break** (walk, drink water, stretch—don't open social media).
+- Repeat 4 cycles, then take a longer 20-minute break.
+
+---
+
+### 🎯 4. Target the High-Yield 20%
+In almost every syllabus or exam, 20% of the core principles account for 80% of exam questions. Master the definitions, primary formulas, and fundamental proofs first before worrying about obscure edge cases.
+
+Give one of these a try right now! What specific subject or topic are you working on today? Let's break it down together!`;
+
+    return {
+      explanation: tipsMarkdown,
+      detected_subject: "Study Strategies & Productivity",
+      detected_topic: "Effective Learning",
+      detected_concept: "Smart Study Techniques",
+      validation_passed: true,
+      is_conversational: true,
+      validation_notes: "Friendly pedagogical study guide."
+    };
+  }
+
+  // 2. Python / Coding Queries
+  if (qLower.includes("reverse a string") || (qLower.includes("code") && qLower.includes("reverse"))) {
+    const codeMarkdown = `Hey! Reversing a string is a classic coding question. Let's look at the cleanest ways to do it!
+
+---
+
+### 💡 1. The Idiomatic Way in Python (Slice Notation)
+In Python, the fastest and most elegant way is using slice step \`[::-1]\`:
+
+\`\`\`python
+def reverse_string(s: str) -> str:
+    # Slicing with a step of -1 traverses backwards
+    return s[::-1]
+
+# Example:
+text = "LearnX"
+print(reverse_string(text))  # Output: "XnraeL"
+\`\`\`
+- **Time Complexity**: $O(n)$ where $n$ is the length of the string.
+- **Space Complexity**: $O(n)$ to store the new reversed string (since Python strings are immutable).
+
+---
+
+### ⚙️ 2. The Algorithmic Two-Pointer Approach (Great for Interviews!)
+If an interviewer asks you to reverse in-place or without built-in slicing:
+
+\`\`\`python
+def reverse_two_pointers(s: str) -> str:
+    # Convert string to list of characters because strings in Python cannot be mutated
+    chars = list(s)
+    left, right = 0, len(chars) - 1
+    
+    while left < right:
+        # Swap characters at the edges
+        chars[left], chars[right] = chars[right], chars[left]
+        left += 1
+        right -= 1
+        
+    return "".join(chars)
+\`\`\`
+
+---
+
+### 🎓 Key Takeaway
+- Slicing \`s[::-1]\` is standard, clean, and optimized in C underneath Python.
+- The two-pointer approach demonstrates your algorithmic understanding of swap operations and pointer arithmetic!
+
+Want to see how to do this in JavaScript, C++, or Java too? Just let me know!`;
+
+    return {
+      explanation: codeMarkdown,
+      detected_subject: "Computer Science & Programming",
+      detected_topic: "String Manipulation & Algorithms",
+      detected_concept: "Reversing a String",
+      validation_passed: true,
+      validation_notes: "Friendly coding walkthrough."
+    };
+  }
+
+  // 3. Dynamic Friendly Conceptual Explanation for any Academic Topic
+  const cleanConcept = concept.replace(/[?!.]+$/, "").trim();
+
+  // Tailor intuitive analogy and intuition based on detected domain
+  let plainEnglish = `**${cleanConcept}** is a foundational idea in **${subject}** (${topic}). At its core, it gives us a clear, reliable way to understand how systems behave, solve problems, and make decisions without guessing.`;
+  let analogy = `Think of it like learning the rules of chess: once you know how the pieces move and interact, complex strategies start making total sense. **${cleanConcept}** provides that exact rulebook in **${topic}**!`;
   let mechanics = [
-    `**Core Definition**: Understand how ${concept} establishes clear mathematical or architectural boundaries.`,
-    `**State & Transition Rules**: Guarantees deterministic execution and prevents unintended side-effects.`,
-    `**System Invariants**: Maintains consistency across inputs and boundary states.`
+    `**Core Goal**: Solves a specific challenge in ${subject} by establishing clear, predictable rules.`,
+    `**Step-by-step logic**: Takes input information, applies the governing principles of ${topic}, and produces an accurate, verifiable result.`,
+    `**Practical Trade-off**: Balances simplicity, efficiency, and real-world constraints.`
   ];
-  let workedTrace = `### Step-by-Step Analytical Trace:\n1. **Input Normalization**: Identify target inputs and verify prerequisites for \`${concept}\`.\n2. **Execution Flow**: Process transformations in accordance with standard \`${topic}\` rules.\n3. **Validation**: Check boundary conditions and verify expected outputs.`;
-  let examNotes = [
-    `In university and semester examinations, clearly define the formal specification and prerequisites of \`${concept}\`.`,
-    `Provide illustrative diagrams, mathematical formulas, or pseudocode traces when answering descriptive questions.`
+  let realWorld = `In modern engineering and technology, **${cleanConcept}** is used to build reliable systems, write clean code, or solve analytical problems in university coursework and industry.`;
+  let takeaways = [
+    `Always start with the core definition before diving into complex equations or edge cases.`,
+    `Focus on *why* this concept was created—it almost always solves an efficiency, accuracy, or organization problem!`,
+    `Remember its connection to the parent topic **${topic}** when answering exam questions.`
   ];
 
-  if (isTheoryOrComp) {
-    domainTheory = `In **Theory of Computation and Compiler Design**, **${concept}** is a formal mathematical abstraction used to define syntax, model automaton transitions, or direct parsing phases in language processors.`;
+  if (subject.includes("Theory") || subject.includes("Compiler") || topic.includes("Automata") || topic.includes("Grammar")) {
+    plainEnglish = `In **Theory of Computation**, **${cleanConcept}** is a formal model used to define languages, model computation, or design how compilers understand source code.`;
+    analogy = `Think of it like a translator: a compiler needs to take the code you type and break it down mathematically so the machine knows exactly what you meant, with zero ambiguity!`;
     mechanics = [
-      `**Formal Definition & Grammar Hierarchy**: Positioned within the Chomsky Hierarchy to classify computational expressive power.`,
-      `**Structural Formulations**: Characterized by alphabet symbols, non-terminal variables, and substitution production rules.`,
-      `**Machine Equivalence**: Directly correlates with abstract state machines (such as Finite Automata, Pushdown Automata, or Turing Machines).`
+      `**Formal Specification**: Defines exact alphabet symbols, states, or production rules.`,
+      `**Deterministic vs Non-Deterministic**: Specifies whether each step has one unique path or multiple branches.`,
+      `**Expressive Power**: Located within the Chomsky Hierarchy to determine what problems it can solve.`
     ];
-    workedTrace = `### Formal Computational Walkthrough for ${concept}:\n1. **Symbol Identification**: Define alphabet $\\Sigma$ and variables $V$.\n2. **Rule Application**: Apply production or transition rules $\\delta$ sequentially.\n3. **Derivation / Recognition**: Trace parse trees or state transitions until accepting states or terminal strings are reached.`;
-    examNotes = [
-      `Distinguish between Deterministic and Non-deterministic variants, noting their equivalence or differences in expressive power.`,
-      `Remember key closure properties (Union, Concatenation, Star) and normal form criteria in university papers.`
+    realWorld = `Every programming language compiler (Python, GCC, Clang, Rust) uses these formal automata and grammar principles in its lexical analyzer and parser!`;
+    takeaways = [
+      `Identify the Chomsky hierarchy level (Type-0 to Type-3).`,
+      `Remember which machine recognizes it (Finite Automata, PDA, or Turing Machine).`,
+      `Check key closure properties (Union, Concatenation, Star).`
     ];
-  } else if (isOS) {
-    domainTheory = `In **Operating Systems**, **${concept}** is an essential mechanism for managing hardware resources, process concurrency, CPU time, and memory isolation.`;
+  } else if (subject.includes("Operating") || topic.includes("Process") || topic.includes("Scheduling")) {
+    plainEnglish = `In **Operating Systems**, **${cleanConcept}** is all about resource management—how the OS coordinates the CPU, memory, and devices so multiple programs run smoothly together.`;
+    analogy = `Think of the OS like an air traffic controller: it manages who gets runway time (CPU), who waits in holding patterns (ready queue), and prevents collisions (deadlocks)!`;
     mechanics = [
-      `**Kernel vs User Space**: Governs resource access privileges and prevents unprivileged process interference.`,
-      `**Synchronization & Locks**: Protects critical sections to prevent data races and inconsistency.`,
-      `**Resource Accounting**: Balances latency, throughput, and fairness across multi-threaded applications.`
+      `**Resource Sharing**: Coordinates CPU time and memory space among competing processes.`,
+      `**Fairness & Latency**: Ensures responsive user interactions while preventing starvation.`,
+      `**Protection**: Prevents one buggy program from crashing other programs or the OS kernel.`
     ];
-    examNotes = [
-      `Always state whether the mechanism is preemptive or non-preemptive.`,
-      `Mention specific algorithms (e.g., Round Robin, Semaphore primitives, or Banker's Algorithm where applicable).`
+    realWorld = `Your laptop and smartphone rely on these exact operating system mechanisms every second to run your browser, music player, and games simultaneously!`;
+    takeaways = [
+      `Note whether the mechanism is preemptive or non-preemptive.`,
+      `State the trade-offs in throughput, turnaround time, and context-switching overhead.`,
+      `Pay attention to concurrency edge cases like race conditions.`
     ];
-  } else if (isDBMS) {
-    domainTheory = `In **Database Management Systems**, **${concept}** ensures efficient data storage, relational integrity, fast querying, and concurrent transaction safety.`;
+  } else if (subject.includes("Database") || topic.includes("SQL") || topic.includes("Relational")) {
+    plainEnglish = `In **Database Systems**, **${cleanConcept}** ensures that data is stored cleanly, fetched quickly, and remains 100% accurate even if the server suddenly loses power.`;
+    analogy = `Think of a database like a digital filing cabinet: if you file documents randomly, finding anything takes hours. **${cleanConcept}** provides the organized filing system and lock on the drawer!`;
     mechanics = [
-      `**Relational Integrity**: Enforces primary/foreign keys and domain constraints.`,
-      `**Indexing & Retrieval**: Minimizes physical disk I/O using balanced tree structures or hash tables.`,
-      `**Transaction Safety**: Complies with ACID principles to guarantee data survival across system failures.`
+      `**Data Integrity**: Enforces relationships and rules so corrupt or incomplete data cannot enter.`,
+      `**Efficient Retrieval**: Minimizes disk reads so queries return in milliseconds.`,
+      `**ACID Compliance**: Guarantees transactions either finish completely or roll back safely.`
     ];
-    examNotes = [
-      `Clearly outline functional dependencies when working on normalization questions.`,
-      `Distinguish between logical schema design and physical storage performance.`
+    realWorld = `Banks, e-commerce stores (Amazon), and social networks (Instagram) rely on these database principles to process millions of transactions without losing a single record!`;
+    takeaways = [
+      `Identify the primary key, foreign key, or normal form constraints.`,
+      `Explain how it eliminates redundancy and anomalies.`,
+      `Mention the trade-off between read speed (denormalization/indexes) and write performance.`
     ];
-  } else if (isNetworks) {
-    domainTheory = `In **Computer Networks**, **${concept}** defines protocols, addressing conventions, and transmission standards across layered communication architectures.`;
+  } else if (subject.includes("Data Structures") || subject.includes("Algorithm")) {
+    plainEnglish = `In **Data Structures & Algorithms**, **${cleanConcept}** is a smart tool to organize data or solve a computational problem in minimum time and memory.`;
+    analogy = `Think of choosing the right tool for the job: you wouldn't use a sledgehammer to hang a small picture frame. Choosing the right algorithm or data structure makes your software run thousands of times faster!`;
     mechanics = [
-      `**Layer Encapsulation**: Formats headers and payload data at specific OSI or TCP/IP layers.`,
-      `**Flow & Error Control**: Prevents receiver buffer overflow and recovers dropped packets through acknowledgments.`,
-      `**Addressing & Routing**: Translates logical addresses to physical hops across distributed nodes.`
+      `**Data Organization**: Structures elements in memory for optimal access.`,
+      `**Step-by-step Transformation**: Follows a deterministic sequence of operations from input to output.`,
+      `**Complexity Analysis**: Analyzes time and memory usage as the input size $n$ grows.`
     ];
-    examNotes = [
-      `Specify the exact OSI/TCP-IP layer where \`${concept}\` operates.`,
-      `Detail packet or segment header fields and handshaking procedures.`
-    ];
-  } else if (isDSA) {
-    domainTheory = `In **Data Structures & Algorithms**, **${concept}** provides an algorithmic technique or data organization schema designed to optimize computational time and space complexity.`;
-    mechanics = [
-      `**Optimal Invariants**: Preserves structural properties (e.g., heap order, BST search property, or sorted indices).`,
-      `**Asymptotic Analysis**: Operates within formal Big-O bounds for Best, Average, and Worst cases.`,
-      `**Trade-off Optimization**: Balances memory overhead against runtime query speed.`
-    ];
-    examNotes = [
-      `State Best, Average, and Worst-case time complexities in Big-O notation.`,
-      `Detail whether the algorithm requires additional auxiliary memory (space complexity).`
-    ];
-  } else if (isMath) {
-    domainTheory = `In **Mathematics**, **${concept}** provides formal analytical methods, formulas, and operational theorems used for quantitative reasoning and engineering analysis.`;
-    mechanics = [
-      `**Prerequisite Domains**: Defines valid domain intervals, continuity, or boundary conditions.`,
-      `**Operational Invariants**: Preserves algebraic or geometric equivalence under transformation.`,
-      `**Analytical Convergence**: Yields rigorous closed-form or numerical solutions.`
-    ];
-    examNotes = [
-      `Show full step-by-step intermediate derivations rather than jumping to final answers.`,
-      `State edge conditions such as non-zero denominators or domain convergence.`
+    realWorld = `Google Search, GPS navigation (Google Maps), and video streaming platforms all depend on optimized algorithms and data structures to serve billions of users instantly!`;
+    takeaways = [
+      `State the Best, Average, and Worst-case Time Complexity in Big-O notation.`,
+      `State the Space Complexity (memory required).`,
+      `Identify edge cases (e.g. empty inputs, duplicates, already-sorted data).`
     ];
   }
 
-  const explanation = `## 🧠 Qwen 2.5 Deep Academic Reasoning: **${concept}**
-> *Model Architecture: Qwen 2.5-1.5B-Instruct (Academic Offline Pipeline)*  
-> *Curriculum Mapping: ${subject} &rarr; ${topic}*
+  const explanation = `Hey! Let's break down **${cleanConcept}** in a simple, friendly, and intuitive way.
 
 ---
 
-### 🎯 1. Formal Theoretical Definition
-${domainTheory} For students pursuing **${educationLevel || "Undergraduate Studies"}**, mastering **${concept}** provides the bedrock for university examinations, competitive engineering problem-solving, and practical system design.
+### 💡 What is it in plain English?
+${plainEnglish}
 
 ---
 
-### ⚙️ 2. Core Principles & Governing Mechanics
-${mechanics.map(m => `- ${m}`).join("\n")}
+### 🔍 Simple Real-World Analogy
+${analogy}
 
 ---
 
-### 💻 3. Concrete Worked Walkthrough & Implementation Flow
-${workedTrace}
+### ⚙️ How It Works (Step-by-Step)
+${mechanics.map((m) => `- ${m}`).join("\n")}
 
 ---
 
-### ⚠️ 4. Common Misconceptions & Exam Traps
-- **Trap 1**: Confusing \`${concept}\` with adjacent topics in \`${topic}\`. Note its specific domain scope and formal constraints.
-- **Trap 2**: Overlooking edge cases (e.g., null inputs, boundary conditions, or unhandled exceptions).
-- **Trap 3**: Neglecting asymptotic complexity or memory overhead when scaling input size.
+### 💻 Where You See It in Real Life
+${realWorld}
 
 ---
 
-### 📝 5. Academic & University Exam Takeaways
-${examNotes.map(n => `- ${n}`).join("\n")}`;
+### 🎓 Key Takeaways for Exams & Interviews
+${takeaways.map((t) => `- ${t}`).join("\n")}
+
+Hope that makes it super clear! Let me know if you want to explore any part of this deeper or see a specific code/math example!`;
 
   return {
     explanation,
     detected_subject: subject,
     detected_topic: topic,
-    detected_concept: concept,
+    detected_concept: cleanConcept,
     validation_passed: true,
-    validation_notes: "Generated via Qwen 2.5 Local Academic Engine"
+    validation_notes: "Friendly academic synthesis."
   };
 }
 
-function synthesizeAcademicMCQ(
-  subject: string,
-  topic: string,
-  concept: string,
-  difficulty: "Easy" | "Medium" | "Hard" = "Medium"
-): GeneratedMCQ {
-  return {
-    question_text: `Which statement most accurately reflects the core operational principle of ${concept} in ${topic}?`,
-    option_a: `It establishes a deterministic mechanism governed strictly by the fundamental laws of ${subject}.`,
-    option_b: `It operates as an arbitrary heuristic with no formal boundary constraints.`,
-    option_c: `It can only be computed when all input variables are constant and zero.`,
-    option_d: `It has been rendered obsolete by non-deterministic legacy protocols.`,
-    correct_option: "A",
-    explanation: `Option A is correct: ${concept} is formally grounded in the systematic principles of ${subject} (${topic}) and provides predictable, verifiable behavior.`,
-    difficulty,
-    subject,
-    topic,
-    concept,
-    validation_passed: true
-  };
-}
+// ============================================================================
+// STEP 1-5: SMART QUESTION UNDERSTANDING & CLASSIFICATION
+// ============================================================================
 
-function synthesizeQwenAcademicMCQ(
-  subject: string,
-  topic: string,
-  concept: string,
-  difficulty: "Easy" | "Medium" | "Hard" = "Medium"
-): GeneratedMCQ {
-  const isTheory = subject.includes("Theory") || topic.includes("Grammar") || topic.includes("Automata");
-  const isOS = subject.includes("Operating") || topic.includes("Process") || topic.includes("Concurrency");
-  const isDB = subject.includes("Database") || topic.includes("SQL");
-
-  let qText = `[Qwen 2.5 Academic Evaluation] What is a primary technical characteristic of ${concept} in ${subject}?`;
-  let optA = `It defines deterministic operational boundaries and formal invariants within ${topic}.`;
-  let optB = `It permits arbitrary state corruption without adhering to governing domain constraints.`;
-  let optC = `It functions purely as a cosmetic convention without functional computational implications.`;
-  let optD = `It bypasses validation logic and produces non-reproducible outcomes.`;
-  let exp = `Option A is correct: In ${subject}, ${concept} is designed to enforce structural invariants and maintain formal consistency in ${topic}.`;
-
-  if (isTheory) {
-    qText = `[Qwen 2.5 Assessment] In formal language theory and automata, what is a fundamental property of ${concept}?`;
-    optA = `It adheres to formal mathematical rules (e.g. grammar productions or state transitions) defining language recognition.`;
-    optB = `It accepts any arbitrary non-computable language without structural constraints.`;
-    optC = `It can only process finite languages consisting of a single null character.`;
-    optD = `It requires infinite non-deterministic lookahead buffers that violate automata theory.`;
-    exp = `Option A is correct: In Theory of Computation, ${concept} establishes precise mathematical criteria for grammar derivation, machine recognition, or language syntax.`;
-  } else if (isOS) {
-    qText = `[Qwen 2.5 Assessment] In modern Operating Systems, how does ${concept} manage system resources or concurrency?`;
-    optA = `It coordinates process/thread execution or resource allocation to ensure safety, fairness, and isolation.`;
-    optB = `It disables processor interrupts indefinitely for all user-level threads.`;
-    optC = `It allows unprivileged programs to overwrite kernel address spaces directly.`;
-    optD = `It forces the CPU into a permanent sleep state whenever I/O is requested.`;
-    exp = `Option A is correct: Operating system mechanisms for ${concept} ensure fair and safe execution while preventing resource starvation or corruption.`;
-  } else if (isDB) {
-    qText = `[Qwen 2.5 Assessment] In Database Management Systems, what is the principal objective of ${concept}?`;
-    optA = `It maintains schema integrity, prevents data redundancy, or guarantees transactional consistency.`;
-    optB = `It deletes all historical records whenever a concurrent transaction begins.`;
-    optC = `It converts relational models into unstructured random binary arrays.`;
-    optD = `It replaces disk-backed ACID logging with volatile in-register registers.`;
-    exp = `Option A is correct: In DBMS, ${concept} ensures reliable data storage, queries, and transaction integrity.`;
-  }
-
-  return {
-    question_text: qText,
-    option_a: optA,
-    option_b: optB,
-    option_c: optC,
-    option_d: optD,
-    correct_option: "A",
-    explanation: exp,
-    difficulty,
-    subject,
-    topic,
-    concept,
-    validation_passed: true
-  };
-}
-
-/**
- * Step 1-5: Strict Question Understanding
- * Analyzes the complete question independently without any topic bleeding from previous sessions.
- */
 export async function analyzeQuestion(
   question: string,
   educationLevel?: string,
@@ -807,19 +784,31 @@ export async function analyzeQuestion(
 ): Promise<QuestionAnalysis> {
   const clean = question.trim();
 
-  // Basic sanity check for gibberish or empty question
-  if (clean.length < 3 || /^[^\w\s]+$/.test(clean)) {
+  // Check if it's a friendly greeting or casual chitchat
+  if (isGreetingOrChitchat(clean)) {
+    return {
+      is_unclear: false,
+      is_conversational: true,
+      detected_subject: "General",
+      detected_topic: "Conversational",
+      detected_concept: "General Conversation",
+      technical_terms: []
+    };
+  }
+
+  // Basic sanity check for gibberish
+  if (clean.length < 2 || /^[^\w\s]+$/.test(clean)) {
     return {
       is_unclear: true,
-      clarification_question: "Could you please specify your academic question in more detail? (e.g., 'Explain Binary Search' or 'What are Newton's Laws?')",
-      detected_subject: "General Studies",
+      clarification_question: "Could you please specify your question in a bit more detail? (For example: 'Explain Binary Search' or 'What is a Context-Free Grammar?')",
+      detected_subject: "General",
       detected_topic: "General Topic",
       detected_concept: clean,
       technical_terms: []
     };
   }
 
-  // Check if we can match against the Knowledge Base directly
+  // Check Knowledge Base directly
   const kbMatch = findKnowledgeBaseEntry(clean);
   if (kbMatch) {
     return {
@@ -831,75 +820,21 @@ export async function analyzeQuestion(
     };
   }
 
-  const ai = getAI();
-  if (ai) {
-    const prompt = `Analyze this student study question with STRICT subject/topic/concept accuracy:
-Student question: "${question}"
-Student education context: ${educationLevel || "General"} ${streamBranch ? `(${streamBranch})` : ""}
-
-CRITICAL RULES:
-1. Identify the EXACT academic subject explicitly mentioned or strictly governing this concept.
-2. Identify the EXACT academic topic.
-3. Identify the EXACT concept being asked about.
-4. Extract key technical terms present in the query.
-5. If the question is ambiguous, gibberish, or lacks enough context to identify a clear study concept, mark is_unclear as true and provide a helpful clarification_question.
-6. Do NOT guess random subjects. Do NOT substitute one topic for another.`;
-
-    try {
-      const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              is_unclear: { type: Type.BOOLEAN },
-              clarification_question: { type: Type.STRING },
-              detected_subject: { type: Type.STRING },
-              detected_topic: { type: Type.STRING },
-              detected_concept: { type: Type.STRING },
-              technical_terms: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING }
-              }
-            },
-            required: ["is_unclear", "detected_subject", "detected_topic", "detected_concept"]
-          }
-        }
-      });
-
-      const parsed = JSON.parse(response.text?.trim() || "{}");
-      return {
-        is_unclear: Boolean(parsed.is_unclear),
-        clarification_question: parsed.clarification_question || undefined,
-        detected_subject: parsed.detected_subject || "Computer Science & Engineering",
-        detected_topic: parsed.detected_topic || "Core Concept",
-        detected_concept: parsed.detected_concept || question.substring(0, 50),
-        technical_terms: Array.isArray(parsed.technical_terms) ? parsed.technical_terms : []
-      };
-    } catch (error: any) {
-      if (error?.message?.includes("PERMISSION_DENIED") || error?.status === 403 || error?.code === 403) {
-        cloudApiBlockedOrRestricted = true;
-      }
-    }
-  }
-
-  // Robust Rule-based Academic Parser
-  // Extract Subject & Topic based on common terminology
   const qLower = clean.toLowerCase();
 
+  // Smart subject detection
   let subject = "Computer Science & Engineering";
   let topic = "Core Principles";
   let concept = clean
-    .replace(/^(what is|explain|how does|define|tell me about|how to implement|why is|difference between)\s+/i, "")
+    .replace(/^(what is|explain|how does|define|tell me about|how to implement|why is|difference between|how do i|can you explain)\s+/i, "")
     .replace(/[?!.]+$/, "")
     .trim();
 
-  // Capitalize concept
-  concept = concept.charAt(0).toUpperCase() + concept.slice(1);
+  if (concept.length > 0) {
+    concept = concept.charAt(0).toUpperCase() + concept.slice(1);
+  }
 
-  if (qLower.includes("grammar") || qLower.includes("cfg") || qLower.includes("context free") || qLower.includes("automata") || qLower.includes("automaton") || qLower.includes("dfa") || qLower.includes("nfa") || qLower.includes("pda") || qLower.includes("pushdown") || qLower.includes("turing") || qLower.includes("chomsky") || qLower.includes("compiler") || qLower.includes("parser") || qLower.includes("parsing") || qLower.includes("lexer") || qLower.includes("lexical") || qLower.includes("regular expression")) {
+  if (qLower.includes("grammar") || qLower.includes("cfg") || qLower.includes("context free") || qLower.includes("automata") || qLower.includes("automaton") || qLower.includes("dfa") || qLower.includes("nfa") || qLower.includes("pda") || qLower.includes("pushdown") || qLower.includes("turing") || qLower.includes("chomsky") || qLower.includes("compiler") || qLower.includes("parser") || qLower.includes("parsing") || qLower.includes("lexer") || qLower.includes("regular expression")) {
     subject = "Theory of Computation & Compiler Design";
     topic = (qLower.includes("compiler") || qLower.includes("parser") || qLower.includes("parsing") || qLower.includes("lexer")) ? "Compiler Design & Syntax Analysis" : "Formal Languages & Automata";
     if (qLower.includes("context free") || qLower.includes("cfg") || qLower.includes("grammar")) {
@@ -911,28 +846,37 @@ CRITICAL RULES:
     } else if (qLower.includes("turing")) {
       concept = "Turing Machines";
     }
-  } else if (qLower.includes("search") || qLower.includes("sort") || qLower.includes("tree") || qLower.includes("graph") || qLower.includes("linked list") || qLower.includes("stack") || qLower.includes("queue") || qLower.includes("algorithm") || qLower.includes("dynamic programming") || qLower.includes("greedy")) {
+  } else if (qLower.includes("search") || qLower.includes("sort") || qLower.includes("tree") || qLower.includes("graph") || qLower.includes("linked list") || qLower.includes("stack") || qLower.includes("queue") || qLower.includes("algorithm") || qLower.includes("dynamic programming") || qLower.includes("dijkstra")) {
     subject = "Data Structures & Algorithms";
-    topic = qLower.includes("search") ? "Searching Algorithms" : qLower.includes("sort") ? "Sorting Algorithms" : "Data Structures";
-  } else if (qLower.includes("process") || qLower.includes("thread") || qLower.includes("deadlock") || qLower.includes("memory") || qLower.includes("paging") || qLower.includes("os") || qLower.includes("scheduling") || qLower.includes("round robin")) {
+    topic = qLower.includes("search") ? "Searching Algorithms" : qLower.includes("sort") ? "Sorting Algorithms" : "Core Data Structures";
+  } else if (qLower.includes("process") || qLower.includes("thread") || qLower.includes("deadlock") || qLower.includes("memory") || qLower.includes("paging") || qLower.includes("os") || qLower.includes("scheduling") || qLower.includes("round robin") || qLower.includes("semaphore")) {
     subject = "Operating Systems";
-    topic = qLower.includes("scheduling") || qLower.includes("round robin") ? "CPU Scheduling" : "System Concurrency & Management";
+    topic = qLower.includes("scheduling") || qLower.includes("round robin") ? "CPU Scheduling" : qLower.includes("deadlock") ? "Concurrency & Deadlocks" : "System Concurrency & Management";
     if (qLower.includes("round robin")) concept = "Round Robin Scheduling";
+    if (qLower.includes("deadlock")) concept = "Deadlock & Prevention";
   } else if (qLower.includes("sql") || qLower.includes("database") || qLower.includes("table") || qLower.includes("acid") || qLower.includes("transaction") || qLower.includes("normalization") || qLower.includes("1nf") || qLower.includes("2nf") || qLower.includes("3nf") || qLower.includes("bcnf")) {
     subject = "Database Management Systems";
     topic = qLower.includes("normalization") || qLower.includes("1nf") || qLower.includes("2nf") || qLower.includes("3nf") || qLower.includes("bcnf") ? "Relational Database Design" : "Relational Databases & Architecture";
     if (qLower.includes("normalization") || qLower.includes("1nf") || qLower.includes("2nf") || qLower.includes("3nf") || qLower.includes("bcnf")) {
       concept = "Database Normalization (1NF, 2NF, 3NF, BCNF)";
     }
-  } else if (qLower.includes("network") || qLower.includes("tcp") || qLower.includes("ip") || qLower.includes("osi") || qLower.includes("protocol") || qLower.includes("dns") || qLower.includes("http")) {
+  } else if (qLower.includes("network") || qLower.includes("tcp") || qLower.includes("udp") || qLower.includes("ip") || qLower.includes("osi") || qLower.includes("protocol") || qLower.includes("dns") || qLower.includes("http")) {
     subject = "Computer Networks";
-    topic = "Network Protocol Architectures";
+    topic = qLower.includes("tcp") || qLower.includes("udp") ? "Transport Layer Protocols" : "Network Protocol Architectures";
+    if (qLower.includes("tcp") || qLower.includes("udp")) concept = "TCP vs UDP";
   } else if (qLower.includes("derivative") || qLower.includes("integral") || qLower.includes("matrix") || qLower.includes("calculus") || qLower.includes("probability") || qLower.includes("algebra")) {
     subject = "Mathematics";
     topic = qLower.includes("matrix") ? "Linear Algebra" : qLower.includes("probability") ? "Probability & Statistics" : "Calculus & Analysis";
-  } else if (qLower.includes("newton") || qLower.includes("force") || qLower.includes("velocity") || qLower.includes("motion") || qLower.includes("gravity") || qLower.includes("physics") || qLower.includes("optics") || qLower.includes("charge")) {
+  } else if (qLower.includes("newton") || qLower.includes("force") || qLower.includes("velocity") || qLower.includes("motion") || qLower.includes("gravity") || qLower.includes("physics") || qLower.includes("energy")) {
     subject = "Physics";
-    topic = "Mechanics & Field Theory";
+    topic = "Classical Mechanics & Dynamics";
+  } else if (qLower.includes("photosynthesis") || qLower.includes("cell") || qLower.includes("dna") || qLower.includes("rna") || qLower.includes("genetics") || qLower.includes("biology")) {
+    subject = "Biological Sciences";
+    topic = "Cellular Biology & Genetics";
+  } else if (qLower.includes("study") || qLower.includes("exam") || qLower.includes("procrastinat") || qLower.includes("focus")) {
+    subject = "Study Skills & Productivity";
+    topic = "Effective Learning Strategies";
+    concept = "Smart Study Techniques";
   } else if (educationLevel === "B.Tech" && streamBranch) {
     subject = streamBranch;
     topic = "Engineering Fundamentals";
@@ -942,16 +886,15 @@ CRITICAL RULES:
     is_unclear: false,
     detected_subject: subject,
     detected_topic: topic,
-    detected_concept: concept || "Academic Study Subject",
-    technical_terms: clean.split(/\s+/).filter(w => w.length > 4)
+    detected_concept: concept || "Academic Concept",
+    technical_terms: clean.split(/\s+/).filter((w) => w.length > 4)
   };
 }
 
-/**
- * Step 6-8: Explanation Generation & AI Response Validation
- * Validates that the answer addresses the actual question, stays within subject/topic/concept,
- * and contains no unrelated concepts. If validation fails, regenerates or provides academic synthesis.
- */
+// ============================================================================
+// STEP 6-8: EXPLANATION GENERATION (FRIENDLY, ACCURATE & PEDAGOGICAL)
+// ============================================================================
+
 export async function generateValidatedExplanation(
   question: string,
   analysis: QuestionAnalysis,
@@ -959,135 +902,107 @@ export async function generateValidatedExplanation(
   preferredModel?: string,
   ollamaEndpoint?: string
 ): Promise<ExplanationResult> {
-  // Check Knowledge Base first across all models for curriculum-verified precision
+  // 1. If it is a friendly greeting or conversational inquiry
+  if (analysis.is_conversational || isGreetingOrChitchat(question)) {
+    return {
+      explanation: handleConversationalResponse(question),
+      detected_subject: "General",
+      detected_topic: "Conversational",
+      detected_concept: "LearnX Assistant",
+      validation_passed: true,
+      is_conversational: true,
+      validation_notes: "Friendly greeting."
+    };
+  }
+
+  // 2. Check curated Knowledge Base for high-yield, deeply verified concept
   const kbEntry = findKnowledgeBaseEntry(question) || findKnowledgeBaseEntry(analysis.detected_concept) || findKnowledgeBaseEntry(analysis.detected_topic);
   if (kbEntry) {
-    let explanationMarkdown = "";
-    if (preferredModel === "qwen-2.5" || preferredModel === "ollama") {
-      explanationMarkdown = `## 🧠 Qwen 2.5 Deep Academic Reasoning: **${kbEntry.concept}**
-> *Model Architecture: Qwen 2.5-1.5B-Instruct (Academic Offline Pipeline)*  
-> *Curriculum Mapping: ${kbEntry.subject} &rarr; ${kbEntry.topic}*
+    const friendlyMarkdown = `Hey! Let's explore **${kbEntry.concept}** in a simple, friendly, and intuitive way.
 
 ---
 
-### 🎯 1. Formal Theoretical Definition
-${kbEntry.definition}
+### 💡 In Plain English
+${kbEntry.plainEnglish}
 
 ---
 
-### ⚙️ 2. Pedagogical Significance & Why It Matters
-${kbEntry.whyItMatters}
+### 🔍 Simple Real-World Analogy
+${kbEntry.analogy}
 
 ---
 
-### 📐 3. Core Principles & Mathematical Formulations
-${kbEntry.keyPrinciples.map(p => `- ${p}`).join("\n")}
+### ⚙️ How It Works (Step-by-Step)
+${kbEntry.howItWorks.join("\n")}
 
 ---
 
-### 💻 4. Step-by-Step Worked Example & Formulations
-${kbEntry.workedExample}
+### 💻 Concrete Example & Real-World Use
+${kbEntry.realWorldExample}
 
 ---
 
-### 📝 5. Academic & University Exam Takeaways
-${kbEntry.examTakeaways.map(t => `- ${t}`).join("\n")}`;
-    } else {
-      explanationMarkdown = `## Academic Deep-Dive: **${kbEntry.concept}**
-*Academic Curriculum: ${kbEntry.subject} — ${kbEntry.topic}*
+### 🎓 Key Takeaways for Exams & Interviews
+${kbEntry.keyTakeaways.join("\n")}
 
----
-
-### 1. Conceptual Definition
-${kbEntry.definition}
-
----
-
-### 2. Pedagogical Significance & Why It Matters
-${kbEntry.whyItMatters}
-
----
-
-### 3. Core Principles & Operational Invariants
-${kbEntry.keyPrinciples.map(p => `- ${p}`).join("\n")}
-
----
-
-### 4. Step-by-Step Implementation & Example
-${kbEntry.workedExample}
-
----
-
-### 5. Exam & Interview Takeaways
-${kbEntry.examTakeaways.map(t => `- ${t}`).join("\n")}`;
-    }
+Hope that makes it super clear! Let me know if you want to dive deeper into any part or test yourself with the quick quiz below!`;
 
     return {
-      explanation: explanationMarkdown,
+      explanation: friendlyMarkdown,
       detected_subject: kbEntry.subject,
       detected_topic: kbEntry.topic,
       detected_concept: kbEntry.concept,
       validation_passed: true,
-      validation_notes: preferredModel === "qwen-2.5" ? "Qwen 2.5 High-Yield Academic Engine" : "Curriculum-verified precision response."
+      validation_notes: "Curriculum-verified precision response."
     };
   }
 
-  // If student selected Qwen 2.5 or local Ollama model
-  if (preferredModel === "qwen-2.5" || preferredModel === "ollama") {
+  // 3. If student connects Ollama local runtime
+  if (preferredModel === "ollama" || preferredModel === "qwen-2.5") {
     const ollamaStatus = await checkOllamaStatus(ollamaEndpoint || "http://localhost:11434");
     if (ollamaStatus.online) {
       const ollamaModel = ollamaStatus.recommendedModel || "qwen2.5:1.5b";
-      const systemPrompt = `You are Qwen 2.5, an authoritative academic tutor specializing in ${analysis.detected_subject}.
-Explain the student's question strictly within ${analysis.detected_subject} -> ${analysis.detected_topic} -> ${analysis.detected_concept}.
-Format with Markdown headers, mathematical/structural formulations, core step-by-step logic, concrete example, and exam takeaways.`;
-      const prompt = `Student Question: "${question}"\nEducation Level: ${educationLevel || "Undergraduate"}`;
+      const systemPrompt = `You are LearnX AI, a friendly, encouraging, and clear tutor like ChatGPT. 
+Explain the student's question clearly in plain English, with a simple analogy, step-by-step logic, code/examples, and memorable key takeaways. Avoid cold robotic bureaucratic language.`;
+      const prompt = `Student Question: "${question}"\nEducation Level: ${educationLevel || "Student"}`;
       const ollamaResponse = await queryOllama(ollamaEndpoint || "http://localhost:11434", ollamaModel, prompt, systemPrompt);
       if (ollamaResponse && ollamaResponse.length > 50) {
         return {
-          explanation: `> 🤖 **Powered by Local Qwen 2.5 (${ollamaModel})**\n\n` + ollamaResponse,
+          explanation: ollamaResponse,
           detected_subject: analysis.detected_subject,
           detected_topic: analysis.detected_topic,
           detected_concept: analysis.detected_concept,
           validation_passed: true,
-          validation_notes: `Executed via local Ollama runtime (${ollamaModel})`
+          validation_notes: `Powered by local runtime (${ollamaModel})`
         };
       }
     }
-
-    // High-yield Qwen 2.5 local offline academic engine fallback
-    return synthesizeQwenAcademicExplanation(
-      question,
-      analysis.detected_subject,
-      analysis.detected_topic,
-      analysis.detected_concept,
-      educationLevel
-    );
   }
 
+  // 4. Try cloud Gemini API if configured & accessible
   if (preferredModel !== "academic-engine") {
     const ai = getAI();
     if (ai) {
       try {
-        const prompt = `You are LearnX's precision learning AI. LearnX understands the learner.
-Student Question: "${question}"
-Validated Subject: "${analysis.detected_subject}"
-Validated Topic: "${analysis.detected_topic}"
-Validated Concept: "${analysis.detected_concept}"
-Student Education Level: "${educationLevel || "Student"}"
+        const prompt = `You are LearnX AI, a friendly, enthusiastic, and clear academic tutor just like ChatGPT.
+Student question: "${question}"
+Subject: "${analysis.detected_subject}"
+Topic: "${analysis.detected_topic}"
+Concept: "${analysis.detected_concept}"
 
-CRITICAL MANDATE:
-- Answer ONLY what the student actually asked.
-- Stay strictly within "${analysis.detected_subject}" -> "${analysis.detected_topic}" -> "${analysis.detected_concept}".
-- Provide a clear, intuitive, and pedagogical explanation formatted in clean Markdown with headers.
-- Include key principles, simple step-by-step intuition, a real-world or code/system example if applicable, and key takeaways.
-- Do NOT drift into unrelated subjects or extraneous topics.`;
+INSTRUCTIONS:
+- Tone: Friendly, conversational, encouraging, and easy to understand (like ChatGPT).
+- Structure:
+  1. Warm conversational opening with the intuitive 'In Plain English' concept definition.
+  2. A relatable real-world analogy.
+  3. Clear, step-by-step explanation of how it works.
+  4. A concrete example (with code, math, or real-life scenario where applicable).
+  5. Memorable key takeaways for exams or interviews.
+- Never use cold robotic boilerplate or phrases like 'operational invariant' or 'governing mechanics boundary conditions'.`;
 
         const response = await ai.models.generateContent({
           model: "gemini-3.8-flash",
           contents: prompt,
-          config: {
-            systemInstruction: "You are an expert personalized educator. You teach directly and clearly, strictly focusing on the student's question and validated concept without topic drift."
-          }
         });
 
         const explanationText = response.text || "";
@@ -1108,8 +1023,8 @@ CRITICAL MANDATE:
     }
   }
 
-  // Smooth fallback to Academic Synthesis without crashing
-  return synthesizeAcademicExplanation(
+  // 5. Intelligent, Friendly Dynamic Synthesis (zero robotic filler)
+  return synthesizeFriendlyExplanation(
     question,
     analysis.detected_subject,
     analysis.detected_topic,
@@ -1118,11 +1033,148 @@ CRITICAL MANDATE:
   );
 }
 
-/**
- * Step 11 & 12: Automatic MCQ After Doubt & MCQ Validation
- * Automatically creates an MCQ testing that SAME concept.
- * Validates: MCQ subject == detected subject, MCQ topic == detected topic, MCQ concept == detected concept.
- */
+// ============================================================================
+// STEP 11 & 12: AUTOMATIC & INFINITE MCQ GENERATION ENGINE
+// ============================================================================
+
+function generateInfiniteDynamicMCQ(
+  subject: string,
+  topic: string,
+  concept: string,
+  difficulty: "Easy" | "Medium" | "Hard",
+  questionNumber: number
+): GeneratedMCQ {
+  const patternIndex = (questionNumber - 1) % 8;
+  const correctChoiceIndex = (questionNumber * 2 + 1) % 4; // Cycles through 1(B), 3(D), 1(B), 3(D)... or varied
+  const optionsKeys: ("A" | "B" | "C" | "D")[] = ["A", "B", "C", "D"];
+  const correctKey = optionsKeys[correctChoiceIndex];
+
+  let questionText = "";
+  let correctText = "";
+  let distractors: string[] = [];
+  let explanation = "";
+
+  switch (patternIndex) {
+    case 0:
+      questionText = `What is the primary objective or foundational purpose of "${concept}" within ${subject}?`;
+      correctText = `To establish clear, systematic, and verifiable rules that guarantee consistency and correct behavior in ${topic}`;
+      distractors = [
+        `To eliminate the need for memory allocation and hardware constraints completely`,
+        `To act solely as an informal visual notation with no computational or logical semantics`,
+        `To restrict execution exclusively to synchronous single-threaded legacy processors`
+      ];
+      explanation = `The primary objective of ${concept} is to provide systematic and verifiable rules for ${topic}, ensuring deterministic and robust operation.`;
+      break;
+
+    case 1:
+      questionText = `During the application or execution of "${concept}", which operational invariant must always hold?`;
+      correctText = `Every state transition or computational step must strictly satisfy the governing constraints of ${topic}`;
+      distractors = [
+        `Data structures must continuously double in size regardless of input scale`,
+        `All asynchronous events must be discarded without acknowledgment`,
+        `Computation must terminate within exactly one clock cycle regardless of complexity`
+      ];
+      explanation = `For ${concept} to remain sound, all transitions and steps must maintain the governing invariants defined in ${topic}.`;
+      break;
+
+    case 2:
+      questionText = `What critical edge case or failure mode must engineers prevent when utilizing "${concept}"?`;
+      correctText = `Unbounded resource consumption, deadlock, or invalid state transitions under extreme boundary conditions`;
+      distractors = [
+        `Deterministic execution yielding reproducible results across repeated runs`,
+        `Strict adherence to the underlying algorithmic specification`,
+        `Optimal asymptotic time complexity under average-case workloads`
+      ];
+      explanation = `Edge cases such as boundary violations, unhandled base conditions, or resource exhaustion are critical failure modes in ${concept}.`;
+      break;
+
+    case 3:
+      questionText = `Compared to naive or unconstrained approaches, what is the key architectural advantage of "${concept}"?`;
+      correctText = `It provides structured guarantees, predictable behavior, and superior modularity in ${topic}`;
+      distractors = [
+        `It operates with zero memory footprint and requires no CPU cycles`,
+        `It bypasses all validation and error-checking layers for raw throughput`,
+        `It guarantees infinite precision without any computational trade-offs`
+      ];
+      explanation = `By introducing formal structure, ${concept} ensures predictable, testable, and modular system design.`;
+      break;
+
+    case 4:
+      questionText = `In production systems and industry practice, how is "${concept}" typically leveraged?`;
+      correctText = `As a core building block to decouple complex subsystems and enforce standard protocol contracts`;
+      distractors = [
+        `As an optional aesthetic skin without any functional or logical impact`,
+        `To artificially increase latency and slow down request processing`,
+        `Exclusively within obsolete mainframe batch routines that run once per year`
+      ];
+      explanation = `In real-world architectures, ${concept} decouples responsibilities and ensures strict contract compliance across services.`;
+      break;
+
+    case 5:
+      questionText = `Which statement accurately characterizes the efficiency or computational bounds of "${concept}"?`;
+      correctText = `Its performance characteristics depend directly on input size and adherence to algorithmic best practices`;
+      distractors = [
+        `It permanently executes in O(1) time and space for any arbitrarily complex NP-hard problem`,
+        `Its resource usage is completely unpredictable and cannot be mathematically bounded`,
+        `It degrades exponentially even on trivial or empty inputs`
+      ];
+      explanation = `The operational complexity of ${concept} is governed by standard complexity analysis and input scaling.`;
+      break;
+
+    case 6:
+      questionText = `Which of the following statements regarding "${concept}" in ${topic} is FALSE?`;
+      correctText = `"${concept}" can be safely ignored without any risk of system corruption, data loss, or behavioral flaws`;
+      distractors = [
+        `"${concept}" is designed to handle common domain problems in ${subject}`,
+        `Proper understanding of "${concept}" is essential for building scalable applications`,
+        `Edge cases in "${concept}" must be explicitly tested during quality assurance`
+      ];
+      explanation = `Ignoring ${concept} compromises correctness, stability, and data integrity in real-world systems.`;
+      break;
+
+    case 7:
+    default:
+      questionText = `When troubleshooting an unexpected defect related to "${concept}", which factor should be verified FIRST?`;
+      correctText = `Whether input prerequisites, boundary conditions, and state transitions conform to standard specifications`;
+      distractors = [
+        `Whether the hardware motherboard requires physical soldering`,
+        `Whether user account credentials contain special punctuation characters`,
+        `Whether random bit-shifting can bypass the underlying algorithm`
+      ];
+      explanation = `Verifying prerequisites, edge conditions, and state transition correctness is the primary troubleshooting protocol for ${concept}.`;
+      break;
+  }
+
+  // Construct options placing correctText at correctKey
+  const optionsMap: Record<"A" | "B" | "C" | "D", string> = {
+    A: "",
+    B: "",
+    C: "",
+    D: "",
+  };
+
+  optionsMap[correctKey] = correctText;
+  const remainingKeys = optionsKeys.filter((k) => k !== correctKey);
+  for (let i = 0; i < remainingKeys.length; i++) {
+    optionsMap[remainingKeys[i]] = distractors[i] || `Alternative condition ${i + 1}`;
+  }
+
+  return {
+    question_text: questionText,
+    option_a: optionsMap.A,
+    option_b: optionsMap.B,
+    option_c: optionsMap.C,
+    option_d: optionsMap.D,
+    correct_option: correctKey,
+    explanation,
+    difficulty,
+    subject,
+    topic,
+    concept,
+    validation_passed: true,
+  };
+}
+
 export async function generateValidatedMCQ(
   subject: string,
   topic: string,
@@ -1131,41 +1183,57 @@ export async function generateValidatedMCQ(
   difficulty: "Easy" | "Medium" | "Hard" = "Medium",
   explanationGiven: string = "",
   preferredModel?: string,
-  ollamaEndpoint?: string
+  ollamaEndpoint?: string,
+  questionIndex: number = 1,
+  previousQuestions: string[] = []
 ): Promise<GeneratedMCQ> {
-  // Check Knowledge Base first across all models for syllabus-aligned accuracy
+  const qNum = Math.max(1, questionIndex);
+  const computedDifficulty: "Easy" | "Medium" | "Hard" =
+    difficulty || (qNum <= 2 ? "Medium" : qNum <= 4 ? "Hard" : "Medium");
+
+  // 1. Check Knowledge Base first across all models
   const kbEntry = findKnowledgeBaseEntry(concept) || findKnowledgeBaseEntry(topic) || findKnowledgeBaseEntry(subject);
   if (kbEntry) {
-    return {
-      question_text: kbEntry.mcq.question,
-      option_a: kbEntry.mcq.a,
-      option_b: kbEntry.mcq.b,
-      option_c: kbEntry.mcq.c,
-      option_d: kbEntry.mcq.d,
-      correct_option: kbEntry.mcq.correct,
-      explanation: kbEntry.mcq.explanation,
-      difficulty: difficulty,
-      subject: kbEntry.subject,
-      topic: kbEntry.topic,
-      concept: kbEntry.concept,
-      validation_passed: true
-    };
+    const allKbQuestions = [kbEntry.mcq, ...(kbEntry.mcqs || [])];
+    // Find an unused question that hasn't appeared in previousQuestions
+    const unusedKbQuestion = allKbQuestions.find(
+      (q) => !previousQuestions.some((prev) => prev.toLowerCase().trim() === q.question.toLowerCase().trim())
+    );
+
+    if (unusedKbQuestion) {
+      return {
+        question_text: unusedKbQuestion.question,
+        option_a: unusedKbQuestion.a,
+        option_b: unusedKbQuestion.b,
+        option_c: unusedKbQuestion.c,
+        option_d: unusedKbQuestion.d,
+        correct_option: unusedKbQuestion.correct,
+        explanation: unusedKbQuestion.explanation,
+        difficulty: unusedKbQuestion.difficulty || computedDifficulty,
+        subject: kbEntry.subject,
+        topic: kbEntry.topic,
+        concept: kbEntry.concept,
+        validation_passed: true
+      };
+    }
   }
 
-  // If student selected Qwen 2.5 or local Ollama model
-  if (preferredModel === "qwen-2.5" || preferredModel === "ollama") {
+  // 2. If local Ollama is active
+  if (preferredModel === "ollama" || preferredModel === "qwen-2.5") {
     const ollamaStatus = await checkOllamaStatus(ollamaEndpoint || "http://localhost:11434");
     if (ollamaStatus.online) {
-      const prompt = `Generate a single multiple-choice question in valid JSON testing "${concept}" in ${subject} (${topic}).
-Return ONLY a raw JSON object:
+      const prompt = `Generate multiple-choice question #${qNum} testing "${concept}" in ${subject} (${topic}).
+Difficulty: ${computedDifficulty}.
+Previous questions to NOT repeat: ${previousQuestions.slice(-3).join(" | ")}.
+Return ONLY a raw JSON object with:
 {
-  "question_text": "A clear question testing ${concept}",
+  "question_text": "Question testing ${concept}",
   "option_a": "Option A",
   "option_b": "Option B",
   "option_c": "Option C",
   "option_d": "Option D",
   "correct_option": "A",
-  "explanation": "Why the correct option is right"
+  "explanation": "Why correct option is right"
 }`;
       const resp = await queryOllama(
         ollamaEndpoint || "http://localhost:11434",
@@ -1189,8 +1257,8 @@ Return ONLY a raw JSON object:
                 option_c: parsed.option_c || "Option C",
                 option_d: parsed.option_d || "Option D",
                 correct_option: opt,
-                explanation: parsed.explanation || "Correct option based on concept evaluation.",
-                difficulty,
+                explanation: parsed.explanation || `Option ${opt} is correct based on ${concept}.`,
+                difficulty: computedDifficulty,
                 subject,
                 topic,
                 concept,
@@ -1201,90 +1269,65 @@ Return ONLY a raw JSON object:
         } catch {}
       }
     }
-
-    return synthesizeQwenAcademicMCQ(subject, topic, concept, difficulty);
   }
 
+  // 3. Try Cloud Gemini API for infinite dynamic questions if available
   if (preferredModel !== "academic-engine") {
     const ai = getAI();
     if (ai) {
-      const prompt = `Generate a single multiple-choice question (MCQ) to test a student's understanding of the concept explained:
-Subject: "${subject}"
-Topic: "${topic}"
-Concept: "${concept}"
-Target Student Level: "${educationLevel}"
-Target Difficulty: "${difficulty}"
-Explanation Given To Student: "${explanationGiven.substring(0, 1000)}"
-
-CRITICAL VALIDATION RULES:
-1. The MCQ MUST test the exact concept: "${concept}".
-2. The MCQ subject MUST be "${subject}".
-3. The MCQ topic MUST be "${topic}".
-4. All 4 options (A, B, C, D) must be plausible and well-crafted.
-5. Exactly one option is correct.
-6. Provide a concise explanation of why the correct option is right.
-7. Return clean JSON.`;
-
       try {
+        const prevQText = previousQuestions.slice(-3).map((q) => `"${q}"`).join(", ");
+        const prompt = `Generate a high-quality academic multiple-choice question (#${qNum}) testing "${concept}" in ${subject} (${topic}).
+Difficulty level: ${computedDifficulty}.
+${prevQText ? `Do NOT repeat or closely rephrase any of these previous questions: ${prevQText}.` : ""}
+Create 4 realistic, distinct options (A, B, C, D) with exactly one clearly correct option and 3 plausible distractors.
+
+Return ONLY a raw JSON object with no markdown fences, matching this schema:
+{
+  "question_text": "The question here",
+  "option_a": "Option A text",
+  "option_b": "Option B text",
+  "option_c": "Option C text",
+  "option_d": "Option D text",
+  "correct_option": "A",
+  "explanation": "Detailed explanation why the correct option is right"
+}`;
+
         const response = await ai.models.generateContent({
           model: "gemini-3.8-flash",
           contents: prompt,
-          config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                question_text: { type: Type.STRING },
-                option_a: { type: Type.STRING },
-                option_b: { type: Type.STRING },
-                option_c: { type: Type.STRING },
-                option_d: { type: Type.STRING },
-                correct_option: { type: Type.STRING, description: "Must be 'A', 'B', 'C', or 'D'" },
-                explanation: { type: Type.STRING },
-                mcq_subject: { type: Type.STRING },
-                mcq_topic: { type: Type.STRING },
-                mcq_concept: { type: Type.STRING }
-              },
-              required: [
-                "question_text",
-                "option_a",
-                "option_b",
-                "option_c",
-                "option_d",
-                "correct_option",
-                "explanation"
-              ]
-            }
-          }
         });
 
-        const parsed = JSON.parse(response.text || "{}");
-        const correctOpt = ["A", "B", "C", "D"].includes(parsed.correct_option?.toUpperCase())
-          ? (parsed.correct_option.toUpperCase() as "A" | "B" | "C" | "D")
-          : "A";
-
-        return {
-          question_text: parsed.question_text || `What is a primary characteristic of ${concept}?`,
-          option_a: parsed.option_a || "Option A",
-          option_b: parsed.option_b || "Option B",
-          option_c: parsed.option_c || "Option C",
-          option_d: parsed.option_d || "Option D",
-          correct_option: correctOpt,
-          explanation: parsed.explanation || "Correct answer based on the explained concept.",
-          difficulty: difficulty,
-          subject: subject,
-          topic: topic,
-          concept: concept,
-          validation_passed: true
-        };
-      } catch (err: any) {
-        if (err?.message?.includes("PERMISSION_DENIED") || err?.status === 403 || err?.code === 403) {
-          cloudApiBlockedOrRestricted = true;
+        const respText = response.text || "";
+        const jsonMatch = respText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          const opt = ["A", "B", "C", "D"].includes(parsed.correct_option?.toUpperCase())
+            ? (parsed.correct_option.toUpperCase() as "A" | "B" | "C" | "D")
+            : "A";
+          if (parsed.question_text && parsed.option_a && parsed.option_b) {
+            return {
+              question_text: parsed.question_text,
+              option_a: parsed.option_a,
+              option_b: parsed.option_b,
+              option_c: parsed.option_c || "Option C",
+              option_d: parsed.option_d || "Option D",
+              correct_option: opt,
+              explanation: parsed.explanation || `Option ${opt} is correct for ${concept}.`,
+              difficulty: computedDifficulty,
+              subject,
+              topic,
+              concept,
+              validation_passed: true
+            };
+          }
         }
+      } catch {
+        // Fallback gracefully
       }
     }
   }
 
-  // Graceful synthesis
-  return synthesizeAcademicMCQ(subject, topic, concept, difficulty);
+  // 4. Multi-Angle Infinite Dynamic Concept Question Generator
+  return generateInfiniteDynamicMCQ(subject, topic, concept, computedDifficulty, qNum);
 }

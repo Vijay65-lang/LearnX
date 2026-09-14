@@ -27,7 +27,8 @@ import {
   Terminal,
   ExternalLink,
   BookOpen,
-  ShieldCheck
+  ShieldCheck,
+  StopCircle
 } from "lucide-react";
 import {
   StudentProfile,
@@ -38,6 +39,7 @@ import {
   AIModelType,
   OllamaStatus
 } from "../types";
+import { FormattedMessage } from "./FormattedMessage";
 import {
   getChatSessions,
   createChatSession,
@@ -46,7 +48,8 @@ import {
   deleteChatSession,
   askStudyDoubt,
   submitQuestionAttempt,
-  getOllamaStatus
+  getOllamaStatus,
+  generateNextMCQ
 } from "../api";
 import { ModelSettingsModal } from "./ModelSettingsModal";
 
@@ -78,9 +81,16 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
   const [pingMessage, setPingMessage] = useState<string | null>(null);
 
   // Active MCQ state per message
+  const [mcqsByMessage, setMcqsByMessage] = useState<Record<string, GeneratedMCQ & { id: string; question_number?: number }>>({});
+  const [mcqQuestionNumbers, setMcqQuestionNumbers] = useState<Record<string, number>>({});
   const [mcqAnswers, setMcqAnswers] = useState<Record<string, "A" | "B" | "C" | "D">>({});
   const [mcqResults, setMcqResults] = useState<Record<string, AttemptResult>>({});
   const [submittingMcq, setSubmittingMcq] = useState<Record<string, boolean>>({});
+  const [generatingNextMcq, setGeneratingNextMcq] = useState<Record<string, boolean>>({});
+  const [stoppedMcq, setStoppedMcq] = useState<Record<string, boolean>>({});
+  const [mcqStats, setMcqStats] = useState<
+    Record<string, { total: number; correct: number; previousQuestions: string[] }>
+  >({});
 
   // Renaming chat state
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
@@ -297,7 +307,9 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
 
       // If this was first message, update title
       if (messages.length === 0) {
-        const autoTitle = `${res.detected_topic}: ${res.detected_concept.slice(0, 20)}`;
+        const autoTitle = res.is_conversational
+          ? questionText.slice(0, 24)
+          : `${res.detected_topic}: ${res.detected_concept.slice(0, 20)}`;
         renameChatSession(activeChatId, autoTitle);
         setSessions((prev) =>
           prev.map((s) => (s.id === activeChatId ? { ...s, title: autoTitle } : s))
@@ -311,9 +323,9 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
   };
 
   // Student submits the auto-generated MCQ
-  const handleMcqSubmit = async (msgId: string, mcq: GeneratedMCQ) => {
+  const handleMcqSubmit = async (msgId: string, mcq: GeneratedMCQ & { id: string }) => {
     const selected = mcqAnswers[msgId];
-    if (!selected) return;
+    if (!selected || submittingMcq[msgId]) return;
 
     setSubmittingMcq((prev) => ({ ...prev, [msgId]: true }));
     const responseTimeSec = Math.round((Date.now() - questionStartTimeRef.current) / 1000);
@@ -331,11 +343,75 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
       });
 
       setMcqResults((prev) => ({ ...prev, [msgId]: result }));
+      setMcqStats((prev) => {
+        const current = prev[msgId] || { total: 0, correct: 0, previousQuestions: [] };
+        return {
+          ...prev,
+          [msgId]: {
+            total: current.total + 1,
+            correct: current.correct + (result.is_correct ? 1 : 0),
+            previousQuestions: [...current.previousQuestions, mcq.question_text],
+          },
+        };
+      });
     } catch (err: any) {
       setError("Failed to record answer attempt.");
     } finally {
       setSubmittingMcq((prev) => ({ ...prev, [msgId]: false }));
     }
+  };
+
+  // Generate next continuous MCQ for this doubt/topic (Infinite MCQs)
+  const handleNextQuestion = async (msgId: string, currentMcq: GeneratedMCQ & { id: string }) => {
+    if (generatingNextMcq[msgId]) return;
+    setGeneratingNextMcq((prev) => ({ ...prev, [msgId]: true }));
+    setError(null);
+
+    const currentQNum = mcqQuestionNumbers[msgId] || 1;
+    const nextQNum = currentQNum + 1;
+    const previousQuestions = mcqStats[msgId]?.previousQuestions || [currentMcq.question_text];
+
+    try {
+      const res = await generateNextMCQ({
+        subject: currentMcq.subject,
+        topic: currentMcq.topic,
+        concept: currentMcq.concept,
+        difficulty: nextQNum <= 2 ? "Medium" : nextQNum <= 4 ? "Hard" : "Medium",
+        question_index: nextQNum,
+        previous_questions: previousQuestions,
+        model: selectedModel,
+        ollama_endpoint: ollamaEndpoint,
+      });
+
+      if (res.mcq) {
+        setMcqsByMessage((prev) => ({ ...prev, [msgId]: res.mcq }));
+        setMcqQuestionNumbers((prev) => ({ ...prev, [msgId]: nextQNum }));
+        // Reset answer and result for the new question
+        setMcqAnswers((prev) => {
+          const copy = { ...prev };
+          delete copy[msgId];
+          return copy;
+        });
+        setMcqResults((prev) => {
+          const copy = { ...prev };
+          delete copy[msgId];
+          return copy;
+        });
+        questionStartTimeRef.current = Date.now();
+      }
+    } catch (err: any) {
+      setError("Failed to generate next practice question. Please try again.");
+    } finally {
+      setGeneratingNextMcq((prev) => ({ ...prev, [msgId]: false }));
+    }
+  };
+
+  const handleStopMcq = (msgId: string) => {
+    setStoppedMcq((prev) => ({ ...prev, [msgId]: true }));
+  };
+
+  const handleResumeMcq = (msgId: string) => {
+    setStoppedMcq((prev) => ({ ...prev, [msgId]: false }));
   };
 
   const filteredSessions = sessions.filter((s) =>
@@ -658,10 +734,10 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
                         : "bg-slate-900 border border-slate-800 text-slate-100 rounded-bl-xs"
                     }`}
                   >
-                    {/* Classification Badges (Sections 6 & 8) */}
-                    {!isUser && msg.detected_subject && (
+                    {/* Curriculum Badge (Only for academic concepts) */}
+                    {!isUser && msg.detected_subject && msg.detected_subject !== "General" && msg.detected_subject !== "Conversational" && (
                       <div className="mb-3.5 flex flex-wrap items-center gap-1.5 p-2 bg-slate-950/80 rounded-xl border border-slate-800 text-[11px]">
-                        <span className="font-semibold text-indigo-400">Validated:</span>
+                        <span className="font-semibold text-indigo-400">Curriculum:</span>
                         <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-medium">
                           {msg.detected_subject}
                         </span>
@@ -677,128 +753,241 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
                     )}
 
                     {/* Message Body */}
-                    <div className="text-xs sm:text-sm leading-relaxed whitespace-pre-line">
-                      {msg.message_text}
-                    </div>
+                    {isUser ? (
+                      <div className="text-xs sm:text-sm leading-relaxed whitespace-pre-line">
+                        {msg.message_text}
+                      </div>
+                    ) : (
+                      <FormattedMessage content={msg.message_text} />
+                    )}
 
-                    {/* Automatic MCQ After Doubt (Sections 11 & 12) */}
-                    {!isUser && msg.mcq && (
-                      <div className="mt-5 pt-4 border-t border-slate-800 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <HelpCircle className="w-4 h-4 text-amber-400" />
-                            <span className="text-xs font-bold text-amber-300 uppercase tracking-wide">
-                              Concept Comprehension Check
-                            </span>
+                    {/* Automatic & Infinite MCQ Engine After Doubt (Sections 11 & 12) */}
+                    {!isUser && msg.mcq && (() => {
+                      const activeMcq = mcqsByMessage[msg.id] || msg.mcq;
+                      const qNum = mcqQuestionNumbers[msg.id] || 1;
+                      const isStopped = Boolean(stoppedMcq[msg.id]);
+                      const stats = mcqStats[msg.id] || { total: 0, correct: 0, previousQuestions: [] };
+                      const selectedAnswer = mcqAnswers[msg.id];
+                      const result = mcqResults[msg.id];
+                      const isSubmitted = Boolean(result);
+                      const isGeneratingNext = Boolean(generatingNextMcq[msg.id]);
+
+                      if (isStopped) {
+                        return (
+                          <div className="mt-4 p-3.5 bg-slate-950/80 border border-slate-800 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-lg bg-indigo-950/80 border border-indigo-800/60 flex items-center justify-center text-indigo-400 shrink-0">
+                                <StopCircle className="w-4 h-4 text-indigo-400" />
+                              </div>
+                              <div>
+                                <div className="font-semibold text-slate-200 flex items-center gap-2">
+                                  <span>MCQ Practice Stopped for this Doubt</span>
+                                  <span className="text-[10px] px-2 py-0.5 rounded bg-slate-850 text-slate-400 border border-slate-800 font-mono">
+                                    {activeMcq.concept}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-slate-400 mt-0.5">
+                                  {stats.total > 0
+                                    ? `Completed ${stats.total} question${stats.total > 1 ? "s" : ""} • Score: ${stats.correct}/${stats.total} correct (${Math.round((stats.correct / stats.total) * 100)}% accuracy).`
+                                    : "Practice questions were stopped for this topic. Click resume to continue practicing anytime!"}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleResumeMcq(msg.id)}
+                              className="px-3 py-1.5 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 rounded-lg text-xs font-medium transition flex items-center gap-1.5 shrink-0"
+                            >
+                              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                              <span>Resume Practice</span>
+                            </button>
                           </div>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                            {msg.mcq.difficulty}
-                          </span>
-                        </div>
+                        );
+                      }
 
-                        <p className="text-xs font-semibold text-slate-200">
-                          {msg.mcq.question_text}
-                        </p>
-
-                        {/* Options */}
-                        <div className="space-y-2">
-                          {[
-                            { key: "A", text: msg.mcq.option_a },
-                            { key: "B", text: msg.mcq.option_b },
-                            { key: "C", text: msg.mcq.option_c },
-                            { key: "D", text: msg.mcq.option_d },
-                          ].map((opt) => {
-                            const selected = mcqAnswers[msg.id] === opt.key;
-                            const result = mcqResults[msg.id];
-                            const isSubmitted = Boolean(result);
-                            const isCorrectOption = msg.mcq?.correct_option === opt.key;
-
-                            let optStyle = "bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-750";
-                            if (isSubmitted) {
-                              if (isCorrectOption) {
-                                optStyle = "bg-emerald-950/60 border-emerald-500/60 text-emerald-200";
-                              } else if (selected) {
-                                optStyle = "bg-rose-950/60 border-rose-500/60 text-rose-200";
-                              } else {
-                                optStyle = "bg-slate-850/40 border-slate-800 text-slate-500 opacity-60";
-                              }
-                            } else if (selected) {
-                              optStyle = "bg-indigo-600/30 border-indigo-500 text-indigo-100 font-semibold";
-                            }
-
-                            return (
-                              <button
-                                key={opt.key}
-                                type="button"
-                                disabled={isSubmitted}
-                                onClick={() =>
-                                  setMcqAnswers((prev) => ({
-                                    ...prev,
-                                    [msg.id]: opt.key as "A" | "B" | "C" | "D",
-                                  }))
-                                }
-                                className={`w-full text-left p-3 rounded-xl border text-xs flex items-start gap-2.5 transition-all ${optStyle}`}
-                              >
-                                <span className="font-mono font-bold w-5 h-5 rounded-full bg-slate-900/60 flex items-center justify-center shrink-0 text-[11px]">
-                                  {opt.key}
+                      return (
+                        <div className="mt-5 pt-4 border-t border-slate-800 space-y-3">
+                          {/* Header Bar */}
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <HelpCircle className="w-4 h-4 text-amber-400" />
+                              <span className="text-xs font-bold text-amber-300 uppercase tracking-wide">
+                                Concept Comprehension Check
+                              </span>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 font-semibold">
+                                Question #{qNum}
+                              </span>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                                {activeMcq.difficulty}
+                              </span>
+                              {stats.total > 0 && (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-800/60">
+                                  Score: {stats.correct}/{stats.total}
                                 </span>
-                                <span className="flex-1">{opt.text}</span>
-                                {isSubmitted && isCorrectOption && (
-                                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                                )}
-                                {isSubmitted && selected && !isCorrectOption && (
-                                  <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                              )}
+                            </div>
+
+                            {/* Stop Option Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleStopMcq(msg.id)}
+                              className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-rose-300 px-2.5 py-1 rounded-lg border border-slate-800 hover:border-rose-900/60 hover:bg-rose-950/30 transition"
+                              title="Stop MCQ practice for this doubt/topic"
+                            >
+                              <StopCircle className="w-3.5 h-3.5 text-rose-400" />
+                              <span>Stop MCQ for this doubt</span>
+                            </button>
+                          </div>
+
+                          <p className="text-xs font-semibold text-slate-200">
+                            {activeMcq.question_text}
+                          </p>
+
+                          {/* Options */}
+                          <div className="space-y-2">
+                            {[
+                              { key: "A", text: activeMcq.option_a },
+                              { key: "B", text: activeMcq.option_b },
+                              { key: "C", text: activeMcq.option_c },
+                              { key: "D", text: activeMcq.option_d },
+                            ].map((opt) => {
+                              const selected = selectedAnswer === opt.key;
+                              const isCorrectOption = activeMcq.correct_option === opt.key;
+
+                              let optStyle = "bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-750";
+                              if (isSubmitted) {
+                                if (isCorrectOption) {
+                                  optStyle = "bg-emerald-950/60 border-emerald-500/60 text-emerald-200";
+                                } else if (selected) {
+                                  optStyle = "bg-rose-950/60 border-rose-500/60 text-rose-200";
+                                } else {
+                                  optStyle = "bg-slate-850/40 border-slate-800 text-slate-500 opacity-60";
+                                }
+                              } else if (selected) {
+                                optStyle = "bg-indigo-600/30 border-indigo-500 text-indigo-100 font-semibold";
+                              }
+
+                              return (
+                                <button
+                                  key={opt.key}
+                                  type="button"
+                                  disabled={isSubmitted}
+                                  onClick={() =>
+                                    setMcqAnswers((prev) => ({
+                                      ...prev,
+                                      [msg.id]: opt.key as "A" | "B" | "C" | "D",
+                                    }))
+                                  }
+                                  className={`w-full text-left p-3 rounded-xl border text-xs flex items-start gap-2.5 transition-all ${optStyle}`}
+                                >
+                                  <span className="font-mono font-bold w-5 h-5 rounded-full bg-slate-900/60 flex items-center justify-center shrink-0 text-[11px]">
+                                    {opt.key}
+                                  </span>
+                                  <span className="flex-1">{opt.text}</span>
+                                  {isSubmitted && isCorrectOption && (
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                                  )}
+                                  {isSubmitted && selected && !isCorrectOption && (
+                                    <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Submit or Result & Next Question Actions */}
+                          {!result ? (
+                            <div className="flex items-center gap-2 pt-1">
+                              <button
+                                type="button"
+                                disabled={!selectedAnswer || submittingMcq[msg.id]}
+                                onClick={() => handleMcqSubmit(msg.id, activeMcq)}
+                                className="flex-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition shadow-md flex items-center justify-center gap-2"
+                              >
+                                {submittingMcq[msg.id] ? (
+                                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                  <>
+                                    <span>Submit Answer</span>
+                                    <ArrowRight className="w-3.5 h-3.5" />
+                                  </>
                                 )}
                               </button>
-                            );
-                          })}
-                        </div>
+                              <button
+                                type="button"
+                                onClick={() => handleStopMcq(msg.id)}
+                                className="py-2.5 px-3 bg-slate-850 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700/80 rounded-xl text-xs transition"
+                                title="Stop questions for this doubt"
+                              >
+                                Stop MCQ
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-3 pt-1">
+                              <div
+                                className={`p-3.5 rounded-xl border text-xs space-y-2 ${
+                                  result.is_correct
+                                    ? "bg-emerald-950/40 border-emerald-800/50 text-emerald-300"
+                                    : "bg-rose-950/40 border-rose-800/50 text-rose-300"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between font-bold">
+                                  <span>
+                                    {result.is_correct
+                                      ? "✓ Correct Answer!"
+                                      : `✗ Incorrect. Correct option was ${activeMcq.correct_option}`}
+                                  </span>
+                                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-900/80 text-white">
+                                    Mastery: {result.mastery.mastery_state}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] leading-relaxed text-slate-300">
+                                  {activeMcq.explanation}
+                                </p>
+                                <div className="text-[10px] text-slate-400 font-mono flex items-center justify-between">
+                                  <span>
+                                    Accuracy: {result.mastery.accuracy}% ({result.mastery.correct_count}/{result.mastery.attempts} attempts)
+                                  </span>
+                                  <span>
+                                    Session: {stats.correct}/{stats.total} correct
+                                  </span>
+                                </div>
+                              </div>
 
-                        {/* Submit Button or Result Card */}
-                        {!mcqResults[msg.id] ? (
-                          <button
-                            type="button"
-                            disabled={!mcqAnswers[msg.id] || submittingMcq[msg.id]}
-                            onClick={() => handleMcqSubmit(msg.id, msg.mcq!)}
-                            className="mt-2 w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition shadow-md flex items-center justify-center gap-2"
-                          >
-                            {submittingMcq[msg.id] ? (
-                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            ) : (
-                              <>
-                                <span>Submit Answer</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </>
-                            )}
-                          </button>
-                        ) : (
-                          <div
-                            className={`p-3.5 rounded-xl border text-xs space-y-2 ${
-                              mcqResults[msg.id].is_correct
-                                ? "bg-emerald-950/40 border-emerald-800/50 text-emerald-300"
-                                : "bg-rose-950/40 border-rose-800/50 text-rose-300"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between font-bold">
-                              <span>
-                                {mcqResults[msg.id].is_correct
-                                  ? "✓ Correct Answer!"
-                                  : `✗ Incorrect. Correct option was ${msg.mcq.correct_option}`}
-                              </span>
-                              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-900/80 text-white">
-                                Mastery: {mcqResults[msg.id].mastery.mastery_state}
-                              </span>
+                              {/* Infinite Next Question / Stop Controls */}
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  disabled={isGeneratingNext}
+                                  onClick={() => handleNextQuestion(msg.id, activeMcq)}
+                                  className="flex-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition shadow-md flex items-center justify-center gap-2"
+                                >
+                                  {isGeneratingNext ? (
+                                    <>
+                                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                      <span>Generating Next Question...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Sparkles className="w-3.5 h-3.5 text-indigo-200" />
+                                      <span>Next Question (#{qNum + 1}) →</span>
+                                    </>
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStopMcq(msg.id)}
+                                  className="py-2.5 px-3.5 bg-slate-850 hover:bg-rose-950/40 text-slate-400 hover:text-rose-300 border border-slate-700/80 hover:border-rose-800/60 rounded-xl text-xs transition flex items-center gap-1.5"
+                                >
+                                  <StopCircle className="w-3.5 h-3.5 text-rose-400" />
+                                  <span>Stop MCQ</span>
+                                </button>
+                              </div>
                             </div>
-                            <p className="text-[11px] leading-relaxed text-slate-300">
-                              {msg.mcq.explanation}
-                            </p>
-                            <div className="text-[10px] text-slate-400 font-mono">
-                              Topic Accuracy: {mcqResults[msg.id].mastery.accuracy}% ({mcqResults[msg.id].mastery.correct_count}/{mcqResults[msg.id].mastery.attempts} attempts)
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               );

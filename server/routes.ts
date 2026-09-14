@@ -321,39 +321,47 @@ apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) =
       ]
     );
 
-    // Step 11 & 12: Automatic MCQ generation testing that SAME concept!
-    const mcq = await generateValidatedMCQ(
-      explanationResult.detected_subject,
-      explanationResult.detected_topic,
-      explanationResult.detected_concept,
-      profile?.education_level,
-      "Medium",
-      explanationResult.explanation,
-      model,
-      ollama_endpoint
-    );
+    // Step 11 & 12: Automatic MCQ generation testing that SAME concept (only for academic concept questions)
+    let mcqData: any = undefined;
+    if (!explanationResult.is_conversational) {
+      const mcq = await generateValidatedMCQ(
+        explanationResult.detected_subject,
+        explanationResult.detected_topic,
+        explanationResult.detected_concept,
+        profile?.education_level,
+        "Medium",
+        explanationResult.explanation,
+        model,
+        ollama_endpoint
+      );
 
-    // Save question in questions table so student can attempt it
-    const questionId = "q_" + crypto.randomUUID();
-    run(
-      `INSERT INTO questions (
-        id, subject_id, concept, question_text, option_a, option_b, option_c, option_d,
-        correct_option, explanation, difficulty
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        questionId,
-        null,
-        mcq.concept,
-        mcq.question_text,
-        mcq.option_a,
-        mcq.option_b,
-        mcq.option_c,
-        mcq.option_d,
-        mcq.correct_option,
-        mcq.explanation,
-        mcq.difficulty
-      ]
-    );
+      // Save question in questions table so student can attempt it
+      const questionId = "q_" + crypto.randomUUID();
+      run(
+        `INSERT INTO questions (
+          id, subject_id, concept, question_text, option_a, option_b, option_c, option_d,
+          correct_option, explanation, difficulty
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          questionId,
+          null,
+          mcq.concept,
+          mcq.question_text,
+          mcq.option_a,
+          mcq.option_b,
+          mcq.option_c,
+          mcq.option_d,
+          mcq.correct_option,
+          mcq.explanation,
+          mcq.difficulty
+        ]
+      );
+
+      mcqData = {
+        id: questionId,
+        ...mcq
+      };
+    }
 
     // Also persist in chat session if chat_id provided
     if (chat_id) {
@@ -410,14 +418,85 @@ apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) =
       detected_topic: explanationResult.detected_topic,
       detected_concept: explanationResult.detected_concept,
       validation_passed: explanationResult.validation_passed,
-      mcq: {
-        id: questionId,
-        ...mcq
-      }
+      is_conversational: explanationResult.is_conversational,
+      mcq: mcqData
     });
   } catch (err: any) {
     console.error("AI Ask error:", err);
     return res.status(500).json({ error: "Failed to process question. " + (err.message || "Please try again.") });
+  }
+});
+
+// Step 12+: Infinite MCQ Generation for any doubt/concept
+apiRouter.post("/ai/mcq/generate-next", requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const {
+      subject,
+      topic,
+      concept,
+      difficulty,
+      question_index,
+      previous_questions,
+      model,
+      ollama_endpoint
+    } = req.body;
+
+    if (!concept && !topic && !subject) {
+      return res.status(400).json({ error: "At least concept, topic, or subject is required." });
+    }
+
+    const profile = get("SELECT * FROM student_profiles WHERE student_id = ?", [req.studentId]);
+
+    const targetSubject = subject || "Computer Science";
+    const targetTopic = topic || "Fundamentals";
+    const targetConcept = concept || topic || "Academic Concept";
+    const qIndex = Number(question_index) || 2;
+
+    const mcq = await generateValidatedMCQ(
+      targetSubject,
+      targetTopic,
+      targetConcept,
+      profile?.education_level || "Student",
+      (difficulty as "Easy" | "Medium" | "Hard") || "Medium",
+      "",
+      model,
+      ollama_endpoint,
+      qIndex,
+      Array.isArray(previous_questions) ? previous_questions : []
+    );
+
+    // Save question in questions table so student can attempt it
+    const questionId = "q_" + crypto.randomUUID();
+    run(
+      `INSERT INTO questions (
+        id, subject_id, concept, question_text, option_a, option_b, option_c, option_d,
+        correct_option, explanation, difficulty
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        questionId,
+        null,
+        mcq.concept,
+        mcq.question_text,
+        mcq.option_a,
+        mcq.option_b,
+        mcq.option_c,
+        mcq.option_d,
+        mcq.correct_option,
+        mcq.explanation,
+        mcq.difficulty
+      ]
+    );
+
+    return res.json({
+      mcq: {
+        id: questionId,
+        ...mcq,
+        question_number: qIndex
+      }
+    });
+  } catch (err: any) {
+    console.error("Generate next MCQ error:", err);
+    return res.status(500).json({ error: "Failed to generate next question." });
   }
 });
 
