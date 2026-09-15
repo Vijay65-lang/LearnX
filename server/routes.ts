@@ -102,9 +102,9 @@ function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
         [studentId, "Student Learner", `student_${studentId.slice(0, 8)}@learnx.edu`, "managed_session"]
       );
       run(
-        `INSERT OR IGNORE INTO student_profiles (id, student_id, education_level, btech_branch)
+        `INSERT OR IGNORE INTO student_profiles (id, student_id, education_level, inter_stream)
          VALUES (?, ?, ?, ?)`,
-        ["prf_" + studentId, studentId, "B.Tech", "Computer Science & Engineering"]
+        ["prf_" + studentId, studentId, "Intermediate", "MPC"]
       );
     }
   } catch (syncErr) {
@@ -357,19 +357,81 @@ apiRouter.get("/ai/ollama-status", async (req: Request, res: Response) => {
 
 apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const { question, chat_id, model, ollama_endpoint } = req.body;
+    const { question, chat_id, model, ollama_endpoint, student_profile } = req.body;
     if (!question || typeof question !== "string" || !question.trim()) {
       return res.status(400).json({ error: "Study question is required." });
     }
 
-    const profile = get("SELECT * FROM student_profiles WHERE student_id = ?", [req.studentId]);
+    let profile = get("SELECT * FROM student_profiles WHERE student_id = ?", [req.studentId]);
+
+    // Sync student_profile if provided by client (handles immediate grade changes)
+    if (student_profile && typeof student_profile === "object") {
+      try {
+        if (!profile) {
+          run(
+            `INSERT INTO student_profiles (id, student_id, education_level, inter_stream, school_grade, degree_name, degree_specialization, btech_branch, btech_year, btech_semester)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              "prof_" + req.studentId,
+              req.studentId,
+              student_profile.education_level || "Intermediate",
+              student_profile.inter_stream || "MPC",
+              student_profile.school_grade || null,
+              student_profile.degree_name || null,
+              student_profile.degree_specialization || null,
+              student_profile.btech_branch || null,
+              student_profile.btech_year || null,
+              student_profile.btech_semester || null
+            ]
+          );
+          profile = get("SELECT * FROM student_profiles WHERE student_id = ?", [req.studentId]);
+        } else if (
+          (student_profile.education_level && student_profile.education_level !== profile.education_level) ||
+          (student_profile.inter_stream && student_profile.inter_stream !== profile.inter_stream)
+        ) {
+          run(
+            `UPDATE student_profiles
+             SET education_level = COALESCE(?, education_level),
+                 inter_stream = COALESCE(?, inter_stream),
+                 school_grade = COALESCE(?, school_grade),
+                 degree_name = COALESCE(?, degree_name),
+                 degree_specialization = COALESCE(?, degree_specialization),
+                 btech_branch = COALESCE(?, btech_branch),
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE student_id = ?`,
+            [
+              student_profile.education_level,
+              student_profile.inter_stream || null,
+              student_profile.school_grade || null,
+              student_profile.degree_name || null,
+              student_profile.degree_specialization || null,
+              student_profile.btech_branch || null,
+              req.studentId
+            ]
+          );
+          profile = get("SELECT * FROM student_profiles WHERE student_id = ?", [req.studentId]);
+        }
+      } catch (profSyncErr) {
+        console.warn("Profile sync warning:", profSyncErr);
+      }
+    }
+
+    const effectiveEducationLevel = student_profile?.education_level || profile?.education_level || "Student";
+    const effectiveStream = (effectiveEducationLevel === "Intermediate")
+      ? (student_profile?.inter_stream || profile?.inter_stream || "MPC")
+      : (effectiveEducationLevel === "School")
+      ? (student_profile?.school_grade || profile?.school_grade || "10th")
+      : (effectiveEducationLevel === "Degree")
+      ? (student_profile?.degree_specialization || profile?.degree_specialization || student_profile?.degree_name || "B.Sc")
+      : (student_profile?.btech_branch || profile?.btech_branch || "Computer Science & Engineering");
+
     const cleanQuestion = question.trim();
 
     // Step 1 - 5: Strict Question Understanding (independent classification!)
     const analysis = await analyzeQuestion(
       cleanQuestion,
-      profile?.education_level,
-      profile?.btech_branch || profile?.inter_stream || profile?.degree_specialization
+      effectiveEducationLevel,
+      effectiveStream
     );
 
     if (analysis.is_unclear) {
@@ -386,9 +448,10 @@ apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) =
     const explanationResult = await generateValidatedExplanation(
       cleanQuestion,
       analysis,
-      profile?.education_level,
+      effectiveEducationLevel,
       model,
-      ollama_endpoint
+      ollama_endpoint,
+      effectiveStream
     );
 
     // Save doubt to database (Section 8) - Guarded for resilient response
@@ -432,11 +495,14 @@ apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) =
           explanationResult.detected_subject,
           explanationResult.detected_topic,
           explanationResult.detected_concept,
-          profile?.education_level,
+          effectiveEducationLevel,
           "Medium",
           explanationResult.explanation,
           model,
-          ollama_endpoint
+          ollama_endpoint,
+          1,
+          [],
+          effectiveStream
         );
 
         // Save question in questions table so student can attempt it
@@ -578,17 +644,21 @@ apiRouter.post("/ai/mcq/generate-next", requireAuth, async (req: AuthRequest, re
     const targetConcept = concept || topic || "Academic Concept";
     const qIndex = Number(question_index) || 2;
 
+    const targetEduLevel = req.body.education_level || profile?.education_level || "Student";
+    const targetStream = req.body.stream_branch || (targetEduLevel === "Intermediate" ? (profile?.inter_stream || "MPC") : profile?.btech_branch);
+
     const mcq = await generateValidatedMCQ(
       targetSubject,
       targetTopic,
       targetConcept,
-      profile?.education_level || "Student",
+      targetEduLevel,
       (difficulty as "Easy" | "Medium" | "Hard") || "Medium",
       "",
       model,
       ollama_endpoint,
       qIndex,
-      Array.isArray(previous_questions) ? previous_questions : []
+      Array.isArray(previous_questions) ? previous_questions : [],
+      targetStream
     );
 
     // Save question in questions table so student can attempt it

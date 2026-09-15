@@ -286,7 +286,7 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
       const effectiveModel: AIModelType = (isMobile && selectedModel === "ollama") ? "academic-engine" : selectedModel;
       const effectiveEndpoint = isMobile ? undefined : ollamaEndpoint;
 
-      const res = await askStudyDoubt(questionText, activeChatId, effectiveModel, effectiveEndpoint);
+      const res = await askStudyDoubt(questionText, activeChatId, effectiveModel, effectiveEndpoint, student);
 
       if (res.is_unclear) {
         const clarificationMsg: ChatMessage = {
@@ -384,6 +384,7 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
     const previousQuestions = mcqStats[msgId]?.previousQuestions || [currentMcq.question_text];
 
     try {
+      const streamBranch = student.inter_stream || student.btech_branch || student.degree_specialization;
       const res = await generateNextMCQ({
         subject: currentMcq.subject,
         topic: currentMcq.topic,
@@ -393,6 +394,8 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
         previous_questions: previousQuestions,
         model: selectedModel,
         ollama_endpoint: ollamaEndpoint,
+        education_level: student.education_level,
+        stream_branch: streamBranch,
       });
 
       if (res.mcq) {

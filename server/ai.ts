@@ -658,13 +658,227 @@ const ACADEMIC_KNOWLEDGE_BASE: ConceptMasteryEntry[] = [
       correct: "A",
       explanation: "The four Coffman conditions are Mutual Exclusion, Hold and Wait, No Preemption, and Circular Wait. Asynchronous message passing is a communication paradigm, not a Coffman condition."
     }
+  },
+  // ==========================================================================
+  // INTERMEDIATE MPC (MATHEMATICS, PHYSICS, CHEMISTRY) CURRICULUM ENTRIES
+  // ==========================================================================
+  {
+    subject: "Intermediate Mathematics",
+    topic: "Algebra & Matrices",
+    concept: "Matrices & Determinants",
+    keywords: ["matrix", "matrices", "determinant", "cramer", "cramer's rule", "inverse of matrix", "adjoint", "intermediate math"],
+    plainEnglish: "In Intermediate Mathematics, a **Matrix** is an ordered rectangular array of numbers or functions arranged in rows and columns. The **Determinant** is a single scalar value computed from a square matrix that tells us if a system of linear equations has a unique solution.",
+    analogy: "Think of a spreadsheet or a table comparing the scores of 3 students in Maths, Physics, and Chemistry. A matrix neatly bundles these values so you can transform, scale, or solve for unknown variables all at once!",
+    howItWorks: [
+      "**1. Order of a Matrix**: A matrix with $m$ rows and $n$ columns has order $m \\times n$.",
+      "**2. Determinant ($\\\\det A$ or $|A|$)**: For a $2 \\times 2$ matrix $\\\\begin{pmatrix} a & b \\\\\\\\ c & d \\\\end{pmatrix}$, $|A| = ad - bc$.",
+      "**3. Singular vs Non-Singular**: If $|A| = 0$, the matrix is **Singular** and its inverse does not exist. If $|A| \\\\neq 0$, it is **Non-Singular**.",
+      "**4. Matrix Inversion & Cramer's Rule**: $A^{-1} = \\\\frac{1}{|A|} \\\\text{adj}(A)$. We use Cramer's rule to solve systems of linear equations: $x = \\\\frac{\\\\Delta_1}{\\\\Delta}, y = \\\\frac{\\\\Delta_2}{\\\\Delta}, z = \\\\frac{\\\\Delta_3}{\\\\Delta}$."
+    ],
+    realWorldExample: "Solving simultaneous equations in physics (e.g., finding current $I_1, I_2, I_3$ in electrical mesh circuits using Kirchhoff's laws) is solved using $3 \\times 3$ matrices and Cramer's Rule!",
+    keyTakeaways: [
+      "For Board exams: Practice 7-mark questions on solving equations via Cramer's Rule and Matrix Inversion method.",
+      "Property: $|AB| = |A| \\cdot |B|$ and $|A^T| = |A|$.",
+      "If any two rows or columns are identical or proportional, the determinant is zero."
+    ],
+    mcq: {
+      question: "If the determinant of a square matrix A is equal to zero (|A| = 0), what can we conclude about matrix A?",
+      a: "A is a singular matrix and its inverse does not exist",
+      b: "A is an identity matrix",
+      c: "A is an orthogonal matrix",
+      d: "A must have all zero elements",
+      correct: "A",
+      explanation: "A square matrix with determinant equal to zero is called a singular matrix. Since A⁻¹ = (1/|A|) adj(A), division by zero means the inverse does not exist."
+    }
+  },
+  {
+    subject: "Intermediate Mathematics",
+    topic: "Calculus",
+    concept: "Differentiation & Derivatives",
+    keywords: ["differentiation", "derivative", "derivatives", "chain rule", "dy/dx", "rate of change", "calculus"],
+    plainEnglish: "In Intermediate Mathematics, **Differentiation** measures the instantaneous rate at which a dependent variable changes with respect to an independent variable. Graphically, $\\\\frac{dy}{dx}$ represents the **slope of the tangent** to the curve at any given point.",
+    analogy: "If a car travels from Visakhapatnam to Vijayawada, dividing total distance by total time gives the *average* speed. But the speedometer needle reading right now at this exact microsecond is the **derivative** $\\\\frac{ds}{dt}$!",
+    howItWorks: [
+      "**1. First Principles (Definition of Derivative)**: $f'(x) = \\\\lim_{h \\to 0} \\\\frac{f(x+h) - f(x)}{h}$.",
+      "**2. Standard Formulas**: $\\\\frac{d}{dx}(x^n) = n x^{n-1}$, $\\\\frac{d}{dx}(\\\\sin x) = \\\\cos x$, $\\\\frac{d}{dx}(e^x) = e^x$, $\\\\frac{d}{dx}(\\\\ln x) = \\\\frac{1}{x}$.",
+      "**3. Product Rule & Quotient Rule**: $(uv)' = u'v + uv'$, and $\\\\left(\\\\frac{u}{v}\\\\right)' = \\\\frac{u'v - uv'}{v^2}$.",
+      "**4. Chain Rule**: For composite functions $y = f(g(x))$, $\\\\frac{dy}{dx} = f'(g(x)) \\\\cdot g'(x)$."
+    ],
+    realWorldExample: "In Physics, velocity is the first derivative of displacement with respect to time ($v = \\\\frac{ds}{dt}$), and acceleration is the derivative of velocity ($a = \\\\frac{dv}{dt} = \\\\frac{d^2s}{dt^2}$).",
+    keyTakeaways: [
+      "Always apply the Chain Rule carefully from outside function to inside function.",
+      "At local maxima or minima of a function $f(x)$, the first derivative $f'(x) = 0$.",
+      "High weightage in Intermediate Board calculus (AP/TS Inter 1B/2B and CBSE 12)."
+    ],
+    mcq: {
+      question: "What is the derivative of f(x) = sin(x²) with respect to x using the Chain Rule?",
+      a: "2x cos(x²)",
+      b: "cos(x²)",
+      c: "2x sin(x)",
+      d: "-2x cos(x²)",
+      correct: "A",
+      explanation: "By the Chain Rule: d/dx[sin(u)] = cos(u) * du/dx. Here u = x², and du/dx = 2x. Thus, the derivative is 2x cos(x²)."
+    }
+  },
+  {
+    subject: "Intermediate Physics",
+    topic: "Classical Mechanics (Senior Secondary)",
+    concept: "Newton's Laws of Motion & Friction",
+    keywords: ["newton's laws", "laws of motion", "friction", "limiting friction", "inertia", "f=ma", "momentum"],
+    plainEnglish: "Newton's Laws of Motion form the foundation of classical mechanics in Intermediate Physics. They explain how external forces cause objects to accelerate, stay in equilibrium, or interact through mutual action-reaction pairs.",
+    analogy: "When a passenger is standing in a bus that suddenly accelerates forward, their lower body moves with the floor while their upper body tends to stay at rest due to **inertia** (1st Law). When the bus hits the brakes, the passenger lurches forward for the same reason!",
+    howItWorks: [
+      "**1. First Law (Law of Inertia)**: An object remains in its state of rest or uniform motion unless acted upon by a net external force.",
+      "**2. Second Law ($F = ma$)**: The rate of change of linear momentum is directly proportional to the applied force: $\\\\vec{F} = \\\\frac{d\\\\vec{p}}{dt} = m\\\\vec{a}$.",
+      "**3. Third Law (Action & Reaction)**: To every action, there is always an equal and opposite reaction: $\\\\vec{F}_{AB} = -\\\\vec{F}_{BA}$.",
+      "**4. Friction Laws**: Static friction $f_s \\\\le \\\\mu_s N$, where $N$ is the normal reaction. Once motion starts, kinetic friction $f_k = \\\\mu_k N$ opposes the relative sliding."
+    ],
+    realWorldExample: "Rocket propulsion works directly on Newton's Third Law and conservation of momentum: the high-velocity expulsion of burnt gases downward exerts an equal upward thrust force driving the rocket into orbit!",
+    keyTakeaways: [
+      "Always draw a clear **Free Body Diagram (FBD)** resolving forces along perpendicular axes ($X$ and $Y$).",
+      "Static friction is self-adjusting up to its maximum limiting value $f_{\\\\max} = \\\\mu_s N$.",
+      "Action and reaction forces never act on the same body; they always act on two different interacting bodies."
+    ],
+    mcq: {
+      question: "A block of mass m rests on a rough horizontal surface with coefficient of static friction μs. A horizontal force F is applied, but the block does not move. What is the magnitude of the frictional force?",
+      a: "Equal to the applied force F",
+      b: "Always equal to μs * m * g",
+      c: "Zero",
+      d: "Greater than F",
+      correct: "A",
+      explanation: "Static friction is a self-adjusting force. As long as the applied force F does not exceed the limiting friction (μs * N), the static frictional force exactly equals the applied force F to keep the block in equilibrium."
+    }
+  },
+  {
+    subject: "Intermediate Physics",
+    topic: "Kinematics & Dynamics",
+    concept: "Projectile Motion",
+    keywords: ["projectile motion", "projectile", "trajectory", "maximum height", "horizontal range", "time of flight"],
+    plainEnglish: "In Intermediate Physics, **Projectile Motion** is a two-dimensional motion under the influence of constant gravitational acceleration $g$ acting vertically downward, with no horizontal acceleration (neglecting air resistance).",
+    analogy: "When a cricket batsman hits a ball into the outfield for a six, the ball travels forward at constant horizontal speed while gravity pulls it down in a curved parabolic arc!",
+    howItWorks: [
+      "**1. Independent Axes**: Horizontal velocity $u_x = u \\\\cos \\\\theta$ remains constant ($a_x = 0$). Vertical velocity $u_y = u \\\\sin \\\\theta$ changes with acceleration $a_y = -g$.",
+      "**2. Time of Flight**: $T = \\\\frac{2u \\\\sin \\\\theta}{g}$.",
+      "**3. Maximum Height**: $H_{\\\\max} = \\\\frac{u^2 \\\\sin^2 \\\\theta}{2g}$.",
+      "**4. Horizontal Range**: $R = \\\\frac{u^2 \\\\sin(2\\\\theta)}{g}$. The maximum range occurs at $\\\\theta = 45^\\\\circ$."
+    ],
+    realWorldExample: "Firefighters aiming water hoses at burning upper floors of a building calculate the angle $\\\\theta$ to ensure the stream reaches maximum vertical height with sufficient flow.",
+    keyTakeaways: [
+      "The path (trajectory) of a projectile is a **Parabola**: $y = x \\\\tan \\\\theta - \\\\frac{gx^2}{2u^2 \\\\cos^2 \\\\theta}$.",
+      "At the highest point, vertical velocity is zero ($v_y = 0$), but horizontal velocity remains $u \\\\cos \\\\theta$.",
+      "Two angles of projection that give the same horizontal range are complementary angles: $\\\\theta$ and $(90^\\\\circ - \\\\theta)$."
+    ],
+    mcq: {
+      question: "At what angle of projection with the horizontal is the horizontal range of a projectile maximized for a given initial velocity?",
+      a: "45°",
+      b: "30°",
+      c: "60°",
+      d: "90°",
+      correct: "A",
+      explanation: "The horizontal range is given by R = (u² sin 2θ) / g. The range is maximized when sin(2θ) reaches its maximum value of 1, which occurs when 2θ = 90°, meaning θ = 45°."
+    }
+  },
+  {
+    subject: "Intermediate Chemistry",
+    topic: "Inorganic & Physical Chemistry",
+    concept: "Chemical Bonding & Hybridization",
+    keywords: ["hybridization", "chemical bonding", "sp3", "sp2", "sp", "vsepr", "sigma bond", "pi bond", "covalent bond"],
+    plainEnglish: "In Intermediate Chemistry, **Hybridization** is the concept of intermixing atomic orbitals of slightly different energies to produce a new set of equivalent orbitals (hybrid orbitals) with identical energies, shapes, and directional orientations in space.",
+    analogy: "Think of mixing 1 cup of blue paint (s-orbital) and 3 cups of yellow paint (p-orbitals). You get 4 cups of uniform green paint! That is exactly how an atom creates 4 equivalent $sp^3$ hybrid orbitals.",
+    howItWorks: [
+      "**1. $sp^3$ Hybridization**: 1 s + 3 p orbitals mix to form 4 hybrid orbitals. Geometry: **Tetrahedral**, bond angle $109.5^\\\\circ$ (e.g., $CH_4$).",
+      "**2. $sp^2$ Hybridization**: 1 s + 2 p orbitals mix to form 3 hybrid orbitals. Geometry: **Trigonal Planar**, bond angle $120^\\\\circ$ (e.g., $BF_3$, Ethene $C_2H_4$).",
+      "**3. $sp$ Hybridization**: 1 s + 1 p orbital mix to form 2 hybrid orbitals. Geometry: **Linear**, bond angle $180^\\\\circ$ (e.g., $BeCl_2$, Ethyne $C_2H_2$).",
+      "**4. Lone Pair Repulsion**: According to VSEPR theory: Lone Pair - Lone Pair > Lone Pair - Bond Pair > Bond Pair - Bond Pair. This explains why water ($H_2O$) has an angular bent shape ($104.5^\\\\circ$) despite $sp^3$ hybridization."
+    ],
+    realWorldExample: "The hardness of Diamond (where each carbon is $sp^3$ hybridized in a rigid 3D lattice) versus the electrical conductivity of Graphite (where carbons are $sp^2$ hybridized in planar sheets with delocalized $\\\\pi$ electrons) is purely dictated by hybridization!",
+    keyTakeaways: [
+      "Steric Number formula: $\\\\text{Steric Number} = (\\\\text{Number of } \\\\sigma \\\\text{ bonds}) + (\\\\text{Number of lone pairs on central atom})$.",
+      "Steric Number 2 = $sp$, 3 = $sp^2$, 4 = $sp^3$, 5 = $sp^3d$, 6 = $sp^3d^2$.",
+      "Multiple bonds contain $1 \\\\sigma$ bond and the rest are $\\\\pi$ bonds."
+    ],
+    mcq: {
+      question: "What is the hybridization and molecular geometry of methane (CH4)?",
+      a: "sp³ hybridization with tetrahedral geometry",
+      b: "sp² hybridization with trigonal planar geometry",
+      c: "sp hybridization with linear geometry",
+      d: "sp³d hybridization with trigonal bipyramidal geometry",
+      correct: "A",
+      explanation: "In methane (CH4), the carbon atom forms 4 single sigma bonds with hydrogen and has zero lone pairs (steric number = 4). Thus it undergoes sp³ hybridization with a tetrahedral shape and bond angle of 109.5°."
+    }
+  },
+  {
+    subject: "Intermediate Chemistry",
+    topic: "Physical Chemistry",
+    concept: "Chemical Equilibrium & Le Chatelier's Principle",
+    keywords: ["chemical equilibrium", "le chatelier", "equilibrium constant", "kc", "kp", "reversible reaction"],
+    plainEnglish: "In Intermediate Chemistry, **Chemical Equilibrium** is a dynamic state in a reversible reaction where the rate of the forward reaction equals the rate of the backward reaction, so concentrations of reactants and products remain constant over time.",
+    analogy: "Imagine walking up a downward-moving escalator at the exact same speed that the stairs move down. To an observer, you appear motionless in one spot, but both you and the escalator are actively moving! That is dynamic equilibrium.",
+    howItWorks: [
+      "**1. Equilibrium Constant ($K_c$ and $K_p$)**: For $aA + bB \\\\rightleftharpoons cC + dD$, $K_c = \\\\frac{[C]^c [D]^d}{[A]^a [B]^b}$. $K_p = K_c (RT)^{\\\\Delta n_g}$.",
+      "**2. Le Chatelier's Principle**: If a system at equilibrium is subjected to a change in concentration, pressure, or temperature, the equilibrium shifts in the direction that tends to counteract the change.",
+      "**3. Effect of Pressure**: Increasing pressure shifts equilibrium toward the side with **fewer moles of gas**.",
+      "**4. Effect of Temperature**: For an exothermic reaction ($\\\\Delta H < 0$), increasing temperature shifts equilibrium to the left (backward). For endothermic ($\\\\Delta H > 0$), it shifts forward."
+    ],
+    realWorldExample: "In the industrial Haber process for ammonia synthesis ($N_2 + 3H_2 \\\\rightleftharpoons 2NH_3, \\\\Delta H = -92 \\\\text{ kJ/mol}$), applying high pressure (200 atm) shifts the equilibrium toward ammonia ($2$ moles vs $4$ moles) to maximize yield!",
+    keyTakeaways: [
+      "Catalysts do NOT change the equilibrium constant $K_c$ or position of equilibrium; they only help reach equilibrium faster by lowering activation energy.",
+      "Temperature is the ONLY factor that changes the numerical value of the equilibrium constant $K$.",
+      "Very high weightage in Intermediate Physical Chemistry (AP/TS Inter 1st year & CBSE 11)."
+    ],
+    mcq: {
+      question: "According to Le Chatelier's principle, what effect does increasing the pressure have on the gaseous equilibrium: N2(g) + 3H2(g) ⇌ 2NH3(g)?",
+      a: "Shifts the equilibrium forward toward NH3 (fewer gas moles)",
+      b: "Shifts the equilibrium backward toward N2 and H2",
+      c: "Has no effect because pressure does not affect gases",
+      d: "Decreases the value of the equilibrium constant Kc",
+      correct: "A",
+      explanation: "The forward reaction has 2 moles of gas while the reactant side has 1 + 3 = 4 moles of gas. Increasing pressure favors the side with fewer moles of gas to relieve the pressure, thus shifting equilibrium forward toward NH3."
+    }
   }
 ];
 
-function findKnowledgeBaseEntry(query: string): ConceptMasteryEntry | null {
+function findKnowledgeBaseEntry(
+  query: string,
+  educationLevel?: string,
+  streamBranch?: string
+): ConceptMasteryEntry | null {
   const q = query.toLowerCase();
+  const isInter = educationLevel === "Intermediate";
+  const isMPC = !streamBranch || streamBranch.toUpperCase().includes("MPC");
+  const isSchool = educationLevel === "School";
+
+  // Check if query is explicitly asking about computer coding
+  const isExplicitCodingQuery = q.includes("python") ||
+    q.includes("javascript") ||
+    q.includes("c++") ||
+    q.includes("java code") ||
+    q.includes("sql query") ||
+    q.includes("write code");
+
   for (const entry of ACADEMIC_KNOWLEDGE_BASE) {
     if (entry.keywords.some((kw) => q.includes(kw.toLowerCase()))) {
+      // If student is Intermediate MPC or School, avoid pure university CSE entries unless explicitly requested
+      const isCSEEntry = entry.subject.includes("Theory of Computation") ||
+        entry.subject.includes("Operating Systems") ||
+        entry.subject.includes("Database Management") ||
+        entry.subject.includes("Compiler") ||
+        entry.subject.includes("Computer Networks") ||
+        (entry.subject.includes("Data Structures") && !q.includes("algorithm"));
+
+      if ((isInter || isSchool) && isCSEEntry && !isExplicitCodingQuery) {
+        continue;
+      }
+
+      // If Intermediate MPC student, prioritize Intermediate MPC entries
+      if (isInter && isMPC && !entry.subject.includes("Intermediate") && !isExplicitCodingQuery) {
+        // Look ahead for an Intermediate entry first
+        const betterMatch = ACADEMIC_KNOWLEDGE_BASE.find(
+          (e) => e.subject.includes("Intermediate") && e.keywords.some((kw) => q.includes(kw.toLowerCase()))
+        );
+        if (betterMatch) return betterMatch;
+      }
+
       return entry;
     }
   }
@@ -724,7 +938,8 @@ function synthesizeFriendlyExplanation(
   subject: string,
   topic: string,
   concept: string,
-  educationLevel?: string
+  educationLevel?: string,
+  streamBranch?: string
 ): ExplanationResult {
   const qLower = question.toLowerCase();
 
@@ -833,8 +1048,13 @@ Want to see how to do this in JavaScript, C++, or Java too? Just let me know!`;
 
   // 3. Dynamic Friendly Conceptual Explanation for any Academic Topic
   const cleanConcept = concept.replace(/[?!.]+$/, "").trim();
+  const isInter = educationLevel === "Intermediate" || subject.includes("Intermediate");
+  const isMPC = isInter && (!streamBranch || streamBranch.toUpperCase().includes("MPC"));
+  const isBiPC = isInter && (streamBranch && streamBranch.toUpperCase().includes("BIPC"));
+  const isSchool = educationLevel === "School" || subject.includes("School");
+  const isDegree = educationLevel === "Degree" || subject.includes("Degree") || subject.includes("Commerce");
 
-  // Tailor intuitive analogy and intuition based on detected domain
+  // Tailor intuitive analogy and intuition based on detected domain and student level
   let plainEnglish = `**${cleanConcept}** is a foundational idea in **${subject}** (${topic}). At its core, it gives us a clear, reliable way to understand how systems behave, solve problems, and make decisions without guessing.`;
   let analogy = `Think of it like learning the rules of chess: once you know how the pieces move and interact, complex strategies start making total sense. **${cleanConcept}** provides that exact rulebook in **${topic}**!`;
   let mechanics = [
@@ -842,14 +1062,70 @@ Want to see how to do this in JavaScript, C++, or Java too? Just let me know!`;
     `**Step-by-step logic**: Takes input information, applies the governing principles of ${topic}, and produces an accurate, verifiable result.`,
     `**Practical Trade-off**: Balances simplicity, efficiency, and real-world constraints.`
   ];
-  let realWorld = `In modern engineering and technology, **${cleanConcept}** is used to build reliable systems, write clean code, or solve analytical problems in university coursework and industry.`;
+  let realWorld = `In modern science and engineering, **${cleanConcept}** is used to build reliable systems, model nature, or solve analytical problems in coursework and industry.`;
   let takeaways = [
     `Always start with the core definition before diving into complex equations or edge cases.`,
     `Focus on *why* this concept was created—it almost always solves an efficiency, accuracy, or organization problem!`,
     `Remember its connection to the parent topic **${topic}** when answering exam questions.`
   ];
 
-  if (subject.includes("Theory") || subject.includes("Compiler") || topic.includes("Automata") || topic.includes("Grammar")) {
+  if (isMPC || subject.includes("Intermediate Mathematics") || subject.includes("Intermediate Physics") || subject.includes("Intermediate Chemistry")) {
+    plainEnglish = `In Intermediate (+2 / Class 11-12) **${subject}**, **${cleanConcept}** is a cornerstone topic. It establishes the mathematical, physical, or chemical framework that governs physical systems and gives you exact formulas and derivations to solve problems in your Intermediate Board exams and entrance tests like JEE Main and EAMCET.`;
+    analogy = `Imagine building a sturdy multi-story building: you can't construct the upper floors without pouring a deep, reinforced concrete foundation. Master **${cleanConcept}**, and the entire chapter in **${topic}** becomes intuitive and easy to solve!`;
+    mechanics = [
+      `**Standard Board Definition & Governing Laws**: Formulated according to the Senior Secondary / Intermediate curriculum.`,
+      `**Step-by-step Derivation & Method**: Apply the standard mathematical formulas, physical conservation laws, or reaction mechanisms methodically.`,
+      `**Sign Conventions & Units**: Always verify SI units and positive/negative directional conventions.`
+    ];
+    realWorld = `Aerospace engineers, chemical plant designers, physicists, and structural engineers directly apply these Intermediate MPC principles when designing satellites, calculating trajectories, formulating compounds, and building infrastructure.`;
+    takeaways = [
+      `Write out the standard Intermediate Board formula clearly with labeled parameters for full step marks.`,
+      `Double check your calculations and units (e.g., Joules, Newtons, radians, moles).`,
+      `High-weightage topic in Intermediate 1st & 2nd Year Board exams (AP / TS / CBSE) and JEE / EAMCET!`
+    ];
+  } else if (isBiPC || subject.includes("Intermediate Biology")) {
+    plainEnglish = `In Intermediate (+2 / Class 11-12) **${subject}**, **${cleanConcept}** is an essential biological concept explaining how living organisms, cellular structures, and biochemical processes function and maintain balance.`;
+    analogy = `Think of the human body or a plant like a masterfully orchestrated city: each organelle, cell, and organ has a specialized department that keeps the whole organism thriving!`;
+    mechanics = [
+      `**Biological Definition & Structure**: Anatomical or cellular components involved.`,
+      `**Physiological Process**: How the biochemical reactions or physical movements unfold step by step.`,
+      `**Significance & Adaptations**: Why this process is crucial for survival and evolution.`
+    ];
+    realWorld = `Doctors, geneticists, agricultural scientists, and pharmaceutical researchers apply these exact biological mechanisms to develop life-saving medicines and improve crops.`;
+    takeaways = [
+      `Practice drawing neat, labeled diagrams for Board exam descriptive questions.`,
+      `Remember scientific names and terminology for NEET objective questions.`,
+      `Review key functions and regulatory feedback mechanisms.`
+    ];
+  } else if (isSchool) {
+    plainEnglish = `In school studies, **${cleanConcept}** is an exciting and essential building block in **${subject}**. It helps us solve everyday math puzzles, understand the nature around us, and express thoughts clearly!`;
+    analogy = `Think of it like building with LEGO blocks: every big castle starts with simple, colorful bricks. Master **${cleanConcept}**, and the rest of the puzzle clicks together with ease!`;
+    mechanics = [
+      `**Observation & Rule**: Look at the given values or description carefully.`,
+      `**Step-by-step Solution**: Apply the basic formula or definition one step at a time.`,
+      `**Double Check**: Look at your final answer to see if it makes common sense!`
+    ];
+    realWorld = `From calculating change at a grocery shop, measuring room sizes, to understanding how seasons change, **${cleanConcept}** is active all around us every single day.`;
+    takeaways = [
+      `Remember the golden formula or main definition.`,
+      `Always write units (e.g. meters, rupees, seconds) in your answers.`,
+      `Practice with 2-3 simple textbook examples before the test.`
+    ];
+  } else if (isDegree || subject.includes("Commerce") || subject.includes("Business") || subject.includes("Accounting") || subject.includes("Economics")) {
+    plainEnglish = `In Degree & Commerce studies, **${cleanConcept}** is a core principle used by organizations and financial analysts to track value, make smart investments, and guide strategic decisions.`;
+    analogy = `Think of a household budget book: if you track where every rupee enters and exits, you can save money, avoid debt, and plan for future goals. **${cleanConcept}** does that for entire companies!`;
+    mechanics = [
+      `**Recognition & Classification**: Categorize the transaction or business event accurately.`,
+      `**Ledger / Analytical Processing**: Apply standard accounting standards or management frameworks.`,
+      `**Reporting & Decision-Making**: Summarize into financial statements that executives and investors can rely on.`
+    ];
+    realWorld = `Every startup, global corporation, and local business uses these exact practices to manage revenue, pay taxes, and grow sustainably.`;
+    takeaways = [
+      `Always keep the Golden Rules of Accounting or core managerial principles in mind.`,
+      `Verify Debit equals Credit or check balance sheet equilibrium.`,
+      `Explain both qualitative impact on customers and quantitative impact on profit.`
+    ];
+  } else if (subject.includes("Theory") || subject.includes("Compiler") || topic.includes("Automata") || topic.includes("Grammar")) {
     plainEnglish = `In **Theory of Computation**, **${cleanConcept}** is a formal model used to define languages, model computation, or design how compilers understand source code.`;
     analogy = `Think of it like a translator: a compiler needs to take the code you type and break it down mathematically so the machine knows exactly what you meant, with zero ambiguity!`;
     mechanics = [
@@ -885,11 +1161,11 @@ Want to see how to do this in JavaScript, C++, or Java too? Just let me know!`;
       `**Efficient Retrieval**: Minimizes disk reads so queries return in milliseconds.`,
       `**ACID Compliance**: Guarantees transactions either finish completely or roll back safely.`
     ];
-    realWorld = `Banks, e-commerce stores (Amazon), and social networks (Instagram) rely on these database principles to process millions of transactions without losing a single record!`;
+    realWorld = `Banks, e-commerce stores, and social networks rely on these database principles to process millions of transactions without losing a single record!`;
     takeaways = [
       `Identify the primary key, foreign key, or normal form constraints.`,
       `Explain how it eliminates redundancy and anomalies.`,
-      `Mention the trade-off between read speed (denormalization/indexes) and write performance.`
+      `Mention the trade-off between read speed and write performance.`
     ];
   } else if (subject.includes("Data Structures") || subject.includes("Algorithm")) {
     plainEnglish = `In **Data Structures & Algorithms**, **${cleanConcept}** is a smart tool to organize data or solve a computational problem in minimum time and memory.`;
@@ -905,49 +1181,16 @@ Want to see how to do this in JavaScript, C++, or Java too? Just let me know!`;
       `State the Space Complexity (memory required).`,
       `Identify edge cases (e.g. empty inputs, duplicates, already-sorted data).`
     ];
-  } else if (subject.includes("School") || topic.includes("Arithmetic") || topic.includes("Geometry") || topic.includes("Fractions") || topic.includes("Living") || topic.includes("Solar") || topic.includes("Grammar")) {
-    plainEnglish = `In school studies, **${cleanConcept}** is a fun and essential building block in **${subject}**. It helps us solve everyday math puzzles, understand the living nature around us, and express thoughts clearly!`;
-    analogy = `Think of it like building with LEGO blocks: every big castle starts with simple, colorful bricks. Master **${cleanConcept}**, and the rest of the puzzle clicks together with ease!`;
-    mechanics = [
-      `**Observation & Rule**: Look at the given values or description carefully.`,
-      `**Step-by-step Solution**: Apply the basic formula or definition one step at a time.`,
-      `**Double Check**: Look at your final answer to see if it makes common sense!`
-    ];
-    realWorld = `From calculating change at a grocery shop, measuring room sizes, to understanding how seasons change, **${cleanConcept}** is active all around us every single day.`;
-    takeaways = [
-      `Remember the golden formula or main definition.`,
-      `Always write units (e.g. meters, rupees, seconds) in your answers.`,
-      `Practice with 2-3 simple textbook examples before the test.`
-    ];
-  } else if (subject.includes("Intermediate") || subject.includes("Calculus") || subject.includes("Organic") || subject.includes("Optics") || subject.includes("Thermodynamics")) {
-    plainEnglish = `In Intermediate education, **${cleanConcept}** bridges fundamental high school science with advanced college principles. It explains the exact mathematical and physical relationships that govern nature.`;
-    analogy = `Think of a speedometer vs an odometer in a car: while one shows your total journey, the other shows your exact rate of change at that very second. **${cleanConcept}** gives us that precise mathematical lens!`;
-    mechanics = [
-      `**Formulation**: Express the concept using standard notation, formulas, or chemical equations.`,
-      `**Boundary Conditions**: Identify initial values, constants, and assumptions (like ideal temperature or frictionless motion).`,
-      `**Derivation & Calculation**: Work through each algebraic step systematically.`
-    ];
-    realWorld = `Engineers use these exact Intermediate principles to design bridges, calculate satellite trajectories, launch rockets, and formulate modern medicines!`;
-    takeaways = [
-      `Memorize standard formulas and know how they were derived.`,
-      `Pay attention to SI units and sign conventions (+ and -).`,
-      `Practice standard numerical problems commonly asked in entrance exams (JEE, NEET, EAMCET).`
-    ];
-  } else if (subject.includes("Commerce") || subject.includes("Business") || subject.includes("Accounting") || subject.includes("Economics") || subject.includes("Management")) {
-    plainEnglish = `In Degree & Commerce studies, **${cleanConcept}** is a core principle used by organizations and financial analysts to track value, make smart investments, and guide strategic decisions.`;
-    analogy = `Think of a household budget book: if you track where every rupee enters and exits, you can save money, avoid debt, and plan for future goals. **${cleanConcept}** does that for entire companies!`;
-    mechanics = [
-      `**Recognition & Classification**: Categorize the transaction or business event accurately.`,
-      `**Ledger / Analytical Processing**: Apply standard accounting standards (like GAAP or IFRS) or management frameworks.`,
-      `**Reporting & Decision-Making**: Summarize into financial statements that executives and investors can rely on.`
-    ];
-    realWorld = `Every startup, global corporation (like Apple or Tata), and local business uses these exact practices to manage revenue, pay taxes, and grow sustainably.`;
-    takeaways = [
-      `Always keep the Golden Rules of Accounting or core managerial principles in mind.`,
-      `Verify Debit equals Credit or check balance sheet equilibrium.`,
-      `Explain both the qualitative impact on customers/staff and quantitative impact on profit.`
-    ];
   }
+
+  const realWorldHeading = (isInter || isSchool) ? "🔬 Real-World Application in Science & Engineering" : "💻 Where You See It in Real Life";
+  const takeawaysHeading = (isMPC) 
+    ? "🎓 Key Takeaways for Intermediate Board Exams (AP/TS/CBSE) & JEE / EAMCET" 
+    : (isInter) 
+    ? "🎓 Key Takeaways for Intermediate Board Exams & Competitive Tests" 
+    : (isSchool) 
+    ? "🎓 Key Takeaways for School Exams & Tests" 
+    : "🎓 Key Takeaways for Exams & Interviews";
 
   const explanation = `Hey! Let's break down **${cleanConcept}** in a simple, friendly, and intuitive way.
 
@@ -968,15 +1211,15 @@ ${mechanics.map((m) => `- ${m}`).join("\n")}
 
 ---
 
-### 💻 Where You See It in Real Life
+### ${realWorldHeading}
 ${realWorld}
 
 ---
 
-### 🎓 Key Takeaways for Exams & Interviews
+### ${takeawaysHeading}
 ${takeaways.map((t) => `- ${t}`).join("\n")}
 
-Hope that makes it super clear! Let me know if you want to explore any part of this deeper or see a specific code/math example!`;
+Hope that makes it super clear! Let me know if you want to explore any part of this deeper or solve a practice problem together!`;
 
   return {
     explanation,
@@ -1015,7 +1258,7 @@ export async function analyzeQuestion(
   if (clean.length < 2 || /^[^\w\s]+$/.test(clean)) {
     return {
       is_unclear: true,
-      clarification_question: "Could you please specify your question in a bit more detail? (For example: 'Explain Binary Search' or 'What is a Context-Free Grammar?')",
+      clarification_question: "Could you please specify your question in a bit more detail? (For example: 'Explain Newton's Laws of Motion' or 'What is Cramer's Rule?')",
       detected_subject: "General",
       detected_topic: "General Topic",
       detected_concept: clean,
@@ -1023,8 +1266,8 @@ export async function analyzeQuestion(
     };
   }
 
-  // Check Knowledge Base directly
-  const kbMatch = findKnowledgeBaseEntry(clean);
+  // Check Knowledge Base directly with level & stream filtering
+  const kbMatch = findKnowledgeBaseEntry(clean, educationLevel, streamBranch);
   if (kbMatch) {
     return {
       is_unclear: false,
@@ -1037,11 +1280,9 @@ export async function analyzeQuestion(
 
   const qLower = clean.toLowerCase();
 
-  // Smart subject detection
-  let subject = "Computer Science & Engineering";
-  let topic = "Core Principles";
+  // Clean concept name
   let concept = clean
-    .replace(/^(what is|explain|how does|define|tell me about|how to implement|why is|difference between|how do i|can you explain)\s+/i, "")
+    .replace(/^(what is|what are|explain|how does|define|tell me about|how to implement|why is|difference between|how do i|can you explain)\s+/i, "")
     .replace(/[?!.]+$/, "")
     .trim();
 
@@ -1049,52 +1290,176 @@ export async function analyzeQuestion(
     concept = concept.charAt(0).toUpperCase() + concept.slice(1);
   }
 
-  if (qLower.includes("grammar") || qLower.includes("cfg") || qLower.includes("context free") || qLower.includes("automata") || qLower.includes("automaton") || qLower.includes("dfa") || qLower.includes("nfa") || qLower.includes("pda") || qLower.includes("pushdown") || qLower.includes("turing") || qLower.includes("chomsky") || qLower.includes("compiler") || qLower.includes("parser") || qLower.includes("parsing") || qLower.includes("lexer") || qLower.includes("regular expression")) {
-    subject = "Theory of Computation & Compiler Design";
-    topic = (qLower.includes("compiler") || qLower.includes("parser") || qLower.includes("parsing") || qLower.includes("lexer")) ? "Compiler Design & Syntax Analysis" : "Formal Languages & Automata";
-    if (qLower.includes("context free") || qLower.includes("cfg") || qLower.includes("grammar")) {
-      concept = "Context-Free Grammar (CFG)";
-    } else if (qLower.includes("dfa") || qLower.includes("nfa") || qLower.includes("finite automata")) {
-      concept = "DFA vs NFA";
-    } else if (qLower.includes("pda") || qLower.includes("pushdown")) {
-      concept = "Pushdown Automata (PDA)";
-    } else if (qLower.includes("turing")) {
-      concept = "Turing Machines";
+  // ==========================================================================
+  // STREAM & GRADE-AWARE CLASSIFICATION ENGINE
+  // ==========================================================================
+  const isInter = educationLevel === "Intermediate";
+  const isInterMPC = isInter && (!streamBranch || streamBranch.toUpperCase().includes("MPC"));
+  const isInterBiPC = isInter && (streamBranch && streamBranch.toUpperCase().includes("BIPC"));
+  const isSchool = educationLevel === "School";
+  const isDegree = educationLevel === "Degree";
+  const isBTech = educationLevel === "B.Tech";
+
+  let subject = "Academic Studies";
+  let topic = "General Core Syllabus";
+
+  // Check if student asked explicitly for programming / code
+  const isExplicitProgramming = qLower.includes("python") ||
+    qLower.includes("javascript") ||
+    qLower.includes("c++") ||
+    qLower.includes("java code") ||
+    qLower.includes("write a program") ||
+    qLower.includes("coding question") ||
+    qLower.includes("sql query");
+
+  // 1. INTERMEDIATE MPC (Mathematics, Physics, Chemistry)
+  if (isInterMPC && !isExplicitProgramming) {
+    // Check Chemistry keywords
+    const isChemistry = qLower.includes("chem") || qLower.includes("atom") || qLower.includes("periodic") ||
+      qLower.includes("mole") || qLower.includes("reaction") || qLower.includes("acid") || qLower.includes("base") ||
+      qLower.includes("salt") || qLower.includes("equilibrium") || qLower.includes("redox") || qLower.includes("bond") ||
+      qLower.includes("orbital") || qLower.includes("electron") || qLower.includes("hybrid") || qLower.includes("enthalpy") ||
+      qLower.includes("entropy") || qLower.includes("thermodynamic") || qLower.includes("gas") || qLower.includes("molarity") ||
+      qLower.includes("organic") || qLower.includes("alkane") || qLower.includes("alkene") || qLower.includes("benzene") ||
+      qLower.includes("alcohol") || qLower.includes("aldehyde") || qLower.includes("ketone") || qLower.includes("amine") ||
+      qLower.includes("le chatelier") || qLower.includes("vsepr") || qLower.includes("ph ");
+
+    // Check Physics keywords
+    const isPhysics = qLower.includes("physic") || qLower.includes("force") || qLower.includes("motion") ||
+      qLower.includes("velocity") || qLower.includes("acceleration") || qLower.includes("gravity") || qLower.includes("newton") ||
+      qLower.includes("friction") || qLower.includes("momentum") || qLower.includes("work") || qLower.includes("energy") ||
+      qLower.includes("power") || qLower.includes("torque") || qLower.includes("wave") || qLower.includes("sound") ||
+      qLower.includes("light") || qLower.includes("optics") || qLower.includes("lens") || qLower.includes("mirror") ||
+      qLower.includes("refraction") || qLower.includes("reflection") || qLower.includes("charge") || qLower.includes("coulomb") ||
+      qLower.includes("current") || qLower.includes("ohm") || qLower.includes("kirchhoff") || qLower.includes("magnetic") ||
+      qLower.includes("induction") || qLower.includes("projectile") || qLower.includes("shm") || qLower.includes("capacitor");
+
+    // Check Mathematics keywords
+    const isMath = qLower.includes("math") || qLower.includes("function") || qLower.includes("matrix") ||
+      qLower.includes("determinant") || qLower.includes("algebra") || qLower.includes("quadratic") || qLower.includes("trigonometr") ||
+      qLower.includes("sin") || qLower.includes("cos") || qLower.includes("tan") || qLower.includes("circle") ||
+      qLower.includes("parabola") || qLower.includes("ellipse") || qLower.includes("hyperbola") || qLower.includes("vector") ||
+      qLower.includes("calculus") || qLower.includes("limit") || qLower.includes("derivative") || qLower.includes("differentiation") ||
+      qLower.includes("integral") || qLower.includes("integration") || qLower.includes("probability") || qLower.includes("cramer");
+
+    if (isChemistry) {
+      subject = "Intermediate Chemistry";
+      topic = qLower.includes("organic") || qLower.includes("alkane") || qLower.includes("benzene")
+        ? "Organic Chemistry (Senior Secondary)"
+        : qLower.includes("hybrid") || qLower.includes("bond") || qLower.includes("periodic")
+        ? "Inorganic Chemistry (Class 11/12)"
+        : "Physical Chemistry (Class 11/12)";
+    } else if (isPhysics) {
+      subject = "Intermediate Physics";
+      topic = qLower.includes("optics") || qLower.includes("lens") || qLower.includes("light")
+        ? "Ray & Wave Optics"
+        : qLower.includes("current") || qLower.includes("ohm") || qLower.includes("charge") || qLower.includes("magnetic")
+        ? "Electricity & Magnetism"
+        : qLower.includes("projectile") || qLower.includes("newton") || qLower.includes("motion")
+        ? "Kinematics & Dynamics"
+        : "Senior Secondary Physics";
+    } else if (isMath) {
+      subject = "Intermediate Mathematics";
+      topic = qLower.includes("derivative") || qLower.includes("integral") || qLower.includes("calculus") || qLower.includes("limit")
+        ? "Calculus (Senior Secondary)"
+        : qLower.includes("matrix") || qLower.includes("determinant") || qLower.includes("cramer")
+        ? "Matrices & Linear Algebra"
+        : qLower.includes("trig") || qLower.includes("sin") || qLower.includes("cos")
+        ? "Trigonometry & Identities"
+        : "Senior Secondary Mathematics";
+    } else {
+      // Default for Intermediate MPC: Never CSE!
+      subject = "Intermediate Mathematics, Physics & Chemistry (MPC)";
+      topic = "Class 11 & 12 Senior Secondary Syllabus";
     }
-  } else if (qLower.includes("search") || qLower.includes("sort") || qLower.includes("tree") || qLower.includes("graph") || qLower.includes("linked list") || qLower.includes("stack") || qLower.includes("queue") || qLower.includes("algorithm") || qLower.includes("dynamic programming") || qLower.includes("dijkstra")) {
-    subject = "Data Structures & Algorithms";
-    topic = qLower.includes("search") ? "Searching Algorithms" : qLower.includes("sort") ? "Sorting Algorithms" : "Core Data Structures";
-  } else if (qLower.includes("process") || qLower.includes("thread") || qLower.includes("deadlock") || qLower.includes("memory") || qLower.includes("paging") || qLower.includes("os") || qLower.includes("scheduling") || qLower.includes("round robin") || qLower.includes("semaphore")) {
-    subject = "Operating Systems";
-    topic = qLower.includes("scheduling") || qLower.includes("round robin") ? "CPU Scheduling" : qLower.includes("deadlock") ? "Concurrency & Deadlocks" : "System Concurrency & Management";
-    if (qLower.includes("round robin")) concept = "Round Robin Scheduling";
-    if (qLower.includes("deadlock")) concept = "Deadlock & Prevention";
-  } else if (qLower.includes("sql") || qLower.includes("database") || qLower.includes("table") || qLower.includes("acid") || qLower.includes("transaction") || qLower.includes("normalization") || qLower.includes("1nf") || qLower.includes("2nf") || qLower.includes("3nf") || qLower.includes("bcnf")) {
-    subject = "Database Management Systems";
-    topic = qLower.includes("normalization") || qLower.includes("1nf") || qLower.includes("2nf") || qLower.includes("3nf") || qLower.includes("bcnf") ? "Relational Database Design" : "Relational Databases & Architecture";
-    if (qLower.includes("normalization") || qLower.includes("1nf") || qLower.includes("2nf") || qLower.includes("3nf") || qLower.includes("bcnf")) {
-      concept = "Database Normalization (1NF, 2NF, 3NF, BCNF)";
+  } else if (isInterBiPC && !isExplicitProgramming) {
+    // 2. INTERMEDIATE BiPC (Biology, Physics, Chemistry)
+    const isBio = qLower.includes("cell") || qLower.includes("dna") || qLower.includes("botany") ||
+      qLower.includes("zoology") || qLower.includes("organ") || qLower.includes("photosynthesis") ||
+      qLower.includes("respiration") || qLower.includes("genetics") || qLower.includes("tissue");
+
+    if (isBio) {
+      subject = "Intermediate Biology";
+      topic = qLower.includes("plant") || qLower.includes("botany") || qLower.includes("photosynthesis")
+        ? "Botany (Senior Secondary)"
+        : "Zoology & Human Physiology";
+    } else if (qLower.includes("chem") || qLower.includes("reaction") || qLower.includes("acid")) {
+      subject = "Intermediate Chemistry";
+      topic = "Senior Secondary Chemistry";
+    } else {
+      subject = "Intermediate Physics";
+      topic = "Senior Secondary Physics";
     }
-  } else if (qLower.includes("network") || qLower.includes("tcp") || qLower.includes("udp") || qLower.includes("ip") || qLower.includes("osi") || qLower.includes("protocol") || qLower.includes("dns") || qLower.includes("http")) {
-    subject = "Computer Networks";
-    topic = qLower.includes("tcp") || qLower.includes("udp") ? "Transport Layer Protocols" : "Network Protocol Architectures";
-    if (qLower.includes("tcp") || qLower.includes("udp")) concept = "TCP vs UDP";
-  } else if (qLower.includes("derivative") || qLower.includes("integral") || qLower.includes("matrix") || qLower.includes("calculus") || qLower.includes("probability") || qLower.includes("algebra")) {
-    subject = "Mathematics";
-    topic = qLower.includes("matrix") ? "Linear Algebra" : qLower.includes("probability") ? "Probability & Statistics" : "Calculus & Analysis";
-  } else if (qLower.includes("newton") || qLower.includes("force") || qLower.includes("velocity") || qLower.includes("motion") || qLower.includes("gravity") || qLower.includes("physics") || qLower.includes("energy")) {
-    subject = "Physics";
-    topic = "Classical Mechanics & Dynamics";
-  } else if (qLower.includes("photosynthesis") || qLower.includes("cell") || qLower.includes("dna") || qLower.includes("rna") || qLower.includes("genetics") || qLower.includes("biology")) {
-    subject = "Biological Sciences";
-    topic = "Cellular Biology & Genetics";
-  } else if (qLower.includes("study") || qLower.includes("exam") || qLower.includes("procrastinat") || qLower.includes("focus")) {
-    subject = "Study Skills & Productivity";
-    topic = "Effective Learning Strategies";
-    concept = "Smart Study Techniques";
-  } else if (educationLevel === "B.Tech" && streamBranch) {
+  } else if (isSchool && !isExplicitProgramming) {
+    // 3. SCHOOL LEVEL
+    const classStr = streamBranch || "Secondary";
+    if (qLower.includes("math") || qLower.includes("fraction") || qLower.includes("geometry") || qLower.includes("triangle") || qLower.includes("number")) {
+      subject = "School Mathematics";
+      topic = `Mathematics (Class ${classStr})`;
+    } else if (qLower.includes("science") || qLower.includes("plant") || qLower.includes("force") || qLower.includes("light") || qLower.includes("water")) {
+      subject = "School Science";
+      topic = `General Science (Class ${classStr})`;
+    } else {
+      subject = "School Academic Studies";
+      topic = `Curriculum (Class ${classStr})`;
+    }
+  } else if (isDegree && !isExplicitProgramming) {
+    // 4. DEGREE (B.Com, B.Sc, BCA, BBA)
+    const spec = streamBranch || "General";
+    if (spec.toLowerCase().includes("b.com") || qLower.includes("accounting") || qLower.includes("finance") || qLower.includes("debit") || qLower.includes("tax")) {
+      subject = "Commerce & Accounting";
+      topic = "Financial Accounting & Business Studies";
+    } else if (spec.toLowerCase().includes("b.sc") || qLower.includes("physics") || qLower.includes("chemistry")) {
+      subject = "B.Sc Science Fundamentals";
+      topic = spec;
+    } else {
+      subject = `Degree (${spec})`;
+      topic = "Degree Core Curriculum";
+    }
+  } else if (isBTech && streamBranch && !streamBranch.toLowerCase().includes("cse") && !isExplicitProgramming) {
+    // 5. B.TECH NON-CSE (Mechanical, Civil, EEE, ECE, Chemical)
     subject = streamBranch;
-    topic = "Engineering Fundamentals";
+    topic = "Engineering Core Fundamentals";
+  } else {
+    // 6. COMPUTER SCIENCE & ENGINEERING / GENERAL ACADEMIC (Only if B.Tech CSE, explicit coding, or CSE keywords)
+    subject = "Computer Science & Engineering";
+    topic = "Core Principles";
+
+    if (qLower.includes("grammar") || qLower.includes("cfg") || qLower.includes("context free") || qLower.includes("automata") || qLower.includes("automaton") || qLower.includes("dfa") || qLower.includes("nfa") || qLower.includes("pda") || qLower.includes("pushdown") || qLower.includes("turing") || qLower.includes("chomsky") || qLower.includes("compiler") || qLower.includes("parser") || qLower.includes("parsing") || qLower.includes("lexer") || qLower.includes("regular expression")) {
+      subject = "Theory of Computation & Compiler Design";
+      topic = (qLower.includes("compiler") || qLower.includes("parser") || qLower.includes("parsing") || qLower.includes("lexer")) ? "Compiler Design & Syntax Analysis" : "Formal Languages & Automata";
+      if (qLower.includes("context free") || qLower.includes("cfg") || qLower.includes("grammar")) {
+        concept = "Context-Free Grammar (CFG)";
+      } else if (qLower.includes("dfa") || qLower.includes("nfa") || qLower.includes("finite automata")) {
+        concept = "DFA vs NFA";
+      } else if (qLower.includes("pda") || qLower.includes("pushdown")) {
+        concept = "Pushdown Automata (PDA)";
+      } else if (qLower.includes("turing")) {
+        concept = "Turing Machines";
+      }
+    } else if (qLower.includes("search") || qLower.includes("sort") || qLower.includes("tree") || qLower.includes("graph") || qLower.includes("linked list") || qLower.includes("stack") || qLower.includes("queue") || qLower.includes("algorithm") || qLower.includes("dynamic programming") || qLower.includes("dijkstra")) {
+      subject = "Data Structures & Algorithms";
+      topic = qLower.includes("search") ? "Searching Algorithms" : qLower.includes("sort") ? "Sorting Algorithms" : "Core Data Structures";
+    } else if (qLower.includes("process") || qLower.includes("thread") || qLower.includes("deadlock") || qLower.includes("memory") || qLower.includes("paging") || qLower.includes("os") || qLower.includes("scheduling") || qLower.includes("round robin") || qLower.includes("semaphore")) {
+      subject = "Operating Systems";
+      topic = qLower.includes("scheduling") || qLower.includes("round robin") ? "CPU Scheduling" : qLower.includes("deadlock") ? "Concurrency & Deadlocks" : "System Concurrency & Management";
+      if (qLower.includes("round robin")) concept = "Round Robin Scheduling";
+      if (qLower.includes("deadlock")) concept = "Deadlock & Prevention";
+    } else if (qLower.includes("sql") || qLower.includes("database") || qLower.includes("table") || qLower.includes("acid") || qLower.includes("transaction") || qLower.includes("normalization") || qLower.includes("1nf") || qLower.includes("2nf") || qLower.includes("3nf") || qLower.includes("bcnf")) {
+      subject = "Database Management Systems";
+      topic = qLower.includes("normalization") || qLower.includes("1nf") || qLower.includes("2nf") || qLower.includes("3nf") || qLower.includes("bcnf") ? "Relational Database Design" : "Relational Databases & Architecture";
+      if (qLower.includes("normalization") || qLower.includes("1nf") || qLower.includes("2nf") || qLower.includes("3nf") || qLower.includes("bcnf")) {
+        concept = "Database Normalization (1NF, 2NF, 3NF, BCNF)";
+      }
+    } else if (qLower.includes("network") || qLower.includes("tcp") || qLower.includes("udp") || qLower.includes("ip") || qLower.includes("osi") || qLower.includes("protocol") || qLower.includes("dns") || qLower.includes("http")) {
+      subject = "Computer Networks";
+      topic = qLower.includes("tcp") || qLower.includes("udp") ? "Transport Layer Protocols" : "Network Protocol Architectures";
+      if (qLower.includes("tcp") || qLower.includes("udp")) concept = "TCP vs UDP";
+    } else if (qLower.includes("study") || qLower.includes("exam") || qLower.includes("procrastinat") || qLower.includes("focus")) {
+      subject = "Study Skills & Productivity";
+      topic = "Effective Learning Strategies";
+      concept = "Smart Study Techniques";
+    }
   }
 
   return {
@@ -1115,7 +1480,8 @@ export async function generateValidatedExplanation(
   analysis: QuestionAnalysis,
   educationLevel?: string,
   preferredModel?: string,
-  ollamaEndpoint?: string
+  ollamaEndpoint?: string,
+  streamBranch?: string
 ): Promise<ExplanationResult> {
   // 1. If it is a friendly greeting or conversational inquiry
   if (analysis.is_conversational || isGreetingOrChitchat(question)) {
@@ -1130,9 +1496,23 @@ export async function generateValidatedExplanation(
     };
   }
 
-  // 2. Check curated Knowledge Base for high-yield, deeply verified concept
-  const kbEntry = findKnowledgeBaseEntry(question) || findKnowledgeBaseEntry(analysis.detected_concept) || findKnowledgeBaseEntry(analysis.detected_topic);
+  // 2. Check curated Knowledge Base for high-yield, deeply verified concept matching student's grade & stream
+  const kbEntry = findKnowledgeBaseEntry(question, educationLevel, streamBranch) ||
+    findKnowledgeBaseEntry(analysis.detected_concept, educationLevel, streamBranch) ||
+    findKnowledgeBaseEntry(analysis.detected_topic, educationLevel, streamBranch);
+
   if (kbEntry) {
+    const isInter = educationLevel === "Intermediate" || kbEntry.subject.includes("Intermediate");
+    const isMPC = isInter && (!streamBranch || streamBranch.toUpperCase().includes("MPC"));
+    const realWorldHeader = (isInter || educationLevel === "School")
+      ? "🔬 Real-World Application in Science & Engineering"
+      : "💻 Concrete Example & Real-World Use";
+    const examHeader = isMPC
+      ? "🎓 Key Takeaways for Intermediate Board Exams (AP/TS/CBSE) & JEE / EAMCET"
+      : isInter
+      ? "🎓 Key Takeaways for Intermediate Board Exams & Competitive Tests"
+      : "🎓 Key Takeaways for Exams & Tests";
+
     const friendlyMarkdown = `Hey! Let's explore **${kbEntry.concept}** in a simple, friendly, and intuitive way.
 
 ---
@@ -1152,12 +1532,12 @@ ${kbEntry.howItWorks.join("\n")}
 
 ---
 
-### 💻 Concrete Example & Real-World Use
+### ${realWorldHeader}
 ${kbEntry.realWorldExample}
 
 ---
 
-### 🎓 Key Takeaways for Exams & Interviews
+### ${examHeader}
 ${kbEntry.keyTakeaways.join("\n")}
 
 Hope that makes it super clear! Let me know if you want to dive deeper into any part or test yourself with the quick quiz below!`;
@@ -1194,8 +1574,17 @@ Hope that makes it super clear! Let me know if you want to dive deeper into any 
       }
 
       const systemPrompt = `You are LearnX AI, a warm, encouraging, and brilliant academic mentor like ChatGPT.
-Explain the student's question clearly in plain English, with an intuitive real-world analogy, step-by-step logic, concrete examples or code, and memorable exam takeaways. Avoid robotic or cold bureaucratic boilerplate. Always encourage the student and build their confidence.`;
-      const prompt = `Student Question: "${question}"\nEducation Level: ${educationLevel || "Student"}`;
+STUDENT ACADEMIC LEVEL: ${educationLevel || "Intermediate"} (${streamBranch || "MPC"})
+SUBJECT: ${analysis.detected_subject}
+TOPIC: ${analysis.detected_topic}
+
+CRITICAL RULES:
+1. Explain this strictly according to the student's selected academic grade (${educationLevel}) and stream (${streamBranch}).
+2. If the student is in Intermediate MPC, you MUST use Class 11/12 senior secondary Mathematics, Physics, or Chemistry context, Intermediate Board syllabus, and JEE Main / EAMCET standards.
+3. NEVER assume Computer Science & Engineering (CSE), university software engineering, coding, or compilers unless the student explicitly asks a coding question.
+4. Tone: Friendly, conversational, encouraging, and easy to understand (like ChatGPT).`;
+
+      const prompt = `Student Question: "${question}"\nSubject: ${analysis.detected_subject}\nTopic: ${analysis.detected_topic}\nConcept: ${analysis.detected_concept}`;
       const ollamaResponse = await queryOllama(
         ollamaEndpoint || "http://localhost:11434",
         targetModel,
@@ -1221,20 +1610,26 @@ Explain the student's question clearly in plain English, with an intuitive real-
     if (ai) {
       try {
         const prompt = `You are LearnX AI, a friendly, enthusiastic, and clear academic tutor just like ChatGPT.
-Student question: "${question}"
-Subject: "${analysis.detected_subject}"
-Topic: "${analysis.detected_topic}"
-Concept: "${analysis.detected_concept}"
+STUDENT CONTEXT:
+- Academic Level: "${educationLevel || "Intermediate"}"
+- Stream / Branch: "${streamBranch || "MPC"}"
+- Subject: "${analysis.detected_subject}"
+- Topic: "${analysis.detected_topic}"
+- Concept: "${analysis.detected_concept}"
 
-INSTRUCTIONS:
+Student Question: "${question}"
+
+CRITICAL INSTRUCTION:
+- You MUST explain this strictly according to the student's selected academic grade (${educationLevel}) and stream (${streamBranch}).
+- If the student is in Intermediate MPC, you MUST use Class 11/12 senior secondary Mathematics, Physics, or Chemistry context, Intermediate Board syllabus, and JEE Main / EAMCET standards.
+- DO NOT default to or mention Computer Science & Engineering (CSE), university software engineering, coding, or compilers unless the student explicitly asks for code!
 - Tone: Friendly, conversational, encouraging, and easy to understand (like ChatGPT).
 - Structure:
-  1. Warm conversational opening with the intuitive 'In Plain English' concept definition.
+  1. Warm conversational opening with the intuitive 'In Plain English' concept definition suited to ${educationLevel} (${streamBranch}).
   2. A relatable real-world analogy.
   3. Clear, step-by-step explanation of how it works.
-  4. A concrete example (with code, math, or real-life scenario where applicable).
-  5. Memorable key takeaways for exams or interviews.
-- Never use cold robotic boilerplate or phrases like 'operational invariant' or 'governing mechanics boundary conditions'.`;
+  4. A concrete example (with math/science problem walkthrough, formula, or real-life application).
+  5. Memorable key takeaways for Board exams, competitive tests, or interviews.`;
 
         const response = await ai.models.generateContent({
           model: "gemini-3.8-flash",
@@ -1265,7 +1660,8 @@ INSTRUCTIONS:
     analysis.detected_subject,
     analysis.detected_topic,
     analysis.detected_concept,
-    educationLevel
+    educationLevel,
+    streamBranch
   );
 }
 
@@ -1421,14 +1817,17 @@ export async function generateValidatedMCQ(
   preferredModel?: string,
   ollamaEndpoint?: string,
   questionIndex: number = 1,
-  previousQuestions: string[] = []
+  previousQuestions: string[] = [],
+  streamBranch?: string
 ): Promise<GeneratedMCQ> {
   const qNum = Math.max(1, questionIndex);
   const computedDifficulty: "Easy" | "Medium" | "Hard" =
     difficulty || (qNum <= 2 ? "Medium" : qNum <= 4 ? "Hard" : "Medium");
 
-  // 1. Check Knowledge Base first across all models
-  const kbEntry = findKnowledgeBaseEntry(concept) || findKnowledgeBaseEntry(topic) || findKnowledgeBaseEntry(subject);
+  // 1. Check Knowledge Base first across all models with grade and stream filtering
+  const kbEntry = findKnowledgeBaseEntry(concept, educationLevel, streamBranch) ||
+    findKnowledgeBaseEntry(topic, educationLevel, streamBranch) ||
+    findKnowledgeBaseEntry(subject, educationLevel, streamBranch);
   if (kbEntry) {
     const allKbQuestions = [kbEntry.mcq, ...(kbEntry.mcqs || [])];
     // Find an unused question that hasn't appeared in previousQuestions

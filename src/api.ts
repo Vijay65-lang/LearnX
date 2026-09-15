@@ -208,12 +208,42 @@ function setActiveStudent(student: StudentProfile | null) {
   }
 }
 
+export function clearAllStudentSessionData(): void {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith("learnx_") || key.startsWith("lx_"))) {
+          // Preserve local engine/model settings and saved accounts list
+          if (
+            key === "learnx_preferred_model" ||
+            key === "learnx_ollama_endpoint" ||
+            key === LOCAL_STUDENTS_KEY
+          ) {
+            continue;
+          }
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    }
+  } catch (e) {
+    console.warn("Storage cleanup error:", e);
+  }
+}
+
 export async function registerStudent(
   payload: any
 ): Promise<{
   token: string;
   student: StudentProfile;
 }> {
+  // Clear any existing session or cached student data to prevent cross-account data leakage
+  clearStoredToken();
+  setActiveStudent(null);
+  clearAllStudentSessionData();
+
   try {
     const data = await request<{
       token: string;
@@ -251,9 +281,9 @@ export async function registerStudent(
       id: studentId,
       name: payload.name || "Student",
       email: payload.email,
-      education_level: payload.education_level || "B.Tech",
+      education_level: payload.education_level || "Intermediate",
       school_grade: payload.school_grade,
-      inter_stream: payload.inter_stream,
+      inter_stream: payload.inter_stream || "MPC",
       degree_name: payload.degree_name,
       degree_specialization: payload.degree_specialization,
       btech_branch: payload.btech_branch || "Computer Science & Engineering",
@@ -298,6 +328,9 @@ export async function loginStudent(
   token: string;
   student: StudentProfile;
 }> {
+  // Clear any existing active session cache before logging in to guarantee data isolation
+  clearAllStudentSessionData();
+
   try {
     const data = await request<{
       token: string;
@@ -358,10 +391,8 @@ export async function loginStudent(
       id: "std_" + Math.random().toString(36).substring(2, 10),
       name: fallbackName || "Student Learner",
       email: credentials.email,
-      education_level: "B.Tech",
-      btech_branch: "Computer Science & Engineering",
-      btech_year: "3rd Year",
-      btech_semester: "1st Semester",
+      education_level: "Intermediate",
+      inter_stream: "MPC",
       created_at: new Date().toISOString(),
     };
 
@@ -386,6 +417,7 @@ export async function logoutStudent(): Promise<void> {
   } finally {
     clearStoredToken();
     setActiveStudent(null);
+    clearAllStudentSessionData();
   }
 }
 
@@ -447,43 +479,120 @@ export function getStudentStorageKey(suffix: string): string {
   return `learnx_${suffix}_${id}`;
 }
 
-export function generateResilientStudentResponse(question: string): AskResponse {
+export function generateResilientStudentResponse(
+  question: string,
+  student?: Partial<StudentProfile> | null
+): AskResponse {
   const clean = question.trim();
   const qLower = clean.toLowerCase();
+  const activeSt = student || getActiveStudent();
+  const isInter = activeSt?.education_level === "Intermediate";
+  const isMPC = isInter && (!activeSt?.inter_stream || activeSt?.inter_stream.toUpperCase().includes("MPC"));
 
-  let subject = "General Academic Studies";
-  let topic = "Core Fundamentals";
+  let subject = isMPC ? "Intermediate MPC (Maths, Physics, Chemistry)" : "General Academic Studies";
+  let topic = isMPC ? "Core Mathematics & Physical Sciences" : "Core Fundamentals";
   let concept = clean.length > 40 ? clean.slice(0, 40) + "..." : clean;
 
-  if (qLower.includes("python") || qLower.includes("loop") || qLower.includes("function") || qLower.includes("string") || qLower.includes("array") || qLower.includes("list") || qLower.includes("code")) {
+  const isExplicitProgramming =
+    qLower.includes("python") ||
+    qLower.includes("java") ||
+    qLower.includes("c++") ||
+    qLower.includes("algorithm") ||
+    qLower.includes("database") ||
+    qLower.includes("sql") ||
+    qLower.includes("frontend") ||
+    qLower.includes("html") ||
+    qLower.includes("react") ||
+    (qLower.includes("code") && !qLower.includes("genetic code"));
+
+  if (isExplicitProgramming) {
     subject = "Computer Science & Programming";
     topic = "Programming Logic & Algorithms";
     concept = "Core Programming Fundamentals";
-  } else if (qLower.includes("gravity") || qLower.includes("force") || qLower.includes("motion") || qLower.includes("light") || qLower.includes("lens") || qLower.includes("current") || qLower.includes("physics")) {
-    subject = "Physics";
-    topic = "Physical Laws & Natural Mechanics";
-    concept = "Physics Fundamentals";
-  } else if (qLower.includes("atom") || qLower.includes("reaction") || qLower.includes("acid") || qLower.includes("base") || qLower.includes("molecule") || qLower.includes("carbon") || qLower.includes("chem")) {
-    subject = "Chemistry";
+  } else if (
+    qLower.includes("gravity") ||
+    qLower.includes("force") ||
+    qLower.includes("motion") ||
+    qLower.includes("light") ||
+    qLower.includes("lens") ||
+    qLower.includes("current") ||
+    qLower.includes("physics") ||
+    qLower.includes("thermo") ||
+    qLower.includes("work") ||
+    qLower.includes("energy") ||
+    qLower.includes("wave")
+  ) {
+    subject = isMPC ? "Intermediate Physics (MPC)" : "Physics";
+    topic = "Laws of Motion & Mechanics";
+    concept = "Physical Laws & Problem Solving";
+  } else if (
+    qLower.includes("atom") ||
+    qLower.includes("reaction") ||
+    qLower.includes("acid") ||
+    qLower.includes("base") ||
+    qLower.includes("molecule") ||
+    qLower.includes("carbon") ||
+    qLower.includes("chem") ||
+    qLower.includes("equilibrium") ||
+    qLower.includes("periodic") ||
+    qLower.includes("bonding")
+  ) {
+    subject = isMPC ? "Intermediate Chemistry (MPC)" : "Chemistry";
     topic = "Chemical Principles & Reactions";
     concept = "Chemical Structure & Reactions";
-  } else if (qLower.includes("cell") || qLower.includes("plant") || qLower.includes("photosynthesis") || qLower.includes("blood") || qLower.includes("dna") || qLower.includes("organ") || qLower.includes("bio")) {
+  } else if (
+    qLower.includes("math") ||
+    qLower.includes("fraction") ||
+    qLower.includes("algebra") ||
+    qLower.includes("triangle") ||
+    qLower.includes("area") ||
+    qLower.includes("equation") ||
+    qLower.includes("matrix") ||
+    qLower.includes("matrices") ||
+    qLower.includes("derivative") ||
+    qLower.includes("integral") ||
+    qLower.includes("calculus") ||
+    qLower.includes("trigonometry") ||
+    qLower.includes("limit")
+  ) {
+    subject = isMPC ? "Intermediate Mathematics (MPC - 1A/1B/2A/2B)" : "Mathematics";
+    topic = "Mathematical Concepts & Problem Solving";
+    concept = "Mathematical Principles & Solutions";
+  } else if (
+    !isMPC &&
+    (qLower.includes("cell") ||
+      qLower.includes("plant") ||
+      qLower.includes("photosynthesis") ||
+      qLower.includes("blood") ||
+      qLower.includes("dna") ||
+      qLower.includes("organ") ||
+      qLower.includes("bio"))
+  ) {
     subject = "Biology & Life Sciences";
     topic = "Living Systems";
     concept = "Cellular Biology & Life Functions";
-  } else if (qLower.includes("math") || qLower.includes("fraction") || qLower.includes("algebra") || qLower.includes("triangle") || qLower.includes("area") || qLower.includes("equation") || qLower.includes("matrix") || qLower.includes("derivative") || qLower.includes("integral")) {
-    subject = "Mathematics";
-    topic = "Mathematical Concepts";
-    concept = "Mathematical Principles & Solutions";
-  } else if (qLower.includes("debit") || qLower.includes("credit") || qLower.includes("tax") || qLower.includes("market") || qLower.includes("cost") || qLower.includes("profit") || qLower.includes("bank") || qLower.includes("commerce")) {
+  } else if (
+    qLower.includes("debit") ||
+    qLower.includes("credit") ||
+    qLower.includes("tax") ||
+    qLower.includes("market") ||
+    qLower.includes("cost") ||
+    qLower.includes("profit") ||
+    qLower.includes("bank") ||
+    qLower.includes("commerce")
+  ) {
     subject = "Commerce & Economics";
     topic = "Financial Fundamentals";
     concept = "Commercial Systems & Value Flow";
   }
 
+  const examHeader = isMPC
+    ? "🎯 Key Takeaways for Intermediate Board Exams (AP/TS/CBSE) & JEE / EAMCET"
+    : "🎯 Exam Quick Revision Points";
+
   const friendlyExplanation = `### 💡 Friendly Explanation: ${concept}
 
-Hey! Let's understand **${clean}** in a clear, friendly, and straightforward way:
+Hey! Let's understand **${clean}** in a clear, friendly, and intuitive way tailored for **${subject}**:
 
 ---
 
@@ -493,21 +602,21 @@ At its core, **${concept}** in **${subject}** gives us a reliable way to solve p
 ---
 
 #### 🍎 2. Real-Life Analogy
-Think of this like following a favorite recipe: when you have the right ingredients and add them step-by-step, you get the perfect meal every time. **${concept}** works with that exact same logic in **${topic}**!
+Think of this like following a proven recipe or road map: when you understand each turn step-by-step, you reach the destination every single time. **${concept}** works with that exact same logic in **${topic}**!
 
 ---
 
 #### 🪜 3. Step-by-Step Breakdown
-1. **Identify What is Given**: Look closely at the numbers or details in the question.
-2. **Apply the Core Rule**: Follow the basic formula or step-by-step logic methodically.
-3. **Verify the Answer**: Make sure the units (like meters, rupees, seconds, or data types) match and make common sense!
+1. **Identify What is Given**: Look closely at the values, given conditions, or formula parameters in the question.
+2. **Apply the Core Principle**: Follow the foundational rules and step-by-step reasoning methodically.
+3. **Verify the Answer**: Check your units, signs, and verify that the final result is physically and mathematically sound!
 
 ---
 
-#### 🎯 4. Exam Quick Revision Points
-- Understand the basic intuition before writing formulas.
+#### ${examHeader}
+- Understand the real-world intuition before memorizing formulas.
 - Connect this topic back to **${subject}** fundamentals for top exam scores.
-- Practice 1 or 2 textbook problems to build permanent confidence!`;
+- Practice 1 or 2 textbook problems to build permanent exam confidence!`;
 
   return {
     doubtId: "dbt_local_" + Date.now(),
@@ -522,7 +631,7 @@ Think of this like following a favorite recipe: when you have the right ingredie
       subject: subject,
       topic: topic,
       concept: concept,
-      question_text: `What is the most effective and stress-free way to master "${concept}"?`,
+      question_text: `What is the most effective way to master "${concept}" in ${subject}?`,
       option_a: "Understand the real-life intuition, follow step-by-step logic, and solve sample practice questions",
       option_b: "Blindly memorize formulas without understanding what they mean",
       option_c: "Skip reading the question and immediately guess an option",
@@ -538,8 +647,10 @@ export async function askStudyDoubt(
   question: string,
   chatId?: string,
   model?: AIModelType,
-  ollamaEndpoint?: string
+  ollamaEndpoint?: string,
+  studentProfile?: Partial<StudentProfile>
 ): Promise<AskResponse> {
+  const currentStudent = studentProfile || getActiveStudent();
   try {
     const res = await request<AskResponse>("/ai/ask", {
       method: "POST",
@@ -548,6 +659,7 @@ export async function askStudyDoubt(
         chat_id: chatId,
         model,
         ollama_endpoint: ollamaEndpoint,
+        student_profile: currentStudent,
       }),
     });
 
@@ -582,7 +694,7 @@ export async function askStudyDoubt(
     return res;
   } catch (err: any) {
     console.warn("Server AI request offline or dropped, using resilient responder:", err);
-    const fallback = generateResilientStudentResponse(question);
+    const fallback = generateResilientStudentResponse(question, currentStudent);
 
     if (chatId) {
       try {
@@ -624,6 +736,8 @@ export async function generateNextMCQ(payload: {
   previous_questions?: string[];
   model?: string;
   ollama_endpoint?: string;
+  education_level?: string;
+  stream_branch?: string;
 }): Promise<{
   mcq: GeneratedMCQ & {
     id: string;
