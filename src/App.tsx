@@ -96,10 +96,11 @@ export default function App() {
         onOpenManifesto={() => setShowManifesto(true)}
       />
 
-      {/* Main View Container */}
-      <main className="flex-1">
+      {/* Main View Container with mobile bottom clearance */}
+      <main className="flex-1 pb-16 md:pb-0">
         {currentTab === "home" && (
           <HomeDashboard
+            key={student.id}
             student={student}
             onNavigate={(tab) => {
               if (tab !== "ask") setAskTopic(undefined);
@@ -111,6 +112,7 @@ export default function App() {
 
         {currentTab === "ask" && (
           <AskAI
+            key={student.id}
             student={student}
             initialTopic={askTopic}
           />
@@ -118,6 +120,7 @@ export default function App() {
 
         {currentTab === "courses" && (
           <CoursesView
+            key={student.id}
             student={student}
             onViewCertificate={(cert) => setSelectedCertificate(cert)}
           />
@@ -125,6 +128,7 @@ export default function App() {
 
         {currentTab === "progress" && (
           <ProgressView
+            key={student.id}
             student={student}
             onViewCertificate={(cert) => setSelectedCertificate(cert)}
             onAskTopic={handleAskTopic}
@@ -133,6 +137,7 @@ export default function App() {
 
         {currentTab === "profile" && (
           <ProfileView
+            key={student.id}
             student={student}
             onUpdateStudent={(updated) => setStudent(updated)}
             onLogout={handleLogout}

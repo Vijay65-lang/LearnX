@@ -108,7 +108,7 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
 
   useEffect(() => {
     loadSessions();
-  }, []);
+  }, [student.id]);
 
   useEffect(() => {
     if (initialTopic) {
@@ -121,13 +121,21 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
   }, [messages, loading]);
 
   const loadSessions = async () => {
+    // Reset state so new student never sees previous student's questions or sessions
+    setMessages([]);
+    setCurrentSessionId(null);
+    setMcqsByMessage({});
+    setMcqAnswers({});
+    setMcqResults({});
+    setError(null);
+
     try {
       const res = await getChatSessions();
       setSessions(res.sessions);
-      if (res.sessions.length > 0 && !currentSessionId) {
+      if (res.sessions.length > 0) {
         selectSession(res.sessions[0].id);
-      } else if (res.sessions.length === 0) {
-        // Automatically create first clean conversation
+      } else {
+        // Automatically create first clean conversation for this student
         startNewChat("Study Session 1");
       }
     } catch (err: any) {
@@ -274,7 +282,11 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
 
     try {
       // Step 1 to 8: Run strict question understanding & validated explanation with selected model
-      const res = await askStudyDoubt(questionText, activeChatId, selectedModel, ollamaEndpoint);
+      const isMobile = typeof window !== "undefined" && (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768);
+      const effectiveModel: AIModelType = (isMobile && selectedModel === "ollama") ? "academic-engine" : selectedModel;
+      const effectiveEndpoint = isMobile ? undefined : ollamaEndpoint;
+
+      const res = await askStudyDoubt(questionText, activeChatId, effectiveModel, effectiveEndpoint);
 
       if (res.is_unclear) {
         const clarificationMsg: ChatMessage = {

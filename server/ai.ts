@@ -905,6 +905,48 @@ Want to see how to do this in JavaScript, C++, or Java too? Just let me know!`;
       `State the Space Complexity (memory required).`,
       `Identify edge cases (e.g. empty inputs, duplicates, already-sorted data).`
     ];
+  } else if (subject.includes("School") || topic.includes("Arithmetic") || topic.includes("Geometry") || topic.includes("Fractions") || topic.includes("Living") || topic.includes("Solar") || topic.includes("Grammar")) {
+    plainEnglish = `In school studies, **${cleanConcept}** is a fun and essential building block in **${subject}**. It helps us solve everyday math puzzles, understand the living nature around us, and express thoughts clearly!`;
+    analogy = `Think of it like building with LEGO blocks: every big castle starts with simple, colorful bricks. Master **${cleanConcept}**, and the rest of the puzzle clicks together with ease!`;
+    mechanics = [
+      `**Observation & Rule**: Look at the given values or description carefully.`,
+      `**Step-by-step Solution**: Apply the basic formula or definition one step at a time.`,
+      `**Double Check**: Look at your final answer to see if it makes common sense!`
+    ];
+    realWorld = `From calculating change at a grocery shop, measuring room sizes, to understanding how seasons change, **${cleanConcept}** is active all around us every single day.`;
+    takeaways = [
+      `Remember the golden formula or main definition.`,
+      `Always write units (e.g. meters, rupees, seconds) in your answers.`,
+      `Practice with 2-3 simple textbook examples before the test.`
+    ];
+  } else if (subject.includes("Intermediate") || subject.includes("Calculus") || subject.includes("Organic") || subject.includes("Optics") || subject.includes("Thermodynamics")) {
+    plainEnglish = `In Intermediate education, **${cleanConcept}** bridges fundamental high school science with advanced college principles. It explains the exact mathematical and physical relationships that govern nature.`;
+    analogy = `Think of a speedometer vs an odometer in a car: while one shows your total journey, the other shows your exact rate of change at that very second. **${cleanConcept}** gives us that precise mathematical lens!`;
+    mechanics = [
+      `**Formulation**: Express the concept using standard notation, formulas, or chemical equations.`,
+      `**Boundary Conditions**: Identify initial values, constants, and assumptions (like ideal temperature or frictionless motion).`,
+      `**Derivation & Calculation**: Work through each algebraic step systematically.`
+    ];
+    realWorld = `Engineers use these exact Intermediate principles to design bridges, calculate satellite trajectories, launch rockets, and formulate modern medicines!`;
+    takeaways = [
+      `Memorize standard formulas and know how they were derived.`,
+      `Pay attention to SI units and sign conventions (+ and -).`,
+      `Practice standard numerical problems commonly asked in entrance exams (JEE, NEET, EAMCET).`
+    ];
+  } else if (subject.includes("Commerce") || subject.includes("Business") || subject.includes("Accounting") || subject.includes("Economics") || subject.includes("Management")) {
+    plainEnglish = `In Degree & Commerce studies, **${cleanConcept}** is a core principle used by organizations and financial analysts to track value, make smart investments, and guide strategic decisions.`;
+    analogy = `Think of a household budget book: if you track where every rupee enters and exits, you can save money, avoid debt, and plan for future goals. **${cleanConcept}** does that for entire companies!`;
+    mechanics = [
+      `**Recognition & Classification**: Categorize the transaction or business event accurately.`,
+      `**Ledger / Analytical Processing**: Apply standard accounting standards (like GAAP or IFRS) or management frameworks.`,
+      `**Reporting & Decision-Making**: Summarize into financial statements that executives and investors can rely on.`
+    ];
+    realWorld = `Every startup, global corporation (like Apple or Tata), and local business uses these exact practices to manage revenue, pay taxes, and grow sustainably.`;
+    takeaways = [
+      `Always keep the Golden Rules of Accounting or core managerial principles in mind.`,
+      `Verify Debit equals Credit or check balance sheet equilibrium.`,
+      `Explain both the qualitative impact on customers/staff and quantitative impact on profit.`
+    ];
   }
 
   const explanation = `Hey! Let's break down **${cleanConcept}** in a simple, friendly, and intuitive way.
@@ -1250,92 +1292,92 @@ function generateInfiniteDynamicMCQ(
 
   switch (patternIndex) {
     case 0:
-      questionText = `What is the primary objective or foundational purpose of "${concept}" within ${subject}?`;
-      correctText = `To establish clear, systematic, and verifiable rules that guarantee consistency and correct behavior in ${topic}`;
+      questionText = `What is the main purpose of learning "${concept}" in ${topic}?`;
+      correctText = `To understand how to solve problems systematically and accurately using the principles of ${topic}`;
       distractors = [
-        `To eliminate the need for memory allocation and hardware constraints completely`,
-        `To act solely as an informal visual notation with no computational or logical semantics`,
-        `To restrict execution exclusively to synchronous single-threaded legacy processors`
+        `To memorize formulas and answers without understanding why they work`,
+        `To make simple calculations and everyday problems unnecessarily confusing`,
+        `To guess the correct answer randomly without following any logical steps`
       ];
-      explanation = `The primary objective of ${concept} is to provide systematic and verifiable rules for ${topic}, ensuring deterministic and robust operation.`;
+      explanation = `The main goal of ${concept} is to give you a clear, systematic way to solve problems in ${topic} with confidence and accuracy.`;
       break;
 
     case 1:
-      questionText = `During the application or execution of "${concept}", which operational invariant must always hold?`;
-      correctText = `Every state transition or computational step must strictly satisfy the governing constraints of ${topic}`;
+      questionText = `Which of the following best describes how "${concept}" works in practice?`;
+      correctText = `It follows clear, step-by-step principles to produce an accurate, dependable result`;
       distractors = [
-        `Data structures must continuously double in size regardless of input scale`,
-        `All asynchronous events must be discarded without acknowledgment`,
-        `Computation must terminate within exactly one clock cycle regardless of complexity`
+        `It changes its rules and formulas randomly every time you use it`,
+        `It only works if you completely ignore the core fundamentals of ${subject}`,
+        `It produces an answer without needing any input or problem statement`
       ];
-      explanation = `For ${concept} to remain sound, all transitions and steps must maintain the governing invariants defined in ${topic}.`;
+      explanation = `In practice, ${concept} relies on consistent, step-by-step logic to guarantee reproducible and correct results.`;
       break;
 
     case 2:
-      questionText = `What critical edge case or failure mode must engineers prevent when utilizing "${concept}"?`;
-      correctText = `Unbounded resource consumption, deadlock, or invalid state transitions under extreme boundary conditions`;
+      questionText = `When solving questions on "${concept}", what is the best practice to avoid mistakes?`;
+      correctText = `Carefully check given values, apply the standard formula or steps, and verify the final answer`;
       distractors = [
-        `Deterministic execution yielding reproducible results across repeated runs`,
-        `Strict adherence to the underlying algorithmic specification`,
-        `Optimal asymptotic time complexity under average-case workloads`
+        `Skip reading the question and jump directly to guessing an option`,
+        `Assume that all numbers and conditions are identical in every problem`,
+        `Ignore the units (like meters, seconds, or data types) completely`
       ];
-      explanation = `Edge cases such as boundary violations, unhandled base conditions, or resource exhaustion are critical failure modes in ${concept}.`;
+      explanation = `To score high and avoid careless mistakes in ${concept}, always note down what is given, follow each step methodically, and double-check your units.`;
       break;
 
     case 3:
-      questionText = `Compared to naive or unconstrained approaches, what is the key architectural advantage of "${concept}"?`;
-      correctText = `It provides structured guarantees, predictable behavior, and superior modularity in ${topic}`;
+      questionText = `Compared to unorganized methods, why is using "${concept}" much better?`;
+      correctText = `It saves time, eliminates confusion, and provides a clear, proven structure`;
       distractors = [
-        `It operates with zero memory footprint and requires no CPU cycles`,
-        `It bypasses all validation and error-checking layers for raw throughput`,
-        `It guarantees infinite precision without any computational trade-offs`
+        `It makes the problem take 100 times longer with no benefits`,
+        `It hides all steps and makes finding errors impossible`,
+        `It forces you to start over every time you make a minor adjustment`
       ];
-      explanation = `By introducing formal structure, ${concept} ensures predictable, testable, and modular system design.`;
+      explanation = `Using structured concepts like ${concept} gives you a roadmap that simplifies complex questions and saves precious time.`;
       break;
 
     case 4:
-      questionText = `In production systems and industry practice, how is "${concept}" typically leveraged?`;
-      correctText = `As a core building block to decouple complex subsystems and enforce standard protocol contracts`;
+      questionText = `In real-world applications, where do we see "${concept}" being applied?`;
+      correctText = `In everyday technology, practical problem-solving, and professional industry projects`;
       distractors = [
-        `As an optional aesthetic skin without any functional or logical impact`,
-        `To artificially increase latency and slow down request processing`,
-        `Exclusively within obsolete mainframe batch routines that run once per year`
+        `Only in fictional stories with zero real-life value`,
+        `Nowhere, because it has never been used outside of single-page tests`,
+        `Exclusively on computers built over 80 years ago that are no longer operational`
       ];
-      explanation = `In real-world architectures, ${concept} decouples responsibilities and ensures strict contract compliance across services.`;
+      explanation = `Real-world engineers, scientists, and researchers actively rely on ${concept} to create apps, devices, and systems we use daily.`;
       break;
 
     case 5:
-      questionText = `Which statement accurately characterizes the efficiency or computational bounds of "${concept}"?`;
-      correctText = `Its performance characteristics depend directly on input size and adherence to algorithmic best practices`;
+      questionText = `Which statement is TRUE regarding the core idea behind "${concept}"?`;
+      correctText = `Understanding the fundamental idea makes answering tough exam questions much easier`;
       distractors = [
-        `It permanently executes in O(1) time and space for any arbitrarily complex NP-hard problem`,
-        `Its resource usage is completely unpredictable and cannot be mathematically bounded`,
-        `It degrades exponentially even on trivial or empty inputs`
+        `"${concept}" has no relation to ${topic} or any other academic subject`,
+        `Learning "${concept}" will make you forget basic math and science rules`,
+        `There is no way to verify whether an answer in "${concept}" is correct`
       ];
-      explanation = `The operational complexity of ${concept} is governed by standard complexity analysis and input scaling.`;
+      explanation = `Once you master the fundamentals of ${concept}, solving both easy and challenging questions becomes natural and fun!`;
       break;
 
     case 6:
-      questionText = `Which of the following statements regarding "${concept}" in ${topic} is FALSE?`;
-      correctText = `"${concept}" can be safely ignored without any risk of system corruption, data loss, or behavioral flaws`;
+      questionText = `Which of the following is FALSE about "${concept}" in ${topic}?`;
+      correctText = `"${concept}" can be completely skipped because no questions are ever asked from it`;
       distractors = [
-        `"${concept}" is designed to handle common domain problems in ${subject}`,
-        `Proper understanding of "${concept}" is essential for building scalable applications`,
-        `Edge cases in "${concept}" must be explicitly tested during quality assurance`
+        `"${concept}" helps build a solid foundation for higher studies`,
+        `Practicing standard numerical or conceptual examples improves mastery`,
+        `Reviewing key formulas for "${concept}" helps in quick exam revision`
       ];
-      explanation = `Ignoring ${concept} compromises correctness, stability, and data integrity in real-world systems.`;
+      explanation = `${concept} is a vital part of the syllabus for ${topic}, so understanding it gives you an advantage in tests and assignments.`;
       break;
 
     case 7:
     default:
-      questionText = `When troubleshooting an unexpected defect related to "${concept}", which factor should be verified FIRST?`;
-      correctText = `Whether input prerequisites, boundary conditions, and state transitions conform to standard specifications`;
+      questionText = `What is the best way to revise and master "${concept}" for your exams?`;
+      correctText = `Understand the real-life analogy, write down key steps, and solve a few practice questions`;
       distractors = [
-        `Whether the hardware motherboard requires physical soldering`,
-        `Whether user account credentials contain special punctuation characters`,
-        `Whether random bit-shifting can bypass the underlying algorithm`
+        `Only cram the night before without understanding the definitions`,
+        `Ignore the feedback from practice quizzes and keep repeating errors`,
+        `Rely entirely on luck without looking at the syllabus`
       ];
-      explanation = `Verifying prerequisites, edge conditions, and state transition correctness is the primary troubleshooting protocol for ${concept}.`;
+      explanation = `Consistent practice, understanding the intuition, and reviewing key points is the proven secret to mastering ${concept}!`;
       break;
   }
 

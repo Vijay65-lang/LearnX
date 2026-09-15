@@ -280,6 +280,37 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ student, onViewCertifi
             }
           ]
         });
+      } else if (student.education_level === "Degree") {
+        await createCourse({
+          title: "Financial Accounting & Commerce Principles",
+          code: "COM201",
+          education_level: "Degree",
+          branch_stream: "B.Com / BBA",
+          description: "Curriculum designed for Degree students covering Double-Entry Bookkeeping, Financial Statements, and Profit & Loss Analysis.",
+          estimated_hours: 10,
+          modules: [
+            {
+              title: "Module 1: Principles of Double-Entry Bookkeeping",
+              description: "Journal entries, Ledger accounts, and Trial Balance.",
+              lessons: [
+                {
+                  title: "The Fundamental Accounting Equation",
+                  reading_time_min: 8,
+                  content: "# The Accounting Equation\n\nIn financial accounting, the foundational rule is:\n\n$$\\text{Assets} = \\text{Liabilities} + \\text{Owner's Equity}$$\n\nEvery financial transaction affects at least two accounts, keeping this balance strictly maintained.",
+                  assessment: {
+                    question: "Which of the following represents the fundamental accounting equation?",
+                    option_a: "Assets = Liabilities + Equity",
+                    option_b: "Assets = Liabilities - Equity",
+                    option_c: "Equity = Assets + Liabilities",
+                    option_d: "Liabilities = Assets * Equity",
+                    correct_option: "A",
+                    explanation: "Every dollar of assets possessed by a business was either financed by lenders (liabilities) or owners (equity)."
+                  }
+                }
+              ]
+            }
+          ]
+        });
       } else {
         await createCourse({
           title: "Foundations of Mathematics: Algebra & Geometry",
@@ -380,6 +411,33 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ student, onViewCertifi
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
               <span>{importingCurriculum ? "Loading Curriculum..." : `Add ${student.education_level} Curriculum`}</span>
             </button>
+          </div>
+
+          {/* Category Separation Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {[
+              { id: "All", label: "All Curriculums", icon: "🌐" },
+              { id: "School", label: "School (6-10)", icon: "🏫" },
+              { id: "Intermediate", label: "Intermediate (+2)", icon: "🧪" },
+              { id: "B.Tech", label: "B.Tech (Engineering)", icon: "💻" },
+              { id: "Degree", label: "Degree (B.Sc / B.Com)", icon: "🎓" },
+            ].map((cat) => {
+              const isActive = levelFilter === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setLevelFilter(cat.id)}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition border ${
+                    isActive
+                      ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20"
+                      : "bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-850 hover:text-white"
+                  }`}
+                >
+                  <span>{cat.icon}</span>
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Search & Filter Bar */}
