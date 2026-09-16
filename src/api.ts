@@ -12,6 +12,7 @@ import {
   Certificate,
   AIModelType,
   OllamaStatus,
+  LeaderboardEntry,
 } from "./types";
 
 const TOKEN_KEY = "learnx_auth_token";
@@ -586,37 +587,112 @@ export function generateResilientStudentResponse(
     concept = "Commercial Systems & Value Flow";
   }
 
+  // 1. Pure greeting check
+  if (
+    /^(?:hi+|hello+|hey+|good\s+(?:morning|afternoon|evening)|bro|bhai|yo|sup)$/i.test(qLower)
+  ) {
+    return {
+      doubtId: "dbt_greet_" + Date.now(),
+      explanation: `Hey there! 👋 I'm your LearnX academic mentor. What topic or study doubt would you like to explore today?`,
+      detected_subject: "General",
+      detected_topic: "Conversational Greeting",
+      detected_concept: "LearnX Assistant",
+      validation_passed: true,
+      is_conversational: true
+    };
+  }
+
+  // 2. Specialized Code Question Handler
+  if (qLower.includes("hello world") && (qLower.includes("python") || isExplicitProgramming)) {
+    return {
+      doubtId: "dbt_" + Date.now(),
+      explanation: `### 🐍 Hello World in Python
+
+The **Hello World** program is the classic starting point for learning Python. It shows you the simplest way to display text on the screen.
+
+\`\`\`python
+print("Hello, World!")
+\`\`\`
+
+---
+
+#### ⚙️ How It Works:
+1. \`print()\` is a built-in Python function that outputs whatever text or value you place inside its parentheses.
+2. The quotation marks \`"..."\` tell Python that \`Hello, World!\` is a text **string**.
+3. Python executes this line and immediately prints the text to your terminal or console.
+
+---
+
+#### 💡 Output:
+\`\`\`text
+Hello, World!
+\`\`\`
+
+#### 🚀 Next Step:
+You can pass any custom message to \`print()\`, or try printing variables and calculations like \`print(5 + 3)\`!`,
+      detected_subject: "Python Programming",
+      detected_topic: "Hello World Program in Python",
+      detected_concept: "print() Function & Syntax",
+      validation_passed: true,
+      is_conversational: false
+    };
+  }
+
+  // Dynamic explanation without rigid boilerplate
+  let structuredBody = "";
+  if (isExplicitProgramming) {
+    structuredBody = `#### 💻 Core Concept
+**${concept}** allows developers to write structured, readable, and efficient solutions in ${topic}.
+
+---
+
+#### 🔍 Practical Intuition
+Think of this like an instruction manual or workflow: each command is executed sequentially, managing inputs, state, and outputs predictably.
+
+---
+
+#### ⚙️ Key Mechanics
+- **Clarity & Syntax**: Follow clean language conventions and proper naming.
+- **Logic & Execution**: Trace variables step-by-step through execution flow.
+- **Edge Cases**: Always consider empty values, boundary limits, and unexpected inputs.`;
+  } else if (isMPC || subject.includes("Physics") || subject.includes("Chemistry") || subject.includes("Math")) {
+    structuredBody = `#### 💡 Conceptual Intuition
+**${concept}** in **${subject}** explains how physical or mathematical systems behave under specific conditions. Understanding the physical picture first helps you remember formulas effortlessly.
+
+---
+
+#### 🔬 Physical / Mathematical Reasoning
+- **Fundamental Law**: The underlying principle connects initial conditions to resulting observable behavior.
+- **Key Relationships**: Notice which variables increase or decrease together (proportionalities and ratios).
+- **Core Insights**: Connect the theory directly to observable real-world phenomena.`;
+  } else {
+    structuredBody = `#### 💡 Core Idea
+**${concept}** is a cornerstone of **${topic}**. It provides the framework needed to analyze, categorize, and solve domain-specific problems.
+
+---
+
+#### 🔍 Clear Intuition
+Think of it like building blocks: mastering this foundational concept allows you to understand more advanced topics with ease.`;
+  }
+
   const examHeader = isMPC
-    ? "🎯 Key Takeaways for Intermediate Board Exams (AP/TS/CBSE) & JEE / EAMCET"
-    : "🎯 Exam Quick Revision Points";
+    ? "🎓 Key Takeaways for Intermediate Exams (Board / JEE / EAMCET)"
+    : "🎓 Key Exam Takeaways";
 
-  const friendlyExplanation = `### 💡 Friendly Explanation: ${concept}
-
-Hey! Let's understand **${clean}** in a clear, friendly, and intuitive way tailored for **${subject}**:
-
----
-
-#### 🌟 1. In Simple Words
-At its core, **${concept}** in **${subject}** gives us a reliable way to solve problems without confusion. Instead of memorizing blindly, we focus on understanding *why* it works!
+  const friendlyExplanation = `### 📚 ${concept}
+*${subject} · ${topic}*
 
 ---
 
-#### 🍎 2. Real-Life Analogy
-Think of this like following a proven recipe or road map: when you understand each turn step-by-step, you reach the destination every single time. **${concept}** works with that exact same logic in **${topic}**!
-
----
-
-#### 🪜 3. Step-by-Step Breakdown
-1. **Identify What is Given**: Look closely at the values, given conditions, or formula parameters in the question.
-2. **Apply the Core Principle**: Follow the foundational rules and step-by-step reasoning methodically.
-3. **Verify the Answer**: Check your units, signs, and verify that the final result is physically and mathematically sound!
+${structuredBody}
 
 ---
 
 #### ${examHeader}
-- Understand the real-world intuition before memorizing formulas.
-- Connect this topic back to **${subject}** fundamentals for top exam scores.
-- Practice 1 or 2 textbook problems to build permanent exam confidence!`;
+- Build intuitive understanding first before memorizing exact definitions.
+- Focus on key terms, governing equations, and real-world relevance.
+- Try solving a related problem to lock this knowledge into permanent memory!`;
+
 
   return {
     doubtId: "dbt_local_" + Date.now(),
@@ -1524,4 +1600,25 @@ export async function getCertificateDetails(
   return request<{
     certificate: Certificate;
   }>(`/certificates/${id}`);
+}
+
+/* ============================================================
+   LEADERBOARD & PRIVACY
+   ============================================================ */
+
+export async function getLeaderboard(privacyMode?: boolean): Promise<{
+  entries: LeaderboardEntry[];
+}> {
+  const queryParam = privacyMode !== undefined ? `?privacy=${privacyMode}` : "";
+  return request<{ entries: LeaderboardEntry[] }>(`/leaderboard${queryParam}`);
+}
+
+export async function setLeaderboardPrivacy(privacy: boolean): Promise<{
+  success: boolean;
+  privacy: boolean;
+}> {
+  return request<{ success: boolean; privacy: boolean }>("/leaderboard/privacy", {
+    method: "POST",
+    body: JSON.stringify({ privacy }),
+  });
 }

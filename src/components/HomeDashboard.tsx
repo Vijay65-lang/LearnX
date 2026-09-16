@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { StudentProfile, StudentAnalytics } from "../types";
 import { getStudentData } from "../api";
+import { Leaderboard } from "./Leaderboard";
 
 interface HomeDashboardProps {
   student: StudentProfile;
@@ -246,6 +247,9 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
           </div>
         )}
       </div>
+
+      {/* Academic Mastery Leaderboard Component */}
+      <Leaderboard currentStudent={student} />
 
       {/* 4. Recommended Next Activity (Section 4 & 16) */}
       <div className="space-y-3">

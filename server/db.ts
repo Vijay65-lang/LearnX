@@ -108,6 +108,7 @@ export async function initDatabase() {
       name TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      privacy_enabled INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -353,6 +354,12 @@ export async function initDatabase() {
       FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
     );
   `);
+
+  try {
+    db.run("ALTER TABLE students ADD COLUMN privacy_enabled INTEGER DEFAULT 0;");
+  } catch {
+    // Column already exists or fallback runner handles it
+  }
 
   saveDatabase();
   return db;

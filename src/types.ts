@@ -174,6 +174,20 @@ export interface LearningActivity {
   timestamp: string;
 }
 
+export interface LeaderboardEntry {
+  rank: number;
+  student_id: string;
+  name: string;
+  education_level: string;
+  stream_branch?: string;
+  mastery_points: number;
+  topics_mastered: number;
+  total_attempts: number;
+  accuracy: number;
+  is_current_student: boolean;
+  is_anonymous: boolean;
+}
+
 export interface StudentAnalytics {
   profile: StudentProfile;
   stats: {

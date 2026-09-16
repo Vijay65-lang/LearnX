@@ -52,6 +52,7 @@ import {
   generateNextMCQ
 } from "../api";
 import { ModelSettingsModal } from "./ModelSettingsModal";
+import { PomodoroTimer } from "./PomodoroTimer";
 
 interface AskAIProps {
   student: StudentProfile;
@@ -642,6 +643,9 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
               )}
               <Settings className="w-3 h-3 text-slate-400 ml-0.5" />
             </button>
+
+            {/* Pomodoro Study Timer Widget */}
+            <PomodoroTimer />
 
             {/* Prominent New Chat Button (requested by user) */}
             <button

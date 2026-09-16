@@ -1,4 +1,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import {
+  analyzeStudentIntent,
+  formatTailoredExplanation,
+  ConversationContext,
+  IntentAnalysisResult
+} from "./intent.js";
 
 let aiClient: GoogleGenAI | null = null;
 let cloudApiBlockedOrRestricted = false;
@@ -104,6 +110,9 @@ export interface QuestionAnalysis {
   detected_topic: string;
   detected_concept: string;
   technical_terms: string[];
+  intent?: string;
+  cleaned_query?: string;
+  raw_input?: string;
 }
 
 export interface ExplanationResult {
@@ -1238,43 +1247,65 @@ Hope that makes it super clear! Let me know if you want to explore any part of t
 export async function analyzeQuestion(
   question: string,
   educationLevel?: string,
-  streamBranch?: string
+  streamBranch?: string,
+  context?: ConversationContext
 ): Promise<QuestionAnalysis> {
   const clean = question.trim();
 
-  // Check if it's a friendly greeting or casual chitchat
-  if (isGreetingOrChitchat(clean)) {
+  // 1. High-Speed Intent & Context Detection (tolerates typos, Telugu/English, strips greetings)
+  const intentResult = analyzeStudentIntent(
+    clean,
+    educationLevel || "Intermediate",
+    streamBranch || "MPC",
+    context
+  );
+
+  // If pure greeting or conversational chitchat, return immediately (<2ms)
+  if (intentResult.is_conversational) {
     return {
       is_unclear: false,
       is_conversational: true,
-      detected_subject: "General",
-      detected_topic: "Conversational",
-      detected_concept: "General Conversation",
-      technical_terms: []
+      detected_subject: intentResult.detected_subject,
+      detected_topic: intentResult.detected_topic,
+      detected_concept: intentResult.detected_concept,
+      technical_terms: [],
+      intent: intentResult.intent,
+      cleaned_query: intentResult.cleaned_query,
+      raw_input: clean
     };
   }
 
-  // Basic sanity check for gibberish
-  if (clean.length < 2 || /^[^\w\s]+$/.test(clean)) {
+  // Basic sanity check for gibberish (only if totally unparseable symbols)
+  if (clean.length < 2 || (/^[^\w\s]+$/.test(clean) && !clean.includes("?"))) {
     return {
       is_unclear: true,
       clarification_question: "Could you please specify your question in a bit more detail? (For example: 'Explain Newton's Laws of Motion' or 'What is Cramer's Rule?')",
       detected_subject: "General",
       detected_topic: "General Topic",
       detected_concept: clean,
-      technical_terms: []
+      technical_terms: [],
+      intent: "UNKNOWN",
+      cleaned_query: clean,
+      raw_input: clean
     };
   }
 
-  // Check Knowledge Base directly with level & stream filtering
-  const kbMatch = findKnowledgeBaseEntry(clean, educationLevel, streamBranch);
+  // Check Knowledge Base directly with level & stream filtering (using cleaned query or raw query)
+  const kbMatch =
+    findKnowledgeBaseEntry(intentResult.cleaned_query, educationLevel, streamBranch) ||
+    findKnowledgeBaseEntry(clean, educationLevel, streamBranch) ||
+    findKnowledgeBaseEntry(intentResult.detected_concept, educationLevel, streamBranch);
+
   if (kbMatch) {
     return {
       is_unclear: false,
       detected_subject: kbMatch.subject,
       detected_topic: kbMatch.topic,
       detected_concept: kbMatch.concept,
-      technical_terms: [kbMatch.concept, ...kbMatch.keywords.slice(0, 3)]
+      technical_terms: [kbMatch.concept, ...kbMatch.keywords.slice(0, 3)],
+      intent: intentResult.intent,
+      cleaned_query: intentResult.cleaned_query,
+      raw_input: clean
     };
   }
 
@@ -1494,6 +1525,45 @@ export async function generateValidatedExplanation(
       is_conversational: true,
       validation_notes: "Friendly greeting."
     };
+  }
+
+  // 1.5. Specialized Intent Tailoring (Code questions, comparisons, re-explanations)
+  if (
+    analysis.intent === "REEXPLANATION" ||
+    (analysis.intent === "CODE_QUESTION" && question.toLowerCase().includes("hello world")) ||
+    analysis.intent === "COMPARISON"
+  ) {
+    const tailored = formatTailoredExplanation(
+      {
+        raw_input: question,
+        cleaned_query: analysis.cleaned_query || question,
+        intent: analysis.intent as any,
+        is_conversational: false,
+        is_pure_greeting: false,
+        detected_subject: analysis.detected_subject,
+        detected_topic: analysis.detected_topic,
+        detected_concept: analysis.detected_concept,
+        comparison_targets: analysis.intent === "COMPARISON" ? [
+          analysis.detected_concept.split(/\s+vs\s+|\s+and\s+/i)[0] || "Option A",
+          analysis.detected_concept.split(/\s+vs\s+|\s+and\s+/i)[1] || "Option B"
+        ] : undefined,
+        requires_context: false,
+        context_applied: false
+      },
+      educationLevel,
+      streamBranch
+    );
+
+    if (tailored) {
+      return {
+        explanation: tailored,
+        detected_subject: analysis.detected_subject,
+        detected_topic: analysis.detected_topic,
+        detected_concept: analysis.detected_concept,
+        validation_passed: true,
+        validation_notes: `Tailored ${analysis.intent} format.`
+      };
+    }
   }
 
   // 2. Check curated Knowledge Base for high-yield, deeply verified concept matching student's grade & stream
