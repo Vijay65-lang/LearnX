@@ -589,13 +589,91 @@ export function generateResilientStudentResponse(
 
   // 1. Pure greeting check
   if (
-    /^(?:hi+|hello+|hey+|good\s+(?:morning|afternoon|evening)|bro|bhai|yo|sup)$/i.test(qLower)
+    /^(?:hi+|hello+|hey+|hii+|heyy+|heya|good\s+(?:morning|afternoon|evening|day)|namaste|vanakkam|bro|bhai|yo|sup)$/i.test(qLower)
   ) {
     return {
       doubtId: "dbt_greet_" + Date.now(),
-      explanation: `Hey there! 👋 I'm your LearnX academic mentor. What topic or study doubt would you like to explore today?`,
+      explanation: `Hey there! 👋 Welcome to **LearnX**!
+
+I'm your personal AI study buddy, built with the natural conversation style of assistants like ChatGPT and Claude, but fine-tuned specifically for your academic curriculum.
+
+You can ask me anything—from clarifying tricky math, physics, or chemistry problems, to writing code, breaking down engineering concepts, or getting effective exam preparation tips.
+
+What would you like to explore today? Just ask away!`,
       detected_subject: "General",
       detected_topic: "Conversational Greeting",
+      detected_concept: "LearnX Assistant",
+      validation_passed: true,
+      is_conversational: true
+    };
+  }
+
+  // 1.5 Capability Inquiry (e.g. 'what can u do', 'how can you help')
+  if (
+    /^(?:what\s*(?:can|do|will)\s*(?:you|u)\s*(?:do|help(?:\s*with)?)|what\s*are\s*(?:your|ur)\s*(?:capabilities|features|skills|functions)|how\s*can\s*(?:you|u)\s*help(?:\s*me)?|what\s*(?:can|does)\s*(?:this|learnx)(?:\s*app)?\s*do|tell\s*me\s*what\s*(?:you|u)\s*can\s*do|how\s*(?:do\s*i|to)\s*use\s*(?:this|learnx|the\s*app)|what\s*all\s*can\s*(?:you|u)\s*do|features\s*of\s*(?:this\s*app|learnx)|help\s*me(?:\s*please)?|can\s*(?:you|u)\s*help(?:\s*me)?|what\s*help\s*can\s*(?:you|u)\s*give)[\s!.,?]*$/i.test(qLower)
+  ) {
+    return {
+      doubtId: "dbt_cap_" + Date.now(),
+      explanation: `Hey! 👋 I'm **LearnX AI**, your personal study companion and academic mentor.
+
+Here is what I can do for you:
+
+- 💡 **Deep Concept Explanations**: Ask me any doubt from science, mathematics, computer science, engineering, or commerce. I break topics down using simple plain-English analogies, formal definitions, and step-by-step reasoning.
+- 💻 **Code Generation & Debugging**: I can write, explain, and debug code in Python, C++, Java, JavaScript, and SQL with detailed line-by-line walkthroughs.
+- 📐 **Step-by-Step Problem Walkthroughs**: Need help solving a numerical, deriving an equation, or balancing a chemical reaction? I walk through each step logically without skipping steps.
+- 🎯 **Board & Competitive Exam Prep**: Tailored insights and high-weightage formulas for Intermediate Board Exams (AP/TS/CBSE), JEE Main, EAMCET, NEET, and university semester papers.
+- ⚡ **Auto-Generated Practice Quizzes**: After studying a concept, I generate targeted MCQs with detailed explanations so you can test your retention right away.
+- ⏳ **Focus & Study Tools**: Use the integrated 25/5 Pomodoro timer and track your verified rank on the Academic Mastery Leaderboard!
+
+What would you like to dive into today? Ask me any doubt or topic!`,
+      detected_subject: "LearnX Academic Assistant",
+      detected_topic: "Assistant Capabilities & Learning Tools",
+      detected_concept: "LearnX Capabilities & Features",
+      validation_passed: true,
+      is_conversational: true
+    };
+  }
+
+  // 1.6 Model & AI Identity Inquiry (e.g. 'what is the model name of ur', 'which model are you')
+  if (
+    /^(?:what\s*(?:is|are)\s*(?:the\s*)?(?:ai\s*)?model\s*name\s*(?:of\s*(?:ur|your|this\s*ai)|of\s*u|of\s*you)|what\s*model\s*(?:are\s*(?:you|u)|is\s*this|do\s*(?:you|u)\s*use)|which\s*model\s*(?:are\s*(?:you|u)|is\s*this|do\s*(?:you|u)\s*use)|what\s*is\s*(?:your|ur)\s*model(?:\s*name)?|what\s*is\s*(?:the\s*)?name\s*of\s*(?:your|ur)\s*model|are\s*(?:you|u)\s*(?:gemini|chatgpt|claude|deepseek|gpt|openai|llama|an\s*ai|a\s*robot|a\s*bot)|who\s*(?:are\s*(?:you|u)|created\s*(?:you|u)|made\s*(?:you|u)|built\s*(?:you|u))|what\s*(?:are\s*(?:you|u)|is\s*learnx(?:\s*ai)?)|introduce\s*(?:yourself|urself)|tell\s*me\s*about\s*(?:yourself|urself)|who\s*r\s*u|what\s*r\s*u)[\s!.,?]*$/i.test(qLower)
+  ) {
+    return {
+      doubtId: "dbt_model_" + Date.now(),
+      explanation: `I am **LearnX AI**, an intelligent academic mentor engineered specifically for students!
+
+### 🤖 Architecture & Capabilities:
+- **Conversation & Reasoning Engine**: Designed with the natural fluency, conversational clarity, and deep reasoning of top AI assistants (ChatGPT, Gemini, and Claude).
+- **Foundation Intelligence**: Integrates Google's **Gemini** multimodal models (Gemini 2.5 & 3.8 Flash) for fast, context-aware student doubt resolution.
+- **Offline Local Model Support**: Seamlessly connects to local **Ollama** runtimes, enabling you to run open-weight models like **Qwen 2.5**, **DeepSeek R1**, or **Meta Llama 3.2** completely offline.
+- **Curriculum-Aligned Academic Knowledge Base**: Calibrated for **${student?.education_level || "Intermediate"}** (${student?.inter_stream || "MPC"}) to provide verified, syllabus-accurate answers for Board exams and entrance tests.
+
+How can I help you with your studies right now?`,
+      detected_subject: "LearnX AI System Architecture",
+      detected_topic: "AI Foundation Models & Learning Engine",
+      detected_concept: "LearnX AI Model Architecture",
+      validation_passed: true,
+      is_conversational: true
+    };
+  }
+
+  // 1.7 Casual chitchat & gratitude
+  if (
+    /^(?:how\s*(?:are|r)\s*(?:you|u)|how\s*do\s*(?:you|u)\s*do|how's\s*it\s*going|hows\s*it\s*going|thank\s*(?:you|u)|thanks(?:\s*a\s*lot)?|thx|thanku|nice|awesome|cool|great|super|good\s*job|well\s*done|ok|okay|alright|bye|goodbye|see\s*(?:you|u)|cya|gn|good\s*night)[\s!.,?]*$/i.test(qLower)
+  ) {
+    let reply = `Hey! I'm here and ready to help you learn. Whether you're working through homework, preparing for board exams, JEE/EAMCET, or university papers, ask me any question!`;
+    if (qLower.includes("thank")) {
+      reply = `You're very welcome! 😊 I'm always here whenever you have another doubt or want to review a chapter. Keep up the awesome learning momentum! What shall we tackle next?`;
+    } else if (qLower.includes("how are") || qLower.includes("how r u") || qLower.includes("how do you do")) {
+      reply = `I'm doing great, thank you for asking! 🚀 Ready to help you tackle any academic doubt, solve problems, or prep for upcoming exams. What's on your study list today?`;
+    } else if (qLower.includes("bye") || qLower.includes("see you") || qLower.includes("good night")) {
+      reply = `Goodbye! 👋 Best of luck with your study session. Take regular breaks and come back anytime you need help!`;
+    }
+    return {
+      doubtId: "dbt_chat_" + Date.now(),
+      explanation: reply,
+      detected_subject: "General",
+      detected_topic: "Conversational",
       detected_concept: "LearnX Assistant",
       validation_passed: true,
       is_conversational: true
@@ -1606,11 +1684,15 @@ export async function getCertificateDetails(
    LEADERBOARD & PRIVACY
    ============================================================ */
 
-export async function getLeaderboard(privacyMode?: boolean): Promise<{
+export async function getLeaderboard(educationLevel?: string, privacyMode?: boolean): Promise<{
   entries: LeaderboardEntry[];
+  education_level?: string;
 }> {
-  const queryParam = privacyMode !== undefined ? `?privacy=${privacyMode}` : "";
-  return request<{ entries: LeaderboardEntry[] }>(`/leaderboard${queryParam}`);
+  const params = new URLSearchParams();
+  if (educationLevel) params.append("education_level", educationLevel);
+  if (privacyMode !== undefined) params.append("privacy", String(privacyMode));
+  const queryString = params.toString() ? `?${params.toString()}` : "";
+  return request<{ entries: LeaderboardEntry[]; education_level?: string }>(`/leaderboard${queryString}`);
 }
 
 export async function setLeaderboardPrivacy(privacy: boolean): Promise<{

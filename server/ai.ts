@@ -2,6 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import {
   analyzeStudentIntent,
   formatTailoredExplanation,
+  isConversationalQuery,
   ConversationContext,
   IntentAnalysisResult
 } from "./intent.js";
@@ -898,47 +899,17 @@ function findKnowledgeBaseEntry(
 // CONVERSATIONAL & CHATGPT-STYLE SYNTHESIZER FOR ANY TOPIC
 // ============================================================================
 
-const GREETING_KEYWORDS = [
-  "hi", "hello", "hey", "hola", "sup", "good morning", "good evening", "good afternoon",
-  "who are you", "what can you do", "introduce yourself", "how are you", "what is learnx",
-  "help", "help me", "thanks", "thank you", "bye", "goodbye"
-];
-
 function isGreetingOrChitchat(query: string): boolean {
-  const clean = query.trim().toLowerCase().replace(/[!?.,]+$/, "");
-  if (clean.length <= 4 && ["hi", "hey", "hello", "yo", "sup", "help"].includes(clean)) return true;
-  return GREETING_KEYWORDS.some((kw) => clean === kw || clean.startsWith(kw + " ") || clean.endsWith(" " + kw));
+  return isConversationalQuery(query);
 }
 
-function handleConversationalResponse(query: string): string {
-  const clean = query.trim().toLowerCase();
-  if (clean.includes("who are you") || clean.includes("what can you do") || clean.includes("introduce")) {
-    return `Hey there! 👋 I'm **LearnX AI**, your friendly, intelligent personal tutor and study companion!
-
-I'm designed to help you understand tough concepts simply and clearly, without robotic jargon. Here is how I can help:
-
-- 💡 **Explain any study concept** in plain English with easy-to-grasp analogies (Computer Science, Math, Physics, DBMS, OS, Biology, and more).
-- 💻 **Code & Walkthroughs**: Write, explain, or debug code in Python, C++, Java, JavaScript, and SQL.
-- 🎯 **Exam & Interview Prep**: Break down high-yield questions, theoretical formulas, and common traps.
-- 📝 **Study Strategies**: Techniques like Active Recall, the Feynman Technique, and Pomodoro to study smarter without burnout.
-- ⚡ **Instant Quizzes**: Test your understanding with auto-generated practice questions.
-
-What would you like to explore today? Ask me any doubt or drop in a topic!`;
-  }
-
-  if (clean.includes("thank") || clean.includes("thanks")) {
-    return `You're very welcome! 😊 I'm always here whenever you have another question or want to review a topic. Happy learning and keep up the great work! What shall we tackle next?`;
-  }
-
-  if (clean.includes("how are you")) {
-    return `I'm doing fantastic, thank you for asking! 🚀 Ready to help you tackle any study doubts, solve problems, or prepare for exams. What's on your mind today?`;
-  }
-
-  return `Hey there! 👋 Welcome to **LearnX**! 
-
-I'm your personal study buddy. You can ask me **anything**—from clarifying a tricky engineering or science concept, to writing code, solving math, or giving you effective study tips.
-
-What topic would you like to explore today? Just ask away!`;
+function handleConversationalResponse(
+  query: string,
+  educationLevel: string = "Intermediate",
+  streamBranch: string = "MPC"
+): string {
+  const intent = analyzeStudentIntent(query, educationLevel, streamBranch);
+  return formatTailoredExplanation(intent, educationLevel, streamBranch);
 }
 
 // Friendly Dynamic Synthesizer for ANY concept across all domains
@@ -951,6 +922,19 @@ function synthesizeFriendlyExplanation(
   streamBranch?: string
 ): ExplanationResult {
   const qLower = question.toLowerCase();
+
+  // 0. Fast conversational or identity query handling
+  if (isConversationalQuery(question) || isConversationalQuery(concept) || isGreetingOrChitchat(question)) {
+    return {
+      explanation: handleConversationalResponse(question, educationLevel, streamBranch),
+      detected_subject: "LearnX Academic Assistant",
+      detected_topic: "Conversational & Assistance",
+      detected_concept: "LearnX Assistant",
+      validation_passed: true,
+      is_conversational: true,
+      validation_notes: "Handled conversational inquiry."
+    };
+  }
 
   // 1. Specialized friendly handling for Study Skills & Productivity
   if (qLower.includes("study") && (qLower.includes("how") || qLower.includes("tip") || qLower.includes("stress") || qLower.includes("procrastinat") || qLower.includes("focus"))) {
@@ -1517,13 +1501,13 @@ export async function generateValidatedExplanation(
   // 1. If it is a friendly greeting or conversational inquiry
   if (analysis.is_conversational || isGreetingOrChitchat(question)) {
     return {
-      explanation: handleConversationalResponse(question),
-      detected_subject: "General",
-      detected_topic: "Conversational",
-      detected_concept: "LearnX Assistant",
+      explanation: handleConversationalResponse(question, educationLevel, streamBranch),
+      detected_subject: analysis.detected_subject || "LearnX Academic Assistant",
+      detected_topic: analysis.detected_topic || "Conversational",
+      detected_concept: analysis.detected_concept || "LearnX Assistant",
       validation_passed: true,
       is_conversational: true,
-      validation_notes: "Friendly greeting."
+      validation_notes: "Friendly conversational response."
     };
   }
 
@@ -1895,9 +1879,9 @@ export async function generateValidatedMCQ(
     difficulty || (qNum <= 2 ? "Medium" : qNum <= 4 ? "Hard" : "Medium");
 
   // 1. Check Knowledge Base first across all models with grade and stream filtering
-  const kbEntry = findKnowledgeBaseEntry(concept, educationLevel, streamBranch) ||
-    findKnowledgeBaseEntry(topic, educationLevel, streamBranch) ||
-    findKnowledgeBaseEntry(subject, educationLevel, streamBranch);
+  const kbEntry =
+    findKnowledgeBaseEntry(concept, educationLevel, streamBranch) ||
+    findKnowledgeBaseEntry(topic, educationLevel, streamBranch);
   if (kbEntry) {
     const allKbQuestions = [kbEntry.mcq, ...(kbEntry.mcqs || [])];
     // Find an unused question that hasn't appeared in previousQuestions

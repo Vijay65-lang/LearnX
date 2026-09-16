@@ -6,6 +6,8 @@
 
 export type StudentIntent =
   | "GREETING"
+  | "CAPABILITY_INQUIRY"
+  | "MODEL_IDENTITY"
   | "CASUAL_CONVERSATION"
   | "ACADEMIC_QUESTION"
   | "CODE_QUESTION"
@@ -43,19 +45,27 @@ export interface IntentAnalysisResult {
   context_applied: boolean;
 }
 
-// 1. Pure greeting patterns
+// 1. Pure greeting patterns (tolerates u, r u, typos, prefixes)
 const PURE_GREETING_REGEX =
-  /^(?:hi+|hello+|hey+|hii+|heyy+|good\s*(?:morning|afternoon|evening|day)|namaste|vanakkam|yo+|sup|hola|greetings)(?:\s+learnx|\s+there|\s+sir|\s+bro|\s+ai)?[\s!.,?]*$/i;
+  /^(?:hi+|hello+|hey+|hii+|heyy+|heya|good\s*(?:morning|afternoon|evening|day)|namaste|namaskar|vanakkam|yo+|sup|hola|greetings)(?:\s+learnx|\s+there|\s+sir|\s+bro|\s+bhai|\s+ai|\s+buddy)?[\s!.,?]*$/i;
 
-// 2. Casual chitchat patterns
+// 2. Capabilities and Help inquiries (e.g., 'what can u do', 'what can you do', 'what are your capabilities')
+const CAPABILITY_QUERY_REGEX =
+  /^(?:what\s*(?:can|do|will)\s*(?:you|u)\s*(?:do|help(?:\s*with)?)|what\s*are\s*(?:your|ur)\s*(?:capabilities|features|skills|functions)|how\s*can\s*(?:you|u)\s*help(?:\s*me)?|what\s*(?:can|does)\s*(?:this|learnx)(?:\s*app)?\s*do|tell\s*me\s*what\s*(?:you|u)\s*can\s*do|how\s*(?:do\s*i|to)\s*use\s*(?:this|learnx|the\s*app)|what\s*all\s*can\s*(?:you|u)\s*do|features\s*of\s*(?:this\s*app|learnx)|help\s*me(?:\s*please)?|can\s*(?:you|u)\s*help(?:\s*me)?|what\s*help\s*can\s*(?:you|u)\s*give)[\s!.,?]*$/i;
+
+// 3. Model & AI Identity inquiries (e.g., 'what is the model name of ur', 'which model are you using', 'who created you')
+const MODEL_IDENTITY_REGEX =
+  /^(?:what\s*(?:is|are)\s*(?:the\s*)?(?:ai\s*)?model\s*name\s*(?:of\s*(?:ur|your|this\s*ai)|of\s*u|of\s*you)|what\s*model\s*(?:are\s*(?:you|u)|is\s*this|do\s*(?:you|u)\s*use)|which\s*model\s*(?:are\s*(?:you|u)|is\s*this|do\s*(?:you|u)\s*use)|what\s*is\s*(?:your|ur)\s*model(?:\s*name)?|what\s*is\s*(?:the\s*)?name\s*of\s*(?:your|ur)\s*model|are\s*(?:you|u)\s*(?:gemini|chatgpt|claude|deepseek|gpt|openai|llama|an\s*ai|a\s*robot|a\s*bot)|who\s*(?:are\s*(?:you|u)|created\s*(?:you|u)|made\s*(?:you|u)|built\s*(?:you|u))|what\s*(?:are\s*(?:you|u)|is\s*learnx(?:\s*ai)?)|introduce\s*(?:yourself|urself)|tell\s*me\s*about\s*(?:yourself|urself)|who\s*r\s*u|what\s*r\s*u)[\s!.,?]*$/i;
+
+// 4. Casual chitchat & pleasantries
 const CASUAL_CHITCHAT_REGEX =
-  /^(?:how\s*are\s*you|who\s*are\s*you|what\s*(?:can\s*you\s*do|are\s*you)|introduce\s*yourself|thank\s*you|thanks|thx|bye|goodbye|see\s*you|nice\s*to\s*meet\s*you|what\s*is\s*your\s*name)[\s!.,?]*$/i;
+  /^(?:how\s*(?:are|r)\s*(?:you|u)|how\s*do\s*(?:you|u)\s*do|how's\s*it\s*going|hows\s*it\s*going|thank\s*(?:you|u)|thanks(?:\s*a\s*lot)?|thx|thanku|nice|awesome|cool|great|super|good\s*job|well\s*done|ok|okay|alright|bye|goodbye|see\s*(?:you|u)|cya|gn|good\s*night)[\s!.,?]*$/i;
 
-// 3. Leading greeting prefixes to strip cleanly from academic queries
+// 5. Leading greeting prefixes to strip cleanly from academic queries
 const LEADING_GREETING_PREFIX_REGEX =
   /^(?:hi+|hello+|hey+|hii+|heyy+|good\s*(?:morning|afternoon|evening)|bro+|bhai|yo+|sup|namaste)\b[\s,:;—\-]*((?:can\s*(?:u|you)\s*(?:please\s*)?(?:explain|tell\s*me|show\s*me|give\s*me)?|pls\s*explain|please\s*explain|tell\s*me\s*about|explain\s*(?:me\s*about\s*the\s*topic\s*of|to\s*me\s*about|about)?|what\s*is|what\s*are)?[\s,:;—\-]*)/i;
 
-// 4. Conversational request wrappers to normalize
+// 6. Conversational request wrappers to normalize
 const REQUEST_WRAPPER_PREFIX_REGEX =
   /^(?:can\s*(?:u|you)\s*(?:please\s*)?(?:explain|tell\s*me\s*about|show\s*me|teach\s*me|give\s*me)|please\s*(?:explain|tell\s*me\s*about|teach\s*me)|pls\s*(?:explain|tell\s*me)|tell\s*me\s*(?:about|everything\s*about)|i\s*want\s*to\s*(?:know|learn|understand)(?:\s*about)?|explain\s*(?:me\s*about\s*the\s*topic\s*of|to\s*me\s*about|about)?|what\s*do\s*you\s*mean\s*by|what\s*is\s*meant\s*by|give\s*me\s*an\s*overview\s*of)\s+/i;
 
@@ -87,7 +97,39 @@ export function analyzeStudentIntent(
     };
   }
 
-  // B. CASUAL CHITCHAT
+  // B. CAPABILITY INQUIRY (e.g., 'what can u do', 'how can you help')
+  if (CAPABILITY_QUERY_REGEX.test(lower)) {
+    return {
+      raw_input: trimmed,
+      cleaned_query: trimmed,
+      intent: "CAPABILITY_INQUIRY",
+      is_conversational: true,
+      is_pure_greeting: false,
+      detected_subject: "LearnX Academic Assistant",
+      detected_topic: "Assistant Capabilities & Learning Tools",
+      detected_concept: "LearnX Capabilities & Features",
+      requires_context: false,
+      context_applied: false
+    };
+  }
+
+  // C. MODEL & AI IDENTITY (e.g., 'what is the model name of ur', 'which model are you')
+  if (MODEL_IDENTITY_REGEX.test(lower)) {
+    return {
+      raw_input: trimmed,
+      cleaned_query: trimmed,
+      intent: "MODEL_IDENTITY",
+      is_conversational: true,
+      is_pure_greeting: false,
+      detected_subject: "LearnX AI System Architecture",
+      detected_topic: "AI Foundation Models & Learning Engine",
+      detected_concept: "LearnX AI Model Architecture",
+      requires_context: false,
+      context_applied: false
+    };
+  }
+
+  // D. CASUAL CHITCHAT
   if (CASUAL_CHITCHAT_REGEX.test(lower)) {
     return {
       raw_input: trimmed,
@@ -483,12 +525,57 @@ export function formatTailoredExplanation(
 
   // A. PURE GREETING
   if (intent === "GREETING") {
-    return `Hello! 👋 I'm your LearnX academic mentor. What topic or study doubt would you like to explore today?`;
+    return `Hey there! 👋 Welcome to **LearnX**!
+
+I'm your personal AI study buddy, built with the natural conversation style of assistants like ChatGPT and Claude, but fine-tuned specifically for your academic curriculum.
+
+You can ask me anything—from clarifying tricky math, physics, or chemistry problems, to writing code, breaking down engineering concepts, or getting effective exam preparation tips.
+
+What would you like to explore today? Just ask away!`;
   }
 
-  // B. CASUAL CHITCHAT
+  // B. CAPABILITY INQUIRY (e.g. 'what can u do', 'how can you help me')
+  if (intent === "CAPABILITY_INQUIRY") {
+    return `Hey! 👋 I'm **LearnX AI**, your personal study companion and academic mentor.
+
+Here is what I can do for you:
+
+- 💡 **Deep Concept Explanations**: Ask me any doubt from science, mathematics, computer science, engineering, or commerce. I break topics down using simple plain-English analogies, formal definitions, and step-by-step reasoning.
+- 💻 **Code Generation & Debugging**: I can write, explain, and debug code in Python, C++, Java, JavaScript, and SQL with detailed line-by-line walkthroughs.
+- 📐 **Step-by-Step Problem Walkthroughs**: Need help solving a numerical, deriving an equation, or balancing a chemical reaction? I walk through each step logically without skipping steps.
+- 🎯 **Board & Competitive Exam Prep**: Tailored insights and high-weightage formulas for Intermediate Board Exams (AP/TS/CBSE), JEE Main, EAMCET, NEET, and university semester papers.
+- ⚡ **Auto-Generated Practice Quizzes**: After studying a concept, I generate targeted MCQs with detailed explanations so you can test your retention right away.
+- ⏳ **Focus & Study Tools**: Use the integrated 25/5 Pomodoro timer and track your verified rank on the Academic Mastery Leaderboard!
+
+What would you like to dive into today? Ask me any doubt or topic!`;
+  }
+
+  // C. MODEL & AI IDENTITY (e.g. 'what is the model name of ur', 'which model are you using')
+  if (intent === "MODEL_IDENTITY") {
+    return `I am **LearnX AI**, an intelligent academic mentor engineered specifically for students!
+
+### 🤖 Architecture & Capabilities:
+- **Conversation & Reasoning Engine**: Designed with the natural fluency, conversational clarity, and deep reasoning of top AI assistants (ChatGPT, Gemini, and Claude).
+- **Foundation Intelligence**: Integrates Google's **Gemini** multimodal models (Gemini 2.5 & 3.8 Flash) for fast, context-aware student doubt resolution.
+- **Offline Local Model Support**: Seamlessly connects to local **Ollama** runtimes, enabling you to run open-weight models like **Qwen 2.5**, **DeepSeek R1**, or **Meta Llama 3.2** completely offline.
+- **Curriculum-Aligned Academic Knowledge Base**: Calibrated for **${educationLevel || "Intermediate"}** (${streamBranch || "MPC"}) to provide verified, syllabus-accurate answers for Board exams and entrance tests.
+
+How can I help you with your studies right now?`;
+  }
+
+  // D. CASUAL CHITCHAT
   if (intent === "CASUAL_CONVERSATION") {
-    return `Hey! I'm doing great and ready to help you learn. Whether you're preparing for board exams, JEE/EAMCET, or university tests, ask me any doubt or concept!`;
+    const qLower = cleaned_query.toLowerCase();
+    if (qLower.includes("thank")) {
+      return `You're very welcome! 😊 I'm always here whenever you have another doubt or want to review a chapter. Keep up the awesome learning momentum! What shall we tackle next?`;
+    }
+    if (qLower.includes("how are") || qLower.includes("how r u") || qLower.includes("how do you do")) {
+      return `I'm doing great, thank you for asking! 🚀 Ready to help you tackle any academic doubt, solve problems, or prep for upcoming exams. What's on your study list today?`;
+    }
+    if (qLower.includes("bye") || qLower.includes("see you") || qLower.includes("good night")) {
+      return `Goodbye! 👋 Best of luck with your study session. Take regular breaks and come back anytime you need help!`;
+    }
+    return `Hey! I'm here and ready to help you learn. Whether you're working through homework, preparing for board exams, JEE/EAMCET, or university papers, ask me any question!`;
   }
 
   // C. CODE QUESTION
@@ -667,3 +754,18 @@ Think of this like a well-designed assembly line or chain reaction: when the sta
 - Pay attention to units, signs, and boundary conditions.
 - Practice solving at least one textbook problem to cement this concept into permanent memory!`;
 }
+
+/**
+ * Fast helper to test if a raw string is a greeting, chitchat, capability, or model inquiry
+ */
+export function isConversationalQuery(query: string): boolean {
+  const clean = (query || "").trim().toLowerCase();
+  if (!clean || clean.length < 2) return false;
+  return (
+    PURE_GREETING_REGEX.test(clean) ||
+    CAPABILITY_QUERY_REGEX.test(clean) ||
+    MODEL_IDENTITY_REGEX.test(clean) ||
+    CASUAL_CHITCHAT_REGEX.test(clean)
+  );
+}
+
