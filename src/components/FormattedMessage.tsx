@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Play, Eye, EyeOff } from "lucide-react";
 
 interface FormattedMessageProps {
   content: string;
@@ -23,10 +23,16 @@ export const FormattedMessage: React.FC<FormattedMessageProps> = ({ content }) =
 
 const CodeBlock: React.FC<{ raw: string }> = ({ raw }) => {
   const [copied, setCopied] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const lines = raw.slice(3, -3).trim().split("\n");
   const firstLine = lines[0].trim();
   const language = /^[a-zA-Z0-9_-]+$/.test(firstLine) ? firstLine : "";
   const code = (language ? lines.slice(1) : lines).join("\n");
+
+  const isHtml =
+    language.toLowerCase() === "html" ||
+    code.includes("<!DOCTYPE html>") ||
+    code.includes("<html");
 
   const handleCopy = () => {
     navigator.clipboard.writeText(code);
@@ -40,27 +46,74 @@ const CodeBlock: React.FC<{ raw: string }> = ({ raw }) => {
         <span className="text-[11px] font-semibold tracking-wide uppercase text-slate-300">
           {language || "code"}
         </span>
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="flex items-center gap-1 text-[11px] hover:text-white transition-colors py-0.5 px-2 rounded hover:bg-slate-800"
-        >
-          {copied ? (
-            <>
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-emerald-400">Copied</span>
-            </>
-          ) : (
-            <>
-              <Copy className="w-3.5 h-3.5" />
-              <span>Copy</span>
-            </>
+        <div className="flex items-center gap-1.5">
+          {isHtml && (
+            <button
+              type="button"
+              onClick={() => setShowPreview(!showPreview)}
+              className={`flex items-center gap-1 text-[11px] transition-colors py-0.5 px-2 rounded font-medium ${
+                showPreview
+                  ? "bg-indigo-600/30 text-indigo-300 hover:bg-indigo-600/50"
+                  : "hover:text-white hover:bg-slate-800 text-sky-400"
+              }`}
+              title={showPreview ? "Hide Live Preview" : "Run and Preview HTML live"}
+            >
+              {showPreview ? (
+                <>
+                  <EyeOff className="w-3.5 h-3.5" />
+                  <span>Hide Preview</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>Live Preview</span>
+                </>
+              )}
+            </button>
           )}
-        </button>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="flex items-center gap-1 text-[11px] hover:text-white transition-colors py-0.5 px-2 rounded hover:bg-slate-800"
+          >
+            {copied ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-emerald-400">Copied</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                <span>Copy</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
+
       <pre className="p-3.5 overflow-x-auto text-emerald-300 leading-relaxed font-mono selection:bg-indigo-900">
         <code>{code}</code>
       </pre>
+
+      {isHtml && showPreview && (
+        <div className="border-t border-slate-800 bg-slate-900/60 p-2.5">
+          <div className="flex items-center justify-between pb-2 px-1 text-[11px] text-slate-400 font-sans">
+            <span className="flex items-center gap-1.5 font-medium text-slate-300">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              Live Interactive Sandbox
+            </span>
+            <span className="text-[10px] text-slate-400">Instant Preview</span>
+          </div>
+          <div className="w-full rounded-lg overflow-hidden border border-slate-700/80 bg-white shadow-2xl">
+            <iframe
+              title="HTML Code Live Preview"
+              srcDoc={code}
+              sandbox="allow-scripts allow-modals"
+              className="w-full h-80 sm:h-96 border-0 bg-white"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

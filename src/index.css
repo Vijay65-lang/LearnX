@@ -1,1 +1,50 @@
 @import "tailwindcss";
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #020617;
+    color: #f8fafc;
+  }
+}
+
+/* Mobile Safe Areas */
+.safe-area-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+}
+
+/* Clean Professional Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.35);
+}
+
+/* Study Comfort Classes */
+.comfort-size-large {
+  font-size: 1.05rem;
+}
+.comfort-size-xl {
+  font-size: 1.15rem;
+}
+.comfort-theme-warm {
+  background-color: #0c0a09 !important;
+}
+.comfort-theme-black {
+  background-color: #000000 !important;
+}
+

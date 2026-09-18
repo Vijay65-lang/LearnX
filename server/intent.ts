@@ -4,11 +4,14 @@
  * multi-turn context following, and intent-tailored response structuring.
  */
 
+import { getCodeTemplate, CodeTemplateResult } from "./code_templates.js";
+
 export type StudentIntent =
   | "GREETING"
   | "CAPABILITY_INQUIRY"
   | "MODEL_IDENTITY"
   | "CASUAL_CONVERSATION"
+  | "CODE_GENERATION"
   | "ACADEMIC_QUESTION"
   | "CODE_QUESTION"
   | "CONCEPT_EXPLANATION"
@@ -36,6 +39,8 @@ export interface IntentAnalysisResult {
   intent: StudentIntent;
   is_conversational: boolean;
   is_pure_greeting: boolean;
+  is_code_generation?: boolean;
+  code_generation_template?: string;
   detected_subject: string;
   detected_topic: string;
   detected_concept: string;
@@ -197,7 +202,27 @@ export function analyzeStudentIntent(
     };
   }
 
-  // E. COMPARISON DETECTION
+  // E. CODE GENERATION DETECTION (Dedicated intent for writing/building code)
+  const codeGen = detectCodeGeneration(coreLower, trimmed);
+  if (codeGen) {
+    return {
+      raw_input: trimmed,
+      cleaned_query: coreQuery,
+      intent: "CODE_GENERATION",
+      is_conversational: false,
+      is_pure_greeting: false,
+      is_code_generation: true,
+      code_generation_template: codeGen.templateKey,
+      detected_subject: codeGen.subject,
+      detected_topic: codeGen.topic,
+      detected_concept: codeGen.concept,
+      programming_language: codeGen.technology,
+      requires_context: false,
+      context_applied: false
+    };
+  }
+
+  // F. COMPARISON DETECTION
   const comparisonMatch =
     coreLower.match(/(?:difference\s*between|diff\s*between|compare)\s+([a-zA-Z0-9\s._+#-]+)\s+(?:and|vs\.?|with)\s+([a-zA-Z0-9\s._+#-]+)/i) ||
     coreLower.match(/([a-zA-Z0-9._+#-]+)\s+(?:vs\.?|versus)\s+([a-zA-Z0-9._+#-]+)/i);
@@ -241,6 +266,170 @@ export function analyzeStudentIntent(
     comparison_targets: compTargets,
     requires_context: false,
     context_applied: false
+  };
+}
+
+/**
+ * Dedicated Code Generation Detector
+ * Accurately parses student requests for writing programs, games, calculators, websites, and scripts
+ */
+export function detectCodeGeneration(
+  coreLower: string,
+  rawInput: string
+): {
+  isCodeGen: boolean;
+  task: string;
+  technology: string;
+  isSingleFile: boolean;
+  subject: string;
+  topic: string;
+  concept: string;
+  templateKey: string;
+} | null {
+  const fullText = (coreLower + " " + rawInput.toLowerCase()).trim();
+
+  // Pattern checks:
+  // "Write a html code for, a tic tac toe game in one single html code"
+  // "write HTML code for a tic tac toe game"
+  // "create a calculator in JavaScript"
+  // "make a Python program to sort an array"
+  // "write a single HTML file portfolio website"
+  // "give me Java code for binary search"
+  // "create a Python program for student marks"
+  // "build a login page using HTML CSS JavaScript"
+  // "write code" / "give me code" / "create code" / "make a program" / "build" / "generate HTML"
+  const isCodeGenCommand =
+    /\b(?:write|create|make|build|give\s*me|generate|provide|develop|implement|code)\s+(?:me\s+)?(?:a\s+|an\s+|the\s+)?(?:complete\s+|working\s+|single\s*file\s*|simple\s*|responsive\s*)?(?:html|python|javascript|js|java|c\+\+|c#|c|ruby|go|rust|php|sql|react|node|web|single\s*html)?\s*(?:code|program|script|file|page|app|application|game|calculator|website|form)\b/i.test(fullText) ||
+    /\b(?:html\s*code|python\s*(?:code|program)|javascript\s*(?:code|program)|js\s*code|java\s*(?:code|program)|c\+\+\s*(?:code|program)|c\s*program)\s+(?:for|to|that)\b/i.test(fullText) ||
+    /\b(?:code|program)\s+(?:for|to)\s+(?:a\s+|an\s+)?(?:tic\s*tac\s*toe|calculator|portfolio|login\s*page|todo|game|sort|search|crud|marks|student)\b/i.test(fullText) ||
+    /\b(?:single\s*html\s*(?:code|file)|in\s*(?:one|a)\s*single\s*html)\b/i.test(fullText);
+
+  if (!isCodeGenCommand) {
+    return null;
+  }
+
+  const isSingleFile =
+    /\b(?:single\s*html|one\s*(?:single\s*)?html|single\s*file|one\s*file|all\s*in\s*one\s*file)\b/i.test(fullText);
+
+  if (/\b(?:tic\s*tac\s*toe|tictactoe)\b/i.test(fullText)) {
+    return {
+      isCodeGen: true,
+      task: "Tic Tac Toe Game",
+      technology: isSingleFile ? "HTML, CSS & JavaScript (Single File)" : "HTML / JavaScript",
+      isSingleFile: true,
+      subject: "Web Development (HTML / CSS / JavaScript)",
+      topic: "Interactive Tic Tac Toe Game (Single File HTML)",
+      concept: "Tic Tac Toe Single-File Application",
+      templateKey: "tic_tac_toe"
+    };
+  }
+
+  if (/\b(?:calculator)\b/i.test(fullText)) {
+    return {
+      isCodeGen: true,
+      task: "Interactive Calculator",
+      technology: "HTML, CSS & JavaScript (Single File)",
+      isSingleFile: true,
+      subject: "Frontend Web Development",
+      topic: "Interactive Calculator Web Application",
+      concept: "Calculator Logic & DOM Manipulation",
+      templateKey: "calculator"
+    };
+  }
+
+  if (/\b(?:sort\s*(?:an?\s*)?array|array\s*sorting|bubble\s*sort|quicksort|sorting\s*algorithm)\b/i.test(fullText)) {
+    return {
+      isCodeGen: true,
+      task: "Array Sorting Program",
+      technology: "Python 3",
+      isSingleFile: true,
+      subject: "Python Programming & Algorithms",
+      topic: "Array Sorting Algorithms",
+      concept: "Array Sorting in Python",
+      templateKey: "sort_array"
+    };
+  }
+
+  if (/\b(?:portfolio\s*(?:website|page|site)?)\b/i.test(fullText)) {
+    return {
+      isCodeGen: true,
+      task: "Personal Portfolio Website",
+      technology: "HTML5 & CSS3 (Single File)",
+      isSingleFile: true,
+      subject: "Frontend Web Development",
+      topic: "Personal Portfolio Website (Single File)",
+      concept: "Single-Page Responsive Portfolio",
+      templateKey: "portfolio"
+    };
+  }
+
+  if (/\b(?:binary\s*search)\b/i.test(fullText)) {
+    return {
+      isCodeGen: true,
+      task: "Binary Search Implementation",
+      technology: "Java",
+      isSingleFile: true,
+      subject: "Data Structures & Algorithms (Java)",
+      topic: "Binary Search Algorithm",
+      concept: "Binary Search Implementation in Java",
+      templateKey: "binary_search"
+    };
+  }
+
+  if (/\b(?:student\s*marks|student\s*grade|marks\s*(?:management|system|calculation))\b/i.test(fullText)) {
+    return {
+      isCodeGen: true,
+      task: "Student Marks & Grade Management System",
+      technology: "Python 3",
+      isSingleFile: true,
+      subject: "Python Programming",
+      topic: "Student Marks & Grade Management",
+      concept: "Student Marks Calculation Script",
+      templateKey: "student_marks"
+    };
+  }
+
+  if (/\b(?:login\s*(?:page|form|screen))\b/i.test(fullText)) {
+    return {
+      isCodeGen: true,
+      task: "Responsive Login Page",
+      technology: "HTML5, CSS3 & JavaScript (Single File)",
+      isSingleFile: true,
+      subject: "Frontend Web Development",
+      topic: "Responsive Login Page (Single File)",
+      concept: "User Authentication Form UI",
+      templateKey: "login_page"
+    };
+  }
+
+  // General code generation
+  let tech = "Python 3";
+  if (/\bhtml|website|web\s*page\b/i.test(fullText)) tech = "HTML5, CSS & JavaScript";
+  else if (/\bjavascript|js\b/i.test(fullText)) tech = "JavaScript";
+  else if (/\bjava\b/i.test(fullText) && !/\bjavascript\b/i.test(fullText)) tech = "Java";
+  else if (/\bc\+\+|cpp\b/i.test(fullText)) tech = "C++";
+  else if (/\bc\s*program|\bin\s*c\b/i.test(fullText)) tech = "C";
+
+  let extractedTask = coreLower
+    .replace(/\b(?:write|create|make|build|give\s*me|generate|provide|develop|implement)\s+(?:me\s+)?(?:a\s+|an\s+|the\s+)?/i, "")
+    .replace(/\b(?:code|program|script|in\s*one\s*single\s*html\s*code|in\s*single\s*html|single\s*file)\b/gi, "")
+    .replace(/^(?:for|to)\s+/i, "")
+    .trim();
+
+  if (!extractedTask || extractedTask.length < 3) {
+    extractedTask = "Requested Program";
+  }
+  const cleanTask = extractedTask.charAt(0).toUpperCase() + extractedTask.slice(1);
+
+  return {
+    isCodeGen: true,
+    task: cleanTask,
+    technology: tech,
+    isSingleFile: isSingleFile,
+    subject: `${tech} Development`,
+    topic: `${cleanTask} Implementation`,
+    concept: `${cleanTask} in ${tech}`,
+    templateKey: "general_code"
   };
 }
 
@@ -576,6 +765,13 @@ How can I help you with your studies right now?`;
       return `Goodbye! 👋 Best of luck with your study session. Take regular breaks and come back anytime you need help!`;
     }
     return `Hey! I'm here and ready to help you learn. Whether you're working through homework, preparing for board exams, JEE/EAMCET, or university papers, ask me any question!`;
+  }
+
+  // E. CODE GENERATION (User asks to write code, create game, build calculator, etc.)
+  if (intent === "CODE_GENERATION") {
+    const templateKey = intentResult.code_generation_template || "general_code";
+    const generated = getCodeTemplate(templateKey, cleaned_query);
+    return generated.markdown;
   }
 
   // C. CODE QUESTION

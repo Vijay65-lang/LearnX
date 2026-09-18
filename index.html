@@ -3,12 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <meta name="theme-color" content="#0f172a" />
     <title>LearnX – AI-Powered Personalized Learning &amp; Student Mastery Platform</title>
     <meta name="description" content="A student-only personalized learning platform that understands the individual learner through strict question comprehension, adaptive doubt resolution, dynamic mastery tracking, and real course progress." />
     <meta property="og:title" content="LearnX – AI-Powered Personalized Learning &amp; Student Mastery Platform" />
     <meta property="og:description" content="A student-only personalized learning platform that understands the individual learner through strict question comprehension, adaptive doubt resolution, dynamic mastery tracking, and real course progress." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      // Suppress expected sandbox WebSocket reconnection noise when HMR is disabled
+      window.addEventListener('unhandledrejection', function(event) {
+        if (
+          event.reason &&
+          (String(event.reason).includes('WebSocket') ||
+           String(event.reason?.message || '').includes('WebSocket closed without opened'))
+        ) {
+          event.preventDefault();
+        }
+      });
+      window.addEventListener('error', function(event) {
+        if (
+          event.message &&
+          (event.message.includes('WebSocket') || event.message.includes('[vite]'))
+        ) {
+          event.preventDefault();
+        }
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

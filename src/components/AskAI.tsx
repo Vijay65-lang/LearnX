@@ -49,7 +49,8 @@ import {
   askStudyDoubt,
   submitQuestionAttempt,
   getOllamaStatus,
-  generateNextMCQ
+  generateNextMCQ,
+  generateResilientStudentResponse
 } from "../api";
 import { ModelSettingsModal } from "./ModelSettingsModal";
 import { PomodoroTimer } from "./PomodoroTimer";
@@ -329,7 +330,24 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
         );
       }
     } catch (err: any) {
-      setError(err.message || "Failed to process question. Please try again.");
+      console.warn("AI Ask encountered error, deploying resilient student response:", err);
+      try {
+        const fallbackRes = generateResilientStudentResponse(questionText, student);
+        const fallbackMsg: ChatMessage = {
+          id: "msg_fallback_" + Date.now(),
+          chat_id: activeChatId,
+          sender: "assistant",
+          message_text: fallbackRes.explanation || "Concept explanation ready.",
+          detected_subject: fallbackRes.detected_subject,
+          detected_topic: fallbackRes.detected_topic,
+          detected_concept: fallbackRes.detected_concept,
+          timestamp: new Date().toISOString(),
+          mcq: fallbackRes.mcq,
+        };
+        setMessages((prev) => [...prev, fallbackMsg]);
+      } catch {
+        setError(err.message || "Failed to process question. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -435,7 +453,15 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
   );
 
   return (
-    <div id="ask-ai-view" className="max-w-6xl mx-auto h-[calc(100vh-65px)] flex flex-col md:flex-row pb-16 md:pb-0 overflow-hidden text-slate-100">
+    <div id="ask-ai-view" className="max-w-6xl mx-auto h-full w-full flex flex-col md:flex-row overflow-hidden text-slate-100 relative">
+      {/* Mobile Drawer Backdrop */}
+      {showHistoryDrawer && (
+        <div
+          onClick={() => setShowHistoryDrawer(false)}
+          className="md:hidden fixed inset-0 z-20 bg-slate-950/80 backdrop-blur-xs transition-opacity"
+        />
+      )}
+
       {/* SIDEBAR: Chat History (Section 9) */}
       <aside
         className={`fixed md:static inset-y-0 left-0 z-30 w-72 bg-slate-900 border-r border-slate-800 flex flex-col transition-transform duration-200 ease-in-out ${

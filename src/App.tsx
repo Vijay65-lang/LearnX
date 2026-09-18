@@ -15,6 +15,16 @@ import { ProgressView } from "./components/ProgressView";
 import { ProfileView } from "./components/ProfileView";
 import { CertificateModal } from "./components/CertificateModal";
 import { TeamManifestoModal } from "./components/TeamManifestoModal";
+import { ComfortSettingsModal, ComfortSettings } from "./components/ComfortSettingsModal";
+import { cacheAllCoursesLocally, areCoursesCachedOffline } from "./utils/offlineManager";
+import { ACADEMIC_COURSES } from "./data/coursesData";
+
+const DEFAULT_COMFORT_SETTINGS: ComfortSettings = {
+  fontSize: "normal",
+  contrastMode: "slate",
+  codeWrap: true,
+  offlineAutoCache: true,
+};
 
 export default function App() {
   const [student, setStudent] = useState<StudentProfile | null>(null);
@@ -29,6 +39,34 @@ export default function App() {
 
   // Team Manifesto Modal
   const [showManifesto, setShowManifesto] = useState<boolean>(false);
+
+  // Comfort Settings Modal & Preference State
+  const [showComfortModal, setShowComfortModal] = useState<boolean>(false);
+  const [comfortSettings, setComfortSettings] = useState<ComfortSettings>(() => {
+    try {
+      const raw = localStorage.getItem("learnx_comfort_settings");
+      return raw ? { ...DEFAULT_COMFORT_SETTINGS, ...JSON.parse(raw) } : DEFAULT_COMFORT_SETTINGS;
+    } catch {
+      return DEFAULT_COMFORT_SETTINGS;
+    }
+  });
+
+  const handleUpdateComfortSettings = (newSettings: Partial<ComfortSettings>) => {
+    setComfortSettings((prev) => {
+      const updated = { ...prev, ...newSettings };
+      try {
+        localStorage.setItem("learnx_comfort_settings", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
+  // Warm background offline course caching
+  useEffect(() => {
+    if (comfortSettings.offlineAutoCache && !areCoursesCachedOffline()) {
+      cacheAllCoursesLocally(ACADEMIC_COURSES);
+    }
+  }, [comfortSettings.offlineAutoCache]);
 
   useEffect(() => {
     checkAuth();
@@ -68,6 +106,25 @@ export default function App() {
     setCurrentTab("ask");
   };
 
+  const getRootThemeClasses = () => {
+    let classes = "min-h-screen text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white transition-colors duration-200 ";
+    if (comfortSettings.contrastMode === "warm") {
+      classes += "comfort-theme-warm bg-stone-950 ";
+    } else if (comfortSettings.contrastMode === "black") {
+      classes += "comfort-theme-black bg-black ";
+    } else {
+      classes += "bg-slate-950 ";
+    }
+
+    if (comfortSettings.fontSize === "large") {
+      classes += "comfort-size-large ";
+    } else if (comfortSettings.fontSize === "xl") {
+      classes += "comfort-size-xl ";
+    }
+
+    return classes;
+  };
+
   if (loadingStudent) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-300">
@@ -84,7 +141,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white">
+    <div className={getRootThemeClasses()}>
       {/* Navigation Header & Mobile Bottom Bar */}
       <Navigation
         currentTab={currentTab}
@@ -94,10 +151,11 @@ export default function App() {
         }}
         student={student}
         onOpenManifesto={() => setShowManifesto(true)}
+        onOpenComfortSettings={() => setShowComfortModal(true)}
       />
 
       {/* Main View Container with mobile bottom clearance */}
-      <main className="flex-1 pb-16 md:pb-0">
+      <main className={`flex-1 ${currentTab === "ask" ? "h-[calc(100dvh-57px)] pb-14 md:pb-0 overflow-hidden" : "pb-20 md:pb-8"}`}>
         {currentTab === "home" && (
           <HomeDashboard
             key={student.id}
@@ -145,6 +203,14 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Comfort Settings Modal */}
+      <ComfortSettingsModal
+        isOpen={showComfortModal}
+        onClose={() => setShowComfortModal(false)}
+        settings={comfortSettings}
+        onUpdateSettings={handleUpdateComfortSettings}
+      />
 
       {/* Team LearnX Manifesto Modal */}
       <TeamManifestoModal

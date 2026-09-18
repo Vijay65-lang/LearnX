@@ -13,7 +13,11 @@ import {
   AIModelType,
   OllamaStatus,
   LeaderboardEntry,
+  MasteryState,
+  MasteryRecord,
+  EducationLevel,
 } from "./types";
+import { getCodeTemplate } from "./data/codeTemplates";
 
 const TOKEN_KEY = "learnx_auth_token";
 
@@ -461,6 +465,7 @@ export interface AskResponse {
   doubtId?: string;
   is_unclear?: boolean;
   is_conversational?: boolean;
+  is_code_generation?: boolean;
   clarification_question?: string;
   explanation?: string;
   detected_subject: string;
@@ -489,6 +494,70 @@ export function generateResilientStudentResponse(
   const activeSt = student || getActiveStudent();
   const isInter = activeSt?.education_level === "Intermediate";
   const isMPC = isInter && (!activeSt?.inter_stream || activeSt?.inter_stream.toUpperCase().includes("MPC"));
+
+  // Check code generation intent FIRST
+  const isCodeGenCommand =
+    /\b(?:write|create|make|build|give\s*me|generate|provide|develop|implement|code)\s+(?:me\s+)?(?:a\s+|an\s+|the\s+)?(?:complete\s+|working\s+|single\s*file\s*|simple\s*|responsive\s*)?(?:html|python|javascript|js|java|c\+\+|c#|c|ruby|go|rust|php|sql|react|node|web|single\s*html)?\s*(?:code|program|script|file|page|app|application|game|calculator|website|form)\b/i.test(qLower) ||
+    /\b(?:html\s*code|python\s*(?:code|program)|javascript\s*(?:code|program)|js\s*code|java\s*(?:code|program)|c\+\+\s*(?:code|program)|c\s*program)\s+(?:for|to|that)\b/i.test(qLower) ||
+    /\b(?:code|program)\s+(?:for|to)\s+(?:a\s+|an\s+)?(?:tic\s*tac\s*toe|calculator|portfolio|login\s*page|todo|game|sort|search|crud|marks|student)\b/i.test(qLower) ||
+    /\b(?:single\s*html\s*(?:code|file)|in\s*(?:one|a)\s*single\s*html)\b/i.test(qLower);
+
+  if (isCodeGenCommand) {
+    let templateKey = "general_code";
+    let sub = "Computer Science & Programming";
+    let top = "Code Implementation";
+    let con = "Code Solution";
+
+    if (/\b(?:tic\s*tac\s*toe|tictactoe)\b/i.test(qLower)) {
+      templateKey = "tic_tac_toe";
+      sub = "Web Development (HTML / CSS / JavaScript)";
+      top = "Interactive Tic Tac Toe Game (Single File HTML)";
+      con = "Tic Tac Toe Single-File Application";
+    } else if (/\b(?:calculator)\b/i.test(qLower)) {
+      templateKey = "calculator";
+      sub = "Frontend Web Development";
+      top = "Interactive Calculator Web Application";
+      con = "Calculator Logic & DOM Manipulation";
+    } else if (/\b(?:sort\s*(?:an?\s*)?array|array\s*sorting|bubble\s*sort|quicksort|sorting\s*algorithm)\b/i.test(qLower)) {
+      templateKey = "sort_array";
+      sub = "Python Programming & Algorithms";
+      top = "Array Sorting Algorithms";
+      con = "Array Sorting in Python";
+    } else if (/\b(?:portfolio\s*(?:website|page|site)?)\b/i.test(qLower)) {
+      templateKey = "portfolio";
+      sub = "Frontend Web Development";
+      top = "Personal Portfolio Website (Single File)";
+      con = "Single-Page Responsive Portfolio";
+    } else if (/\b(?:binary\s*search)\b/i.test(qLower)) {
+      templateKey = "binary_search";
+      sub = "Data Structures & Algorithms (Java)";
+      top = "Binary Search Algorithm";
+      con = "Binary Search Implementation in Java";
+    } else if (/\b(?:student\s*marks|student\s*grade|marks\s*(?:management|system|calculation))\b/i.test(qLower)) {
+      templateKey = "student_marks";
+      sub = "Python Programming";
+      top = "Student Marks & Grade Management";
+      con = "Student Marks Calculation Script";
+    } else if (/\b(?:login\s*(?:page|form|screen))\b/i.test(qLower)) {
+      templateKey = "login_page";
+      sub = "Frontend Web Development";
+      top = "Responsive Login Page (Single File)";
+      con = "User Authentication Form UI";
+    }
+
+    const templateResult = getCodeTemplate(templateKey, clean);
+    return {
+      doubtId: "dbt_local_" + Date.now(),
+      explanation: templateResult.markdown,
+      detected_subject: sub,
+      detected_topic: top,
+      detected_concept: con,
+      validation_passed: true,
+      is_conversational: false,
+      is_code_generation: true,
+      mcq: undefined,
+    };
+  }
 
   let subject = isMPC ? "Intermediate MPC (Maths, Physics, Chemistry)" : "General Academic Studies";
   let topic = isMPC ? "Core Mathematics & Physical Sciences" : "Core Fundamentals";
@@ -1102,8 +1171,53 @@ export async function deleteChatSession(
 }
 
 /* ============================================================
-   LEARNING ATTEMPTS
+   LEARNING ATTEMPTS & LOCAL ATTEMPT PERSISTENCE
    ============================================================ */
+
+import { enqueuePendingSync } from "./utils/offlineManager";
+
+export interface StoredQuestionAttempt {
+  id: string;
+  student_id: string;
+  question_id: string;
+  subject: string;
+  topic: string;
+  concept?: string;
+  difficulty?: string;
+  selected_answer: string;
+  correct_answer: string;
+  is_correct: boolean;
+  response_time?: number;
+  hints_used?: number;
+  timestamp: string;
+}
+
+export function getLocalQuestionAttempts(): StoredQuestionAttempt[] {
+  try {
+    const raw = localStorage.getItem(getStudentStorageKey("question_attempts"));
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalQuestionAttempt(attempt: StoredQuestionAttempt): void {
+  try {
+    const attempts = getLocalQuestionAttempts();
+    attempts.unshift(attempt);
+    // Keep last 100 attempts for offline analytics
+    localStorage.setItem(getStudentStorageKey("question_attempts"), JSON.stringify(attempts.slice(0, 100)));
+  } catch {}
+}
+
+export function getLocalDoubts(): Array<{ id: string; subject: string; topic: string; timestamp: string }> {
+  try {
+    const raw = localStorage.getItem(getStudentStorageKey("doubts"));
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
 
 export async function submitQuestionAttempt(payload: {
   question_id: string;
@@ -1116,10 +1230,74 @@ export async function submitQuestionAttempt(payload: {
   response_time?: number;
   hints_used?: number;
 }): Promise<AttemptResult> {
-  return request<AttemptResult>("/learning/attempts", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  const activeStudent = getActiveStudent();
+  const studentId = activeStudent?.id || "guest_student";
+  const isCorrect = payload.selected_answer.trim().toLowerCase() === payload.correct_answer.trim().toLowerCase();
+
+  // 1. Immediately store attempt locally under student's isolated key
+  const storedAttempt: StoredQuestionAttempt = {
+    id: "att_loc_" + Math.random().toString(36).substring(2, 9),
+    student_id: studentId,
+    question_id: payload.question_id,
+    subject: payload.subject,
+    topic: payload.topic,
+    concept: payload.concept,
+    difficulty: payload.difficulty,
+    selected_answer: payload.selected_answer,
+    correct_answer: payload.correct_answer,
+    is_correct: isCorrect,
+    response_time: payload.response_time || 15,
+    hints_used: payload.hints_used || 0,
+    timestamp: new Date().toISOString(),
+  };
+  saveLocalQuestionAttempt(storedAttempt);
+
+  // 2. Try submitting to server; if offline/failed, enqueue for automatic background sync
+  try {
+    const serverRes = await request<AttemptResult>("/learning/attempts", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    if (serverRes) return serverRes;
+  } catch (networkErr) {
+    console.warn("[LearnX] Network unavailable; queueing attempt for background sync:", networkErr);
+    enqueuePendingSync({
+      type: "question_attempt",
+      studentId,
+      payload,
+    });
+  }
+
+  // 3. Resilient offline response calculation
+  const allTopicAttempts = getLocalQuestionAttempts().filter(
+    (a) => a.topic.toLowerCase() === payload.topic.toLowerCase()
+  );
+  const correctCount = allTopicAttempts.filter((a) => a.is_correct).length;
+  const attemptsCount = allTopicAttempts.length;
+  const accuracy = attemptsCount > 0 ? Math.round((correctCount / attemptsCount) * 100) : isCorrect ? 100 : 0;
+
+  let masteryState: MasteryState = "Developing";
+  if (attemptsCount < 2) masteryState = "Insufficient Data";
+  else if (accuracy >= 90 && attemptsCount >= 3) masteryState = "Mastered";
+  else if (accuracy >= 75) masteryState = "Strong";
+  else if (accuracy < 50) masteryState = "Needs Improvement";
+
+  return {
+    is_correct: isCorrect,
+    correct_answer: payload.correct_answer,
+    selected_answer: payload.selected_answer,
+    mastery: {
+      subject: payload.subject,
+      topic: payload.topic,
+      attempts: attemptsCount,
+      correct_count: correctCount,
+      accuracy,
+      mistakes: attemptsCount - correctCount,
+      avg_response_time: payload.response_time || 15,
+      mastery_state: masteryState,
+      difficulty: (payload.difficulty as any) || "Medium",
+    },
+  };
 }
 
 /* ============================================================
@@ -1177,13 +1355,16 @@ export async function getStudentData(): Promise<StudentAnalytics> {
 
   const localProgress = getLocalCourseProgress();
   const localCerts = getLocalCertificates();
+  const localAttempts = getLocalQuestionAttempts();
+  const localDoubts = getLocalDoubts();
 
-  // Convert academic courses to Course[] format with local progress
+  // Standardize courses and only mark as enrolled if the student explicitly enrolled or made progress
   const builtCourses: Course[] = ACADEMIC_COURSES.map((ac) => {
-    const prog = localProgress[ac.id] || { completedLessons: [], status: "enrolled" };
+    const prog = localProgress[ac.id];
     const totalLessons = ac.modules.reduce((sum, m) => sum + m.lessons.length, 0);
-    const completedCount = prog.completedLessons.length;
+    const completedCount = prog?.completedLessons?.length || 0;
     const pct = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+    const status = !prog ? "not_enrolled" : pct >= 100 ? "completed" : completedCount > 0 ? "in_progress" : "enrolled";
 
     return {
       id: ac.id,
@@ -1196,14 +1377,14 @@ export async function getStudentData(): Promise<StudentAnalytics> {
       module_count: ac.modules.length,
       lesson_count: totalLessons,
       completion_percentage: pct,
-      enrollment_status: pct >= 100 ? "completed" : completedCount > 0 ? "in_progress" : "enrolled",
+      enrollment_status: status as any,
     };
   });
 
   try {
     const serverData = await request<StudentAnalytics>("/analytics/student-data");
     if (serverData && serverData.profile) {
-      // Merge server certificates with local certificates
+      // Merge certificates
       const allCerts = [...(serverData.certificates || [])];
       for (const lc of localCerts) {
         if (!allCerts.some((c) => c.certificate_id === lc.certificate_id || c.course_id === lc.course_id)) {
@@ -1212,107 +1393,150 @@ export async function getStudentData(): Promise<StudentAnalytics> {
       }
       serverData.certificates = allCerts;
 
-      // Merge server courses with built-in W3Schools courses
-      const serverCourses = serverData.enrolledCourses || [];
+      // Filter and map ONLY courses that the student is actually enrolled in
+      const enrolledList: Course[] = [];
+      const serverEnrolled = serverData.enrolledCourses || [];
+
+      // 1. Add server enrolled courses
+      for (const sc of serverEnrolled) {
+        const matchingBuilt = builtCourses.find((bc) => bc.id === (sc as any).course_id || bc.id === sc.id);
+        const prog = localProgress[sc.id] || localProgress[(sc as any).course_id];
+        const completedCount = prog?.completedLessons?.length || 0;
+        const totalLessons = matchingBuilt ? matchingBuilt.lesson_count : (sc.lesson_count || 10);
+        const pct = Math.max(sc.completion_percentage || 0, totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0);
+
+        enrolledList.push({
+          id: sc.id,
+          title: (sc as any).course_title || sc.title || matchingBuilt?.title || "Course",
+          code: sc.code || matchingBuilt?.code || "CS-100",
+          education_level: ((sc.education_level || matchingBuilt?.education_level || "B.Tech") as EducationLevel),
+          branch_stream: sc.branch_stream || matchingBuilt?.branch_stream,
+          description: sc.description || matchingBuilt?.description || "",
+          estimated_hours: sc.estimated_hours || matchingBuilt?.estimated_hours || 10,
+          module_count: matchingBuilt?.module_count || 3,
+          lesson_count: totalLessons,
+          completion_percentage: pct,
+          enrollment_status: pct >= 100 ? "completed" : completedCount > 0 ? "in_progress" : "enrolled",
+        });
+      }
+
+      // 2. Add courses this student enrolled in locally that might not yet have synced
       for (const bc of builtCourses) {
-        const found = serverCourses.find((sc) => sc.id === bc.id);
-        if (found) {
-          found.completion_percentage = Math.max(found.completion_percentage || 0, bc.completion_percentage || 0);
-          if (found.completion_percentage >= 100) found.enrollment_status = "completed";
-        } else {
-          serverCourses.push(bc);
+        const prog = localProgress[bc.id];
+        if (prog && prog.status !== "not_enrolled") {
+          if (!enrolledList.some((c) => c.id === bc.id)) {
+            enrolledList.push(bc);
+          }
         }
       }
-      serverData.enrolledCourses = serverCourses;
+
+      serverData.enrolledCourses = enrolledList;
       return serverData;
     }
   } catch (err) {
     console.warn("Using resilient client analytics for student space:", err);
   }
 
-  // Resilient fallback analytics synthesized from student profile and local progress
-  const completedCoursesCount = builtCourses.filter((c) => (c.completion_percentage || 0) >= 100).length;
+  // Resilient offline fallback: Compute real analytics strictly from THIS student's own attempts and progress
+  const strictlyEnrolledCourses = builtCourses.filter((c) => {
+    const prog = localProgress[c.id];
+    return prog && prog.status !== "not_enrolled";
+  });
+
+  const totalAttempts = localAttempts.length;
+  const totalCorrect = localAttempts.filter((a) => a.is_correct).length;
+  const overallAccuracy = totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : 0;
+  const totalTime = localAttempts.reduce((sum, a) => sum + (a.response_time || 15), 0);
+  const avgResponseTime = totalAttempts > 0 ? Math.round(totalTime / totalAttempts) : 0;
+
+  // Build mastery records grouped by topic
+  const topicMap = new Map<string, { subject: string; topic: string; attempts: number; correct: number; totalTime: number }>();
+  for (const att of localAttempts) {
+    const key = `${att.subject}:::${att.topic}`;
+    const curr = topicMap.get(key) || { subject: att.subject, topic: att.topic, attempts: 0, correct: 0, totalTime: 0 };
+    curr.attempts++;
+    if (att.is_correct) curr.correct++;
+    curr.totalTime += att.response_time || 15;
+    topicMap.set(key, curr);
+  }
+
+  const masteryRecords: MasteryRecord[] = Array.from(topicMap.values()).map((val, idx) => {
+    const acc = Math.round((val.correct / val.attempts) * 100);
+    let state: MasteryState = "Developing";
+    if (val.attempts < 2) state = "Insufficient Data";
+    else if (acc >= 90 && val.attempts >= 3) state = "Mastered";
+    else if (acc >= 75) state = "Strong";
+    else if (acc < 50) state = "Needs Improvement";
+
+    return {
+      id: `mst_loc_${idx + 1}`,
+      student_id: activeStudent.id,
+      subject: val.subject,
+      topic: val.topic,
+      attempts: val.attempts,
+      correct_count: val.correct,
+      accuracy: acc,
+      mistakes: val.attempts - val.correct,
+      avg_response_time: Math.round(val.totalTime / val.attempts),
+      mastery_state: state,
+      updated_at: new Date().toISOString(),
+    };
+  });
+
+  const topicsMastered = masteryRecords.filter((m) => m.mastery_state === "Mastered").length;
+  const topicsNeedsImprovement = masteryRecords.filter((m) => m.mastery_state === "Needs Improvement").length;
 
   return {
     profile: activeStudent,
     stats: {
-      totalDoubts: 8,
-      totalAttempts: 24,
-      totalCorrect: 22,
-      overallAccuracy: 92,
-      avgResponseTime: 18,
-      topicsMasteredCount: Math.max(3, completedCoursesCount * 2),
-      topicsNeedsImprovementCount: 1,
+      totalDoubts: localDoubts.length,
+      totalAttempts,
+      totalCorrect,
+      overallAccuracy,
+      avgResponseTime,
+      topicsMasteredCount: topicsMastered,
+      topicsNeedsImprovementCount: topicsNeedsImprovement,
     },
-    masteryRecords: [
-      {
-        id: "mst_1",
-        student_id: activeStudent.id,
-        subject: "Computer Science",
-        topic: "Python Syntax & Variables",
-        attempts: 6,
-        correct_count: 6,
-        accuracy: 100,
-        mistakes: 0,
-        avg_response_time: 14,
-        mastery_state: "Mastered",
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: "mst_2",
-        student_id: activeStudent.id,
-        subject: "Web Development",
-        topic: "JavaScript Async/Await & Promises",
-        attempts: 8,
-        correct_count: 7,
-        accuracy: 88,
-        mistakes: 1,
-        avg_response_time: 16,
-        mastery_state: "Strong",
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: "mst_3",
-        student_id: activeStudent.id,
-        subject: "Database Systems",
-        topic: "SQL Queries & Inner Joins",
-        attempts: 10,
-        correct_count: 9,
-        accuracy: 90,
-        mistakes: 1,
-        avg_response_time: 21,
-        mastery_state: "Strong",
-        updated_at: new Date().toISOString(),
-      },
-    ],
+    masteryRecords,
     repeatedDoubts: [],
-    activeRecommendations: [
+    activeRecommendations: strictlyEnrolledCourses.length > 0 ? [
       {
         id: "rec_1",
         student_id: activeStudent.id,
         recommendation_type: "course",
-        title: "Continue Python Programming (W3Schools Style)",
+        title: `Continue ${strictlyEnrolledCourses[0].title}`,
         reason: "Active interactive code labs available with certificate on completion.",
-        target_subject: "Computer Science",
-        target_topic: "Python Basics",
+        target_subject: strictlyEnrolledCourses[0].branch_stream || "General",
+        target_topic: strictlyEnrolledCourses[0].title,
         difficulty: "Medium",
         is_active: 1,
         created_at: new Date().toISOString(),
       },
-    ],
-    enrolledCourses: builtCourses,
-    certificates: localCerts,
-    recentActivities: [
+    ] : [
       {
-        id: "act_1",
+        id: "rec_explore",
         student_id: activeStudent.id,
-        activity_type: "study",
-        description: "Practiced interactive code exercise in Python Programming",
-        subject: "Python",
-        topic: "Variables & Syntax",
-        timestamp: new Date().toISOString(),
-      },
+        recommendation_type: "course",
+        title: `Explore ${activeStudent.education_level || "Academic"} Courses`,
+        reason: "Browse verified curriculum modules, run code sandboxes, and earn your mastery certificate.",
+        target_subject: "All",
+        target_topic: "Course Enrollment",
+        difficulty: "Easy",
+        is_active: 1,
+        created_at: new Date().toISOString(),
+      }
     ],
+    enrolledCourses: strictlyEnrolledCourses,
+    certificates: localCerts,
+    recentActivities: localAttempts.slice(0, 5).map((att, i) => ({
+      id: `act_${i + 1}`,
+      student_id: activeStudent.id,
+      activity_type: "attempt",
+      description: `Attempted question on ${att.topic} (${att.is_correct ? "Correct" : "Incorrect"})`,
+      subject: att.subject,
+      topic: att.topic,
+      timestamp: att.timestamp,
+    })),
   };
 }
 
@@ -1325,11 +1549,11 @@ export async function getRecommendations(): Promise<{
     return {
       recommendations: [
         {
-          id: "rec_py",
+          id: "rec_default",
           student_id: "me",
           recommendation_type: "course",
-          title: "Complete Python Mastery Course",
-          reason: "Interactive exercises and downloadable certificate waiting.",
+          title: "Explore Curriculum Courses",
+          reason: "Hands-on exercises, runnable code sandboxes, and verified completion certificates.",
           difficulty: "Medium",
           is_active: 1,
           created_at: new Date().toISOString(),
@@ -1355,10 +1579,11 @@ export async function getCourses(
   const localProgress = getLocalCourseProgress();
 
   let list: Course[] = ACADEMIC_COURSES.map((ac) => {
-    const prog = localProgress[ac.id] || { completedLessons: [], status: "enrolled" };
+    const prog = localProgress[ac.id];
     const totalLessons = ac.modules.reduce((sum, m) => sum + m.lessons.length, 0);
-    const completedCount = prog.completedLessons.length;
+    const completedCount = prog?.completedLessons?.length || 0;
     const pct = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+    const status = !prog ? "not_enrolled" : pct >= 100 ? "completed" : completedCount > 0 ? "in_progress" : "enrolled";
 
     return {
       id: ac.id,
@@ -1497,6 +1722,8 @@ export async function enrollInCourse(
 ): Promise<{
   success: boolean;
 }> {
+  const activeStudent = getActiveStudent();
+  const studentId = activeStudent?.id || "anon";
   const localProgress = getLocalCourseProgress();
   if (!localProgress[id]) {
     localProgress[id] = { completedLessons: [], status: "in_progress" };
@@ -1505,7 +1732,14 @@ export async function enrollInCourse(
 
   try {
     await request<{ success: boolean }>(`/courses/${id}/enroll`, { method: "POST" });
-  } catch {}
+  } catch (err) {
+    console.warn("[LearnX] Offline: queued course enrollment for background sync:", err);
+    enqueuePendingSync({
+      type: "course_enroll",
+      studentId,
+      payload: { courseId: id },
+    });
+  }
 
   return { success: true };
 }
@@ -1611,14 +1845,21 @@ export async function completeLesson(
     saveLocalCertificate(cert);
   }
 
-  // Attempt server sync in background
+  // Attempt server sync in background; if offline or fails, enqueue for auto-sync
   try {
     const sRes = await request<any>(`/courses/lessons/${lessonId}/complete`, { method: "POST" });
     if (sRes?.certificate) {
       saveLocalCertificate(sRes.certificate);
       cert = sRes.certificate;
     }
-  } catch {}
+  } catch (err) {
+    console.warn("[LearnX] Offline: queued lesson completion for background sync:", err);
+    enqueuePendingSync({
+      type: "lesson_complete",
+      studentId: activeStudent?.id || "anon",
+      payload: { lessonId, courseId: targetCourseId },
+    });
+  }
 
   return {
     completed_lessons: localProgress[targetCourseId].completedLessons,

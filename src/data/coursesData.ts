@@ -1544,5 +1544,403 @@ In a bell-shaped normal curve:
         ]
       }
     ]
+  },
+  {
+    id: "crs_btech_aiml_01",
+    title: "Artificial Intelligence & Machine Learning",
+    code: "CSE-AI301",
+    category: "Computer Science",
+    educationLevel: "B.Tech",
+    branchStream: "Computer Science & Engineering (AIML / Data Science)",
+    description: "Comprehensive curriculum covering heuristic search, supervised machine learning algorithms, deep neural network backpropagation, and transformer architectures with runnable Python code sandboxes.",
+    iconName: "Sparkles",
+    badgeColor: "purple",
+    estimatedHours: 24,
+    modules: [
+      {
+        id: "mod_ai_01",
+        title: "Heuristic Search & Foundations of AI",
+        description: "State-space representation, informed search, and evaluation functions.",
+        orderIndex: 1,
+        lessons: [
+          {
+            id: "les_ai_101",
+            moduleId: "mod_ai_01",
+            title: "Informed Search & A* Algorithm",
+            readingTimeMin: 12,
+            content: `### Foundations of Artificial Intelligence & State-Space Search
+
+In Artificial Intelligence, problem solving is framed as searching through a **state space graph** from an initial state to a goal state.
+
+#### 1. Uninformed vs. Informed Search
+* **Uninformed (Blind) Search**: BFS and DFS explore nodes without knowing how close they are to the goal ($O(b^d)$ time complexity).
+* **Informed (Heuristic) Search**: Uses domain knowledge via a heuristic function $h(n)$ estimating the cost from node $n$ to the goal.
+
+#### 2. The $A^*$ Algorithm
+$A^*$ evaluation function combines actual cost and estimated future cost:
+$$f(n) = g(n) + h(n)$$
+* $g(n)$: Exact path cost accumulated from start to node $n$.
+* $h(n)$: Estimated heuristic cost from node $n$ to the goal.
+
+#### 3. Admissibility & Optimality:
+For $A^*$ to guarantee the optimal solution on tree search, $h(n)$ must be **admissible**—it must never overestimate the true cost to the goal ($0 \\le h(n) \\le h^*(n)$). For graph search, it must be **consistent (monotonic)** ($h(n) \\le c(n, a, n') + h(n')$).`,
+            codeSnippet: {
+              language: "python",
+              initialCode: `# Python A* Heuristic Cost Calculation
+def calculate_f_cost(g_cost, h_cost):
+    """f(n) = g(n) + h(n)"""
+    return g_cost + h_cost
+
+# Node states (Node, g_cost, h_cost)
+candidates = [
+    ("Node_A", 4, 8),
+    ("Node_B", 6, 3),
+    ("Node_C", 2, 11)
+]
+
+for name, g, h in candidates:
+    f = calculate_f_cost(g, h)
+    print(f"{name} -> g: {g}, h: {h} => f(n): {f}")
+
+best_node = min(candidates, key=lambda node: calculate_f_cost(node[1], node[2]))
+print(f"\\nOptimal Next Node to expand: {best_node[0]}")`,
+              description: "Evaluate node expansion order using the A* f(n) = g(n) + h(n) equation.",
+              expectedOutput: "Optimal Next Node to expand: Node_B"
+            },
+            assessment: {
+              question: "Under what condition is the A* algorithm guaranteed to return the optimal path in tree search?",
+              option_a: "The heuristic function h(n) is admissible (never overestimates the true cost)",
+              option_b: "The heuristic function h(n) equals 0 for all nodes",
+              option_c: "The search space contains no loops or cycles",
+              option_d: "The depth of the tree is strictly finite",
+              correct_option: "A",
+              explanation: "Admissibility ensures that A* never overlooks a shorter path by exaggerating its remaining cost, guaranteeing an optimal solution."
+            }
+          },
+          {
+            id: "les_ai_102",
+            moduleId: "mod_ai_01",
+            title: "Gradient Descent & Cost Optimization",
+            readingTimeMin: 14,
+            content: `### Machine Learning Optimization: Gradient Descent
+
+Supervised learning algorithms find parameters $\\theta$ (weights $W$ and bias $b$) that minimize an objective loss function $J(\\theta)$.
+
+#### 1. Mean Squared Error (MSE)
+For linear regression with $m$ training samples:
+$$J(W, b) = \\frac{1}{2m} \\sum_{i=1}^{m} (\\hat{y}^{(i)} - y^{(i)})^2$$
+
+#### 2. Parameter Update Rule
+At each iteration, parameters step in the direction opposite to the gradient:
+$$W := W - \\alpha \\frac{\\partial J}{\\partial W}$$
+$$b := b - \\alpha \\frac{\\partial J}{\\partial b}$$
+Where $\\alpha$ is the **learning rate**.
+
+#### 3. Learning Rate Selection:
+* **Too small ($\\alpha = 10^{-6}$)**: Convergence is extremely slow.
+* **Too large ($\\alpha = 1.5$)**: Overshoots the minimum and may diverge ($J \\to \\infty$).`,
+            codeSnippet: {
+              language: "python",
+              initialCode: `# Gradient Descent in Pure Python
+# Target function: y = 2x
+x_data = [1.0, 2.0, 3.0, 4.0]
+y_data = [2.0, 4.0, 6.0, 8.0]
+
+w = 0.0  # Initial weight
+lr = 0.05 # Learning rate
+
+print("Initial weight w:", w)
+for epoch in range(1, 21):
+    # Compute predictions and gradients
+    grad = 0.0
+    for x, y in zip(x_data, y_data):
+        y_pred = w * x
+        grad += (y_pred - y) * x
+    grad = (2.0 / len(x_data)) * grad
+    w = w - lr * grad
+
+print(f"Trained weight w after 20 epochs: {w:.4f}")
+print("Predicted y for x=5:", round(w * 5, 2))`,
+              description: "Train a single parameter model using manual gradient descent optimization.",
+              expectedOutput: "Predicted y for x=5: 10.0"
+            },
+            assessment: {
+              question: "What happens if the learning rate alpha in gradient descent is chosen too large?",
+              option_a: "The model will train instantly with zero loss",
+              option_b: "The parameters will oscillate and diverge away from the global minimum",
+              option_c: "The model will automatically convert to decision tree logic",
+              option_d: "The gradient will become strictly zero",
+              correct_option: "B",
+              explanation: "An excessively large learning rate causes the updates to step over the valley minimum, causing oscillations and eventual numerical divergence."
+            }
+          }
+        ]
+      },
+      {
+        id: "mod_ai_02",
+        title: "Deep Neural Networks & Transformers",
+        description: "Backpropagation, activation functions, and self-attention in LLMs.",
+        orderIndex: 2,
+        lessons: [
+          {
+            id: "les_ai_201",
+            moduleId: "mod_ai_02",
+            title: "Neural Networks & Backpropagation",
+            readingTimeMin: 15,
+            content: `### Deep Learning & Feedforward Networks
+
+Deep neural networks compose non-linear layers to learn hierarchical representations from raw data.
+
+#### 1. Forward Pass:
+$$z^{[l]} = W^{[l]} a^{[l-1]} + b^{[l]}$$
+$$a^{[l]} = g(z^{[l]})$$
+Where $g(z)$ is a non-linear activation function (ReLU, Sigmoid, GELU).
+
+#### 2. Activation Functions:
+* **ReLU**: $f(x) = \\max(0, x)$ — prevents vanishing gradients in deep architectures.
+* **Softmax**: Normalizes logits into probability distributions $\\sum P_i = 1$ for multi-class classification:
+  $$\\text{Softmax}(z_i) = \\frac{e^{z_i}}{\\sum_j e^{z_j}}$$
+
+#### 3. Backpropagation (Chain Rule):
+Error signals are propagated backwards from the loss $L$ through each layer:
+$$\\frac{\\partial L}{\\partial W^{[l]}} = \\frac{\\partial L}{\\partial z^{[l]}} (a^{[l-1]})^T$$`,
+            codeSnippet: {
+              language: "python",
+              initialCode: `import math
+
+def relu(x):
+    return max(0.0, x)
+
+def softmax(logits):
+    exp_vals = [math.exp(z) for z in logits]
+    total = sum(exp_vals)
+    return [round(v / total, 4) for v in exp_vals]
+
+# Logits output from final linear layer
+model_outputs = [2.5, 1.0, 0.2]
+classes = ["Computer Science", "Electronics", "Mechanical"]
+
+probs = softmax(model_outputs)
+for c, p in zip(classes, probs):
+    print(f"Class: {c:<18} -> Probability: {p * 100:.2f}%")`,
+              description: "Compute class probabilities using the Softmax activation function.",
+              expectedOutput: "Class: Computer Science"
+            },
+            assessment: {
+              question: "Why is the ReLU activation function predominantly preferred over Sigmoid in deep hidden layers?",
+              option_a: "ReLU outputs values between -1 and +1",
+              option_b: "ReLU mitigates the vanishing gradient problem for positive inputs and is computationally efficient",
+              option_c: "ReLU eliminates the requirement for training weights",
+              option_d: "ReLU can only be used with binary classification",
+              correct_option: "B",
+              explanation: "Sigmoid saturates at 0 and 1 with near-zero derivatives, causing gradients to vanish. ReLU has a constant derivative of 1 for x > 0, avoiding vanishing gradients."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "crs_btech_react_01",
+    title: "Modern React & Next.js Full-Stack Architecture",
+    code: "CSE-WEB302",
+    category: "Web Development",
+    educationLevel: "B.Tech",
+    branchStream: "Computer Science, IT & Software Engineering",
+    description: "Master modern component design, React 18 hooks (useState, useEffect, useMemo, useCallback), unidirectional state flow, and asynchronous API integrations.",
+    iconName: "Code2",
+    badgeColor: "blue",
+    estimatedHours: 20,
+    modules: [
+      {
+        id: "mod_react_01",
+        title: "React 18 Core & Component Lifecycles",
+        description: "Declarative UI, virtual DOM diffing, and state management.",
+        orderIndex: 1,
+        lessons: [
+          {
+            id: "les_react_101",
+            moduleId: "mod_react_01",
+            title: "Hooks, State Immutability & Side Effects",
+            readingTimeMin: 12,
+            content: `### Modern React with Functional Components & Hooks
+
+React represents user interfaces as pure functions of state. When state changes, React re-renders components using its **Virtual DOM reconciliation** engine.
+
+#### 1. State Immutability
+Never mutate state directly. Always return a new object or array reference so React can detect changes via shallow comparison:
+\`\`\`javascript
+// Correct immutable update
+setStudentList(prev => [...prev, newStudent]);
+setProfile(prev => ({ ...prev, education_level: "B.Tech" }));
+\`\`\`
+
+#### 2. The \`useEffect\` Dependency Contract
+* **Empty array \`[]\`**: Runs once when the component mounts.
+* **With dependencies \`[studentId]\`**: Runs whenever the listed values change.
+* **Cleanup function**: Cleans up subscriptions, intervals, or abort controllers when unmounting:
+\`\`\`javascript
+useEffect(() => {
+  const timer = setInterval(() => tick(), 1000);
+  return () => clearInterval(timer); // Cleanup
+}, []);
+\`\`\``,
+            codeSnippet: {
+              language: "javascript",
+              initialCode: `// Simulating React State & Immutability in JavaScript
+let state = {
+  studentName: "Ananya",
+  completedCourses: ["Python 101", "DSA Basics"],
+  gpa: 9.1
+};
+
+function updateProfile(currentState, newCourse) {
+  // Return a new object reference (Immutability pattern)
+  return {
+    ...currentState,
+    completedCourses: [...currentState.completedCourses, newCourse]
+  };
+}
+
+const updatedState = updateProfile(state, "React Architecture");
+console.log("Original courses:", state.completedCourses);
+console.log("Updated courses:", updatedState.completedCourses);
+console.log("Reference changed (state !== updatedState):", state !== updatedState);`,
+              description: "Demonstration of immutable state transformations in modern web frameworks.",
+              expectedOutput: "Reference changed (state !== updatedState): true"
+            },
+            assessment: {
+              question: "Why must React state never be mutated directly (e.g., student.courses.push('DSA'))?",
+              option_a: "Direct mutation causes syntax errors in JavaScript",
+              option_b: "React performs shallow comparison on state references to determine re-renders; direct mutation retains the old reference",
+              option_c: "React automatically locks memory objects from modification",
+              option_d: "Direct mutation disables CSS rendering",
+              correct_option: "B",
+              explanation: "React relies on referential equality checks (Object.is) to detect state changes. Modifying an existing object preserves its memory reference, preventing necessary UI re-renders."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "crs_btech_cloud_01",
+    title: "Cloud Computing, DevOps & Docker Microservices",
+    code: "CSE-CLD303",
+    category: "Systems",
+    educationLevel: "B.Tech",
+    branchStream: "Computer Science, IT & Cloud Systems",
+    description: "Understand cloud service models (IaaS, PaaS, SaaS), Docker containerization, microservice decoupling, and automated CI/CD deployment pipelines.",
+    iconName: "Layers",
+    badgeColor: "cyan",
+    estimatedHours: 18,
+    modules: [
+      {
+        id: "mod_cld_01",
+        title: "Virtualization, Containers & Docker",
+        description: "Containerization fundamentals, Dockerfiles, and image layer caching.",
+        orderIndex: 1,
+        lessons: [
+          {
+            id: "les_cld_101",
+            moduleId: "mod_cld_01",
+            title: "Docker Containers vs. Virtual Machines",
+            readingTimeMin: 11,
+            content: `### Containerization & Modern DevOps Architecture
+
+DevOps bridges the gap between software development and IT operations through reproducible, portable environments.
+
+#### 1. Containers vs Virtual Machines (VMs)
+* **Virtual Machines**: Include a full Guest Operating System running on top of a hypervisor (Type 1 or Type 2). High memory overhead and slow boot times (minutes).
+* **Docker Containers**: Share the host OS kernel and isolate processes using Linux **namespaces** (PID, NET, MNT) and **cgroups** (resource limits on CPU and RAM). Near-instant boot time (milliseconds).
+
+#### 2. The Anatomy of a Dockerfile:
+\`\`\`dockerfile
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --production
+COPY . .
+EXPOSE 3000
+CMD ["node", "dist/server.cjs"]
+\`\`\`
+
+#### 3. Image Layer Caching
+Each instruction in a Dockerfile creates a read-only layer. Ordering instructions from least frequently changed (dependencies) to most frequently changed (source code) optimizes rebuild speed.`,
+            assessment: {
+              question: "What primary mechanism allows Docker containers to be significantly lighter and faster than Virtual Machines?",
+              option_a: "Containers share the host operating system kernel and isolate processes using namespaces and cgroups",
+              option_b: "Containers execute without any CPU or memory allocation",
+              option_c: "Containers compile code directly into hardware firmware",
+              option_d: "Containers simulate the BIOS of the motherboard",
+              correct_option: "A",
+              explanation: "Unlike VMs that require a redundant guest OS and hypervisor translation, containers leverage the host Linux kernel directly with namespace and cgroup boundaries."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "crs_btech_cyber_01",
+    title: "Cybersecurity & Network Defense",
+    code: "CSE-SEC304",
+    category: "Computer Science",
+    educationLevel: "B.Tech",
+    branchStream: "Computer Science, Cybersecurity & Networks",
+    description: "Explore cryptographic foundations (AES, RSA, SHA-256), SSL/TLS handshakes, OWASP Top 10 web vulnerabilities, and Zero Trust network security architectures.",
+    iconName: "Shield",
+    badgeColor: "rose",
+    estimatedHours: 20,
+    modules: [
+      {
+        id: "mod_sec_01",
+        title: "Applied Cryptography & Web Security",
+        description: "Symmetric/Asymmetric encryption, cryptographic hashes, and SQL injection prevention.",
+        orderIndex: 1,
+        lessons: [
+          {
+            id: "les_sec_101",
+            moduleId: "mod_sec_01",
+            title: "Public-Key Cryptography & Digital Signatures",
+            readingTimeMin: 12,
+            content: `### Fundamentals of Modern Cryptography
+
+Secure communication systems ensure three foundational pillars: **Confidentiality, Integrity, and Authenticity (CIA Triad)**.
+
+#### 1. Symmetric vs. Asymmetric Encryption
+* **Symmetric Encryption (e.g., AES-256, ChaCha20)**: Same shared secret key used for encryption and decryption. Fast and computationally lightweight.
+* **Asymmetric Encryption (e.g., RSA, ECC)**: Uses a mathematically linked key pair:
+  * **Public Key**: Shared openly to encrypt data.
+  * **Private Key**: Kept strictly secret by the owner to decrypt data.
+
+#### 2. Digital Signatures:
+A digital signature provides **non-repudiation and integrity**:
+1. Sender computes cryptographic hash $H(M)$ of message $M$.
+2. Sender encrypts $H(M)$ using their **Private Key** $\\to$ Signature.
+3. Receiver decrypts the signature using the sender's **Public Key** and verifies it matches $H(M)$.
+
+#### 3. Preventing SQL Injection:
+Never concatenate user inputs into SQL strings. Always use **parameterized queries**:
+\`\`\`sql
+-- Vulnerable to injection:
+-- "SELECT * FROM users WHERE email = '" + email + "'"
+
+-- Secure Parameterized Query:
+SELECT * FROM users WHERE email = ?;
+\`\`\``,
+            assessment: {
+              question: "When creating a digital signature to prove message authenticity, which key does the sender use to sign the message hash?",
+              option_a: "The receiver's public key",
+              option_b: "The sender's private key",
+              option_c: "A shared symmetric secret key",
+              option_d: "The Certificate Authority's public key",
+              correct_option: "B",
+              explanation: "The sender signs with their private key, which only they possess. Anyone with the sender's public key can verify the signature, proving authenticity and non-repudiation."
+            }
+          }
+        ]
+      }
+    ]
   }
 ];

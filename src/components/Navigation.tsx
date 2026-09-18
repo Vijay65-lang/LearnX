@@ -7,9 +7,14 @@ import {
   User,
   Sparkles,
   GraduationCap,
-  Users
+  Users,
+  Sliders,
+  Wifi,
+  WifiOff,
+  RefreshCw
 } from "lucide-react";
 import { StudentProfile } from "../types";
+import { useOfflineStatus } from "../utils/offlineManager";
 
 export type TabType = "home" | "ask" | "courses" | "progress" | "profile";
 
@@ -18,14 +23,18 @@ interface NavigationProps {
   onSelectTab: (tab: TabType) => void;
   student: StudentProfile | null;
   onOpenManifesto?: () => void;
+  onOpenComfortSettings?: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
   currentTab,
   onSelectTab,
   student,
-  onOpenManifesto
+  onOpenManifesto,
+  onOpenComfortSettings
 }) => {
+  const { isOnline, isSyncing, pendingCount, triggerSync } = useOfflineStatus(student?.id);
+
   const getLevelLabel = () => {
     if (!student) return "";
     if (student.education_level === "B.Tech" && student.btech_branch) {
@@ -58,7 +67,7 @@ export const Navigation: React.FC<NavigationProps> = ({
         id="app-header"
         className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-800 text-white px-4 py-3 sm:px-6 transition-all"
       >
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-indigo-600/30">
               LX
@@ -98,8 +107,47 @@ export const Navigation: React.FC<NavigationProps> = ({
             })}
           </nav>
 
-          {/* Team LearnX Manifesto & Profile Badge */}
+          {/* Right Action Cluster: Offline Status, Comfort Settings & Profile */}
           <div className="flex items-center gap-2">
+            {/* Offline / Cloud Status Indicator */}
+            {isOnline ? (
+              <button
+                type="button"
+                onClick={triggerSync}
+                title={pendingCount > 0 ? `${pendingCount} offline actions pending sync. Click to sync now.` : "Connected to LearnX Cloud"}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-950/50 border border-emerald-800/40 text-emerald-400 hover:bg-emerald-900/50 text-[11px] font-medium transition"
+              >
+                {isSyncing ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                )}
+                <span className="hidden lg:inline">{isSyncing ? "Syncing..." : pendingCount > 0 ? `Sync (${pendingCount})` : "Cloud Active"}</span>
+              </button>
+            ) : (
+              <div
+                title="Operating in resilient offline mode with local storage cache"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-950/60 border border-amber-800/50 text-amber-400 text-[11px] font-medium"
+              >
+                <WifiOff className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Offline Mode</span>
+              </div>
+            )}
+
+            {/* Comfort Settings Button */}
+            {onOpenComfortSettings && (
+              <button
+                id="comfort-settings-trigger"
+                onClick={onOpenComfortSettings}
+                className="p-2 rounded-xl bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-750 transition"
+                title="Study Comfort & Display Preferences"
+                aria-label="Study Comfort Settings"
+              >
+                <Sliders className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Team LearnX Manifesto */}
             {onOpenManifesto && (
               <button
                 id="header-team-manifesto-btn"
@@ -108,10 +156,11 @@ export const Navigation: React.FC<NavigationProps> = ({
                 title="Read Team LearnX Mission & Standard"
               >
                 <Users className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Team LearnX</span>
+                <span className="hidden xl:inline">Team LearnX</span>
               </button>
             )}
 
+            {/* Student Profile Badge */}
             {student && (
               <div
                 onClick={() => onSelectTab("profile")}
@@ -121,7 +170,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                   <GraduationCap className="w-3.5 h-3.5" />
                 </div>
                 <div className="text-left leading-tight hidden xs:block">
-                  <div className="text-xs font-medium text-slate-200 truncate max-w-[120px]">{student.name}</div>
+                  <div className="text-xs font-medium text-slate-200 truncate max-w-[110px]">{student.name}</div>
                   <div className="text-[10px] text-slate-400 font-mono">{getLevelLabel()}</div>
                 </div>
               </div>
