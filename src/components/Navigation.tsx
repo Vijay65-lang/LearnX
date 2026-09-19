@@ -11,7 +11,8 @@ import {
   Sliders,
   Wifi,
   WifiOff,
-  RefreshCw
+  RefreshCw,
+  ShieldCheck
 } from "lucide-react";
 import { StudentProfile } from "../types";
 import { useOfflineStatus } from "../utils/offlineManager";
@@ -24,6 +25,7 @@ interface NavigationProps {
   student: StudentProfile | null;
   onOpenManifesto?: () => void;
   onOpenComfortSettings?: () => void;
+  onOpenSecurityTrust?: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -31,7 +33,8 @@ export const Navigation: React.FC<NavigationProps> = ({
   onSelectTab,
   student,
   onOpenManifesto,
-  onOpenComfortSettings
+  onOpenComfortSettings,
+  onOpenSecurityTrust
 }) => {
   const { isOnline, isSyncing, pendingCount, triggerSync } = useOfflineStatus(student?.id);
 
@@ -132,6 +135,20 @@ export const Navigation: React.FC<NavigationProps> = ({
                 <WifiOff className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Offline Mode</span>
               </div>
+            )}
+
+            {/* Verified Safe & Security Trust Center Trigger */}
+            {onOpenSecurityTrust && (
+              <button
+                id="header-security-trust-btn"
+                onClick={onOpenSecurityTrust}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-emerald-400 text-[11px] font-medium transition"
+                title="LearnX Verified Safe: 256-Bit TLS & Zero-Leakage Privacy Protection"
+                aria-label="Security & Privacy Trust Center"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="hidden sm:inline">Verified Safe</span>
+              </button>
             )}
 
             {/* Comfort Settings Button */}

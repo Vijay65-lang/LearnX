@@ -16,6 +16,7 @@ import { ProfileView } from "./components/ProfileView";
 import { CertificateModal } from "./components/CertificateModal";
 import { TeamManifestoModal } from "./components/TeamManifestoModal";
 import { ComfortSettingsModal, ComfortSettings } from "./components/ComfortSettingsModal";
+import { SecurityTrustModal } from "./components/SecurityTrustModal";
 import { cacheAllCoursesLocally, areCoursesCachedOffline } from "./utils/offlineManager";
 import { ACADEMIC_COURSES } from "./data/coursesData";
 
@@ -39,6 +40,10 @@ export default function App() {
 
   // Team Manifesto Modal
   const [showManifesto, setShowManifesto] = useState<boolean>(false);
+
+  // Security Trust & Privacy Center Modal
+  const [showSecurityModal, setShowSecurityModal] = useState<boolean>(false);
+  const [verifyingCertId, setVerifyingCertId] = useState<string | undefined>(undefined);
 
   // Comfort Settings Modal & Preference State
   const [showComfortModal, setShowComfortModal] = useState<boolean>(false);
@@ -152,6 +157,10 @@ export default function App() {
         student={student}
         onOpenManifesto={() => setShowManifesto(true)}
         onOpenComfortSettings={() => setShowComfortModal(true)}
+        onOpenSecurityTrust={() => {
+          setVerifyingCertId(undefined);
+          setShowSecurityModal(true);
+        }}
       />
 
       {/* Main View Container with mobile bottom clearance */}
@@ -165,6 +174,10 @@ export default function App() {
               setCurrentTab(tab);
             }}
             onAskTopic={handleAskTopic}
+            onOpenSecurityTrust={() => {
+              setVerifyingCertId(undefined);
+              setShowSecurityModal(true);
+            }}
           />
         )}
 
@@ -223,8 +236,22 @@ export default function App() {
         <CertificateModal
           certificate={selectedCertificate}
           onClose={() => setSelectedCertificate(null)}
+          onVerifySeal={(certNumber) => {
+            setVerifyingCertId(certNumber);
+            setShowSecurityModal(true);
+          }}
         />
       )}
+
+      {/* Security & Trust Center Modal */}
+      <SecurityTrustModal
+        isOpen={showSecurityModal}
+        onClose={() => {
+          setShowSecurityModal(false);
+          setVerifyingCertId(undefined);
+        }}
+        initialCertId={verifyingCertId}
+      />
     </div>
   );
 }

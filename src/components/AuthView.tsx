@@ -1,7 +1,21 @@
 import React, { useState } from "react";
-import { GraduationCap, ArrowRight, Lock, Mail, User, BookOpen, AlertCircle } from "lucide-react";
+import {
+  GraduationCap,
+  ArrowRight,
+  Lock,
+  Mail,
+  User,
+  BookOpen,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  CheckCircle2,
+  Sparkles
+} from "lucide-react";
 import { EducationLevel, StudentProfile } from "../types";
 import { registerStudent, loginStudent } from "../api";
+import { SecurityTrustModal } from "./SecurityTrustModal";
 
 interface AuthViewProps {
   onAuthenticated: (student: StudentProfile) => void;
@@ -11,6 +25,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
   const [isLogin, setIsLogin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showTrustModal, setShowTrustModal] = useState(false);
 
   // Form states
   const [name, setName] = useState("");
@@ -27,19 +43,38 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
   const [btechYear, setBtechYear] = useState("3rd Year");
   const [btechSemester, setBtechSemester] = useState("1st Semester");
 
+  // Password Strength Calculation
+  const calculatePasswordStrength = (pass: string) => {
+    if (!pass) return { score: 0, label: "Enter Password", color: "bg-slate-700" };
+    let score = 0;
+    if (pass.length >= 6) score += 1;
+    if (pass.length >= 8) score += 1;
+    if (/[A-Z]/.test(pass) && /[a-z]/.test(pass)) score += 1;
+    if (/[0-9]/.test(pass) || /[^A-Za-z0-9]/.test(pass)) score += 1;
+
+    if (score <= 1) return { score: 1, label: "Weak", color: "bg-rose-500" };
+    if (score === 2) return { score: 2, label: "Fair", color: "bg-amber-500" };
+    if (score === 3) return { score: 3, label: "Good", color: "bg-indigo-400" };
+    return { score: 4, label: "Strong & Secure", color: "bg-emerald-400" };
+  };
+
+  const passwordStrength = calculatePasswordStrength(password);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
+      const cleanEmail = email.trim();
+
       if (isLogin) {
-        const res = await loginStudent({ email, password });
+        const res = await loginStudent({ email: cleanEmail, password });
         onAuthenticated(res.student);
       } else {
         const payload = {
-          name,
-          email,
+          name: name.trim(),
+          email: cleanEmail,
           password,
           education_level: educationLevel,
           school_grade: educationLevel === "School" ? schoolGrade : undefined,
@@ -55,6 +90,28 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
       }
     } catch (err: any) {
       setError(err.message || "Authentication failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInstantGuestAccess = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const guestRoll = "guest_" + Math.random().toString(36).substring(2, 8);
+      const res = await registerStudent({
+        name: "Student Scholar",
+        email: `${guestRoll}@learnx.org`,
+        password: "LearnXStudentPass2026!",
+        education_level: "B.Tech",
+        btech_branch: "Computer Science & Engineering",
+        btech_year: "3rd Year",
+        btech_semester: "1st Semester"
+      });
+      onAuthenticated(res.student);
+    } catch (err: any) {
+      setError("Unable to start guest session: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -150,7 +207,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
 
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">
-                Student Email / ID
+                Email Address
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
@@ -162,30 +219,61 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="student@example.edu"
+                  placeholder="student@example.com"
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-800/90 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-slate-300">
+                  Password
+                </label>
+                {!isLogin && password && (
+                  <span className={`text-[10px] font-semibold ${
+                    passwordStrength.score >= 3 ? "text-emerald-400" : "text-amber-400"
+                  }`}>
+                    {passwordStrength.label}
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
                   id="student-password-input"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-800/90 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  className="w-full pl-9 pr-10 py-2.5 bg-slate-800/90 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
+
+              {/* Dynamic strength meter bar */}
+              {!isLogin && password && (
+                <div className="mt-1.5 flex gap-1 items-center">
+                  {[1, 2, 3, 4].map((step) => (
+                    <div
+                      key={step}
+                      className={`h-1 flex-1 rounded-full transition-all ${
+                        step <= passwordStrength.score ? passwordStrength.color : "bg-slate-700"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             {!isLogin && (
@@ -364,12 +452,37 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
                 </>
               )}
             </button>
+
+            {/* Instant Demo / Quick Access Button */}
+            <button
+              id="auth-instant-tour-btn"
+              type="button"
+              disabled={loading}
+              onClick={handleInstantGuestAccess}
+              className="w-full py-2.5 px-3 rounded-xl text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 transition flex items-center justify-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Instant Academic Preview (1-Click Student Access)</span>
+            </button>
           </form>
+
+          {/* Privacy & Safety Guarantee Link */}
+          <div className="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+            <button
+              type="button"
+              onClick={() => setShowTrustModal(true)}
+              className="hover:text-emerald-400 transition flex items-center gap-1.5 text-slate-300 text-xs font-medium"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>View Privacy &amp; Security Shield</span>
+            </button>
+            <span className="text-[11px] text-slate-500">FERPA Aligned</span>
+          </div>
 
           {/* Student Team Manifesto Card (Requested by User) */}
           <div
             id="team-learnx-manifesto-card"
-            className="mt-6 pt-5 border-t border-slate-800 text-xs text-slate-300 space-y-3"
+            className="mt-4 pt-4 border-t border-slate-800/80 text-xs text-slate-300 space-y-3"
           >
             <div className="flex items-center gap-2 text-indigo-400 font-bold uppercase tracking-wider text-[11px]">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -390,6 +503,12 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
           </div>
         </div>
       </div>
+
+      {/* Security Trust Modal */}
+      <SecurityTrustModal
+        isOpen={showTrustModal}
+        onClose={() => setShowTrustModal(false)}
+      />
     </div>
   );
 };

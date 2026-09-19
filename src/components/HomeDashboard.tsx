@@ -9,7 +9,8 @@ import {
   CheckCircle,
   Clock,
   RefreshCw,
-  Zap
+  Zap,
+  ShieldCheck
 } from "lucide-react";
 import { StudentProfile, StudentAnalytics } from "../types";
 import { getStudentData } from "../api";
@@ -19,12 +20,14 @@ interface HomeDashboardProps {
   student: StudentProfile;
   onNavigate: (tab: "home" | "ask" | "courses" | "progress" | "profile") => void;
   onAskTopic?: (topic: string) => void;
+  onOpenSecurityTrust?: () => void;
 }
 
 export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   student,
   onNavigate,
   onAskTopic,
+  onOpenSecurityTrust,
 }) => {
   const [data, setData] = useState<StudentAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -331,6 +334,39 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
           <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-2xl text-xs text-slate-500 text-center">
             No recent activity recorded yet.
           </div>
+        )}
+      </div>
+
+      {/* 6. Institutional Security & Privacy Shield Card */}
+      <div
+        id="home-security-trust-card"
+        className="p-4 rounded-2xl bg-gradient-to-r from-slate-900/90 via-slate-900 to-indigo-950/40 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 font-medium text-slate-200">
+              <span>Academic Data Privacy &amp; Security Shield</span>
+              <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-mono border border-emerald-500/30">
+                ACTIVE
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Zero cross-account data leakage · Isolated local student storage · 256-bit TLS encryption
+            </p>
+          </div>
+        </div>
+
+        {onOpenSecurityTrust && (
+          <button
+            type="button"
+            onClick={onOpenSecurityTrust}
+            className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 text-xs font-semibold transition shrink-0 self-end sm:self-auto"
+          >
+            Trust Center
+          </button>
         )}
       </div>
     </div>

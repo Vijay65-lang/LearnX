@@ -213,22 +213,29 @@ function setActiveStudent(student: StudentProfile | null) {
   }
 }
 
-export function clearAllStudentSessionData(): void {
+export function clearAllStudentSessionData(targetStudentId?: string): void {
   try {
     if (typeof window !== "undefined" && window.localStorage) {
+      const globalPreservedKeys = new Set([
+        "learnx_preferred_model",
+        "learnx_ollama_endpoint",
+        "learnx_comfort_settings",
+        "learnx_offline_courses_cache",
+        "learnx_pending_sync_queue",
+        LOCAL_STUDENTS_KEY,
+      ]);
+
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && (key.startsWith("learnx_") || key.startsWith("lx_"))) {
-          // Preserve local engine/model settings and saved accounts list
-          if (
-            key === "learnx_preferred_model" ||
-            key === "learnx_ollama_endpoint" ||
-            key === LOCAL_STUDENTS_KEY
-          ) {
-            continue;
+        if (!key) continue;
+        if (globalPreservedKeys.has(key)) continue;
+
+        // If targetStudentId is provided, ONLY remove keys that end with that student's id
+        if (targetStudentId) {
+          if (key.endsWith(`_${targetStudentId}`)) {
+            keysToRemove.push(key);
           }
-          keysToRemove.push(key);
         }
       }
       keysToRemove.forEach((k) => localStorage.removeItem(k));

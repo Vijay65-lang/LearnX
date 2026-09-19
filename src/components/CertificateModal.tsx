@@ -5,9 +5,10 @@ import { Certificate } from "../types";
 interface CertificateModalProps {
   certificate: Certificate | null;
   onClose: () => void;
+  onVerifySeal?: (certId: string) => void;
 }
 
-export const CertificateModal: React.FC<CertificateModalProps> = ({ certificate, onClose }) => {
+export const CertificateModal: React.FC<CertificateModalProps> = ({ certificate, onClose, onVerifySeal }) => {
   const [downloadingImage, setDownloadingImage] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
@@ -237,15 +238,43 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ certificate,
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-800/50 text-emerald-300 text-[11px] font-mono">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Verified Certificate: {certificate.certificate_id}</span>
-            </div>
+            {onVerifySeal ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onVerifySeal(certificate.certificate_id);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-800/50 text-emerald-300 text-[11px] font-mono transition cursor-pointer"
+                title="Verify this certificate in the Security Trust Registry"
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>Verified: {certificate.certificate_id} · Verify Registry</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-800/50 text-emerald-300 text-[11px] font-mono">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>Verified Certificate: {certificate.certificate_id}</span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Modal Controls */}
         <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+          {/* Verify Seal in Registry */}
+          {onVerifySeal && (
+            <button
+              onClick={() => {
+                onClose();
+                onVerifySeal(certificate.certificate_id);
+              }}
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-750 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-semibold shadow-sm transition"
+            >
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>Verify Seal</span>
+            </button>
+          )}
           {/* Download Image Button */}
           <button
             onClick={handleDownloadPNG}
