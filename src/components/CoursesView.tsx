@@ -24,7 +24,8 @@ import {
   getLesson,
   completeLesson,
   createCourse,
-  getLocalCertificates
+  getLocalCertificates,
+  submitQuestionAttempt
 } from "../api";
 import { W3CodeRunner } from "./W3CodeRunner";
 import { CertificateModal } from "./CertificateModal";
@@ -671,9 +672,26 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ student, onViewCertifi
                   {!assessmentResult ? (
                     <button
                       disabled={!selectedAssessmentOption}
-                      onClick={() => {
+                      onClick={async () => {
                         const correct = selectedAssessmentOption === lessonAssessment.correct_option;
                         setAssessmentResult({ is_correct: correct });
+
+                        // Record quiz attempt to sync with student's mastery records & Knowledge Gaps visualization
+                        try {
+                          await submitQuestionAttempt({
+                            question_id: `q_les_${activeLesson.id}`,
+                            subject: selectedCourse?.subject || selectedCourse?.branch_stream || "General",
+                            topic: selectedCourse?.title || activeLesson.title,
+                            concept: activeLesson.title,
+                            difficulty: "Medium",
+                            selected_answer: selectedAssessmentOption,
+                            correct_answer: lessonAssessment.correct_option,
+                            response_time: 15,
+                          });
+                        } catch (attemptErr) {
+                          console.warn("Could not save lesson quiz attempt:", attemptErr);
+                        }
+
                         if (correct) {
                           handleCompleteLesson(activeLesson.id);
                         }

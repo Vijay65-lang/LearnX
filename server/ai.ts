@@ -1563,7 +1563,8 @@ export async function generateValidatedExplanation(
   educationLevel?: string,
   preferredModel?: string,
   ollamaEndpoint?: string,
-  streamBranch?: string
+  streamBranch?: string,
+  syllabusNotes?: string
 ): Promise<ExplanationResult> {
   // 1. If it is a friendly greeting or conversational inquiry
   if (analysis.is_conversational || isGreetingOrChitchat(question)) {
@@ -1744,16 +1745,21 @@ Hope that makes it super clear! Let me know if you want to dive deeper into any 
           ollamaStatus.models.find((m) => m.toLowerCase().includes("qwen")) || "qwen2.5:1.5b";
       }
 
+      const syllabusGuidance = syllabusNotes && syllabusNotes.trim().length > 0
+        ? `\nSTUDENT'S UPLOADED SUBJECT SYLLABUS & CURRICULUM NOTES:\n"""\n${syllabusNotes.slice(0, 3000)}\n"""\nCRITICAL: Strictly adhere to and ground your answer in these student-provided syllabus notes to ensure 100% academic alignment.\n`
+        : "";
+
       const systemPrompt = `You are LearnX AI, a warm, encouraging, and brilliant academic mentor like ChatGPT.
 STUDENT ACADEMIC LEVEL: ${educationLevel || "Intermediate"} (${streamBranch || "MPC"})
 SUBJECT: ${analysis.detected_subject}
-TOPIC: ${analysis.detected_topic}
+TOPIC: ${analysis.detected_topic}${syllabusGuidance}
 
 CRITICAL RULES:
-1. Explain this strictly according to the student's selected academic grade (${educationLevel}) and stream (${streamBranch}).
-2. If the student is in Intermediate MPC, you MUST use Class 11/12 senior secondary Mathematics, Physics, or Chemistry context, Intermediate Board syllabus, and JEE Main / EAMCET standards.
-3. NEVER assume Computer Science & Engineering (CSE), university software engineering, coding, or compilers unless the student explicitly asks a coding question.
-4. Tone: Friendly, conversational, encouraging, and easy to understand (like ChatGPT).`;
+1. Ensure 100% factual, scientific, and mathematical accuracy. Verify every formula, theorem, calculation step, and definition before answering. Never state incorrect or hallucinated facts.
+2. Explain this strictly according to the student's selected academic grade (${educationLevel}) and stream (${streamBranch}).
+3. If the student is in Intermediate MPC, you MUST use Class 11/12 senior secondary Mathematics, Physics, or Chemistry context, Intermediate Board syllabus, and JEE Main / EAMCET standards.
+4. NEVER assume Computer Science & Engineering (CSE), university software engineering, coding, or compilers unless the student explicitly asks a coding question.
+5. Tone: Friendly, conversational, encouraging, and easy to understand (like ChatGPT).`;
 
       const prompt = `Student Question: "${question}"\nSubject: ${analysis.detected_subject}\nTopic: ${analysis.detected_topic}\nConcept: ${analysis.detected_concept}`;
       const ollamaResponse = await queryOllama(
@@ -1780,25 +1786,31 @@ CRITICAL RULES:
     const ai = getAI();
     if (ai) {
       try {
-        const prompt = `You are LearnX AI, a friendly, enthusiastic, and clear academic tutor just like ChatGPT.
+        const syllabusContextPrompt = syllabusNotes && syllabusNotes.trim().length > 0
+          ? `\nSTUDENT'S VERIFIED SYLLABUS & CURRICULUM NOTES:\n"""\n${syllabusNotes.slice(0, 4000)}\n"""\nIMPORTANT: Use the student's uploaded syllabus notes above as your primary academic reference ground truth. Ensure all terminology, derivations, formulas, and units match this curriculum exactly.`
+          : "";
+
+        const prompt = `You are LearnX AI, a friendly, enthusiastic, mathematically rigorous, and crystal-clear academic tutor.
 STUDENT CONTEXT:
 - Academic Level: "${educationLevel || "Intermediate"}"
 - Stream / Branch: "${streamBranch || "MPC"}"
 - Subject: "${analysis.detected_subject}"
 - Topic: "${analysis.detected_topic}"
-- Concept: "${analysis.detected_concept}"
+- Concept: "${analysis.detected_concept}"${syllabusContextPrompt}
 
 Student Question: "${question}"
 
-CRITICAL INSTRUCTION:
-- You MUST explain this strictly according to the student's selected academic grade (${educationLevel}) and stream (${streamBranch}).
+CRITICAL ACCURACY & GROUNDING INSTRUCTIONS:
+- You MUST ensure 100% scientific, mathematical, and conceptual correctness. Triple-check every formula, equation, step-by-step arithmetic, sign convention, and unit.
+- If solving a numerical problem, show every algebraic step clearly with the correct final answer highlighted.
+- Explain this strictly according to the student's selected academic grade (${educationLevel}) and stream (${streamBranch}).
 - If the student is in Intermediate MPC, you MUST use Class 11/12 senior secondary Mathematics, Physics, or Chemistry context, Intermediate Board syllabus, and JEE Main / EAMCET standards.
 - DO NOT default to or mention Computer Science & Engineering (CSE), university software engineering, coding, or compilers unless the student explicitly asks for code!
 - Tone: Friendly, conversational, encouraging, and easy to understand (like ChatGPT).
 - Structure:
   1. Warm conversational opening with the intuitive 'In Plain English' concept definition suited to ${educationLevel} (${streamBranch}).
   2. A relatable real-world analogy.
-  3. Clear, step-by-step explanation of how it works.
+  3. Clear, step-by-step explanation of how it works (with precise laws, formulas, and diagrams in ASCII or LaTeX where applicable).
   4. A concrete example (with math/science problem walkthrough, formula, or real-life application).
   5. Memorable key takeaways for Board exams, competitive tests, or interviews.`;
 
@@ -1984,7 +1996,8 @@ export async function generateValidatedMCQ(
   ollamaEndpoint?: string,
   questionIndex: number = 1,
   previousQuestions: string[] = [],
-  streamBranch?: string
+  streamBranch?: string,
+  syllabusNotes?: string
 ): Promise<GeneratedMCQ> {
   const qNum = Math.max(1, questionIndex);
   const computedDifficulty: "Easy" | "Medium" | "Hard" =
@@ -2039,9 +2052,12 @@ export async function generateValidatedMCQ(
         targetModel =
           ollamaStatus.models.find((m) => m.toLowerCase().includes("qwen")) || "qwen2.5:1.5b";
       }
-      const prompt = `Generate multiple-choice question #${qNum} testing "${concept}" in ${subject} (${topic}).
-Difficulty: ${computedDifficulty}.
+      const syllabusPromptSnippet = syllabusNotes ? `\nSTUDENT'S UPLOADED SUBJECT SYLLABUS & NOTES:\n"""${syllabusNotes.slice(0, 1500)}"""\nBase the question directly on concepts or problems outlined in these uploaded notes to test the student on their exact academic curriculum.\n` : "";
+      const prompt = `Generate a 100% mathematically and factually accurate multiple-choice question #${qNum} testing "${concept}" in ${subject} (${topic}).
+Academic Level: ${educationLevel}${streamBranch ? ` (${streamBranch})` : ""}.
+Difficulty: ${computedDifficulty}.${syllabusPromptSnippet}
 Previous questions to NOT repeat: ${previousQuestions.slice(-3).join(" | ")}.
+CRITICAL: The question, options, and explanation must be scientifically and factually correct.
 Return ONLY a raw JSON object with:
 {
   "question_text": "Question testing ${concept}",
@@ -2094,10 +2110,17 @@ Return ONLY a raw JSON object with:
     if (ai) {
       try {
         const prevQText = previousQuestions.slice(-3).map((q) => `"${q}"`).join(", ");
-        const prompt = `Generate a high-quality academic multiple-choice question (#${qNum}) testing "${concept}" in ${subject} (${topic}).
-Difficulty level: ${computedDifficulty}.
+        const syllabusSnippet = syllabusNotes ? `\nSTUDENT'S UPLOADED SUBJECT SYLLABUS & NOTES:\n"""${syllabusNotes.slice(0, 1500)}"""\nBase the question directly on concepts or problems outlined in these uploaded notes to test the student on their exact academic curriculum.\n` : "";
+        const prompt = `Generate a 100% mathematically and scientifically accurate multiple-choice question (#${qNum}) testing "${concept}" in ${subject} (${topic}).
+Academic Level: ${educationLevel}${streamBranch ? ` (${streamBranch})` : ""}.
+Difficulty level: ${computedDifficulty}.${syllabusSnippet}
 ${prevQText ? `Do NOT repeat or closely rephrase any of these previous questions: ${prevQText}.` : ""}
-Create 4 realistic, distinct options (A, B, C, D) with exactly one clearly correct option and 3 plausible distractors.
+CRITICAL ACCURACY REQUIREMENT:
+- The question must be factually and conceptually correct.
+- Verify every formula, value, equation, and unit.
+- Exactly ONE option must be strictly correct. The other 3 must be plausible but definitively incorrect.
+- The explanation must clearly show the derivation or reasoning confirming the correct choice.
+Create 4 realistic, distinct options (A, B, C, D).
 
 Return ONLY a raw JSON object with no markdown fences, matching this schema:
 {

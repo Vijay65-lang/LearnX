@@ -7,10 +7,14 @@ import {
   AlertTriangle,
   Award,
   CheckCircle,
+  CheckCircle2,
   Clock,
   RefreshCw,
   Zap,
-  ShieldCheck
+  ShieldCheck,
+  Trophy,
+  Flame,
+  ChevronRight
 } from "lucide-react";
 import { StudentProfile, StudentAnalytics } from "../types";
 import { getStudentData } from "../api";
@@ -18,7 +22,7 @@ import { Leaderboard } from "./Leaderboard";
 
 interface HomeDashboardProps {
   student: StudentProfile;
-  onNavigate: (tab: "home" | "ask" | "courses" | "progress" | "profile") => void;
+  onNavigate: (tab: "home" | "ask" | "quiz" | "courses" | "progress" | "profile") => void;
   onAskTopic?: (topic: string) => void;
   onOpenSecurityTrust?: () => void;
 }
@@ -107,12 +111,28 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               <span>Ask a Study Doubt</span>
             </button>
             <button
+              id="dashboard-cta-quiz"
+              onClick={() => onNavigate("quiz")}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition shadow-md shadow-purple-600/30 active:scale-95"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Take Quiz Test</span>
+            </button>
+            <button
               id="dashboard-cta-courses"
               onClick={() => onNavigate("courses")}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 text-xs font-semibold transition"
             >
               <BookOpen className="w-4 h-4" />
               <span>Browse Courses</span>
+            </button>
+            <button
+              id="dashboard-cta-milestones"
+              onClick={() => onNavigate("progress")}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-950/60 hover:bg-amber-900/60 border border-amber-600/40 text-amber-300 text-xs font-semibold transition"
+            >
+              <Trophy className="w-4 h-4 text-amber-400" />
+              <span>Mastery Milestones</span>
             </button>
           </div>
         </div>
@@ -212,10 +232,19 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
 
       {/* 3. Topics Needing Improvement (Section 4) */}
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold tracking-tight text-slate-200 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-rose-400" />
-          Topics Needing Improvement
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold tracking-tight text-slate-200 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-400" />
+            Topics Needing Improvement
+          </h2>
+          <button
+            onClick={() => onNavigate("progress")}
+            className="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1 transition"
+          >
+            <span>Detailed Knowledge Gaps</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
         {weakTopics.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {weakTopics.map((item) => (

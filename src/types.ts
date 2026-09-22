@@ -206,3 +206,61 @@ export interface StudentAnalytics {
   certificates: Certificate[];
   recentActivities: LearningActivity[];
 }
+
+export type MilestoneCategory = "streak" | "courses" | "mastery" | "inquiry";
+export type MilestoneTier = "Bronze" | "Silver" | "Gold" | "Diamond";
+
+export interface MilestoneBadge {
+  id: string;
+  title: string;
+  description: string;
+  category: MilestoneCategory;
+  tier: MilestoneTier;
+  iconName: string;
+  targetValue: number;
+  currentValue: number;
+  unit: string;
+  unlocked: boolean;
+  unlockedAt?: string;
+}
+
+export type GapSeverity = "Critical" | "Moderate" | "Low";
+
+export interface KnowledgeGap {
+  id: string;
+  subject: string;
+  topic: string;
+  concept?: string;
+  accuracy: number;
+  attempts: number;
+  correctCount: number;
+  mistakes: number;
+  severity: GapSeverity;
+  recentMistakeSnippet?: string;
+  reviewPrompt: string;
+  lastAttemptedAt?: string;
+}
+
+export interface CustomSubjectContext {
+  id: string;
+  student_id: string;
+  subject_name: string;
+  subject_code?: string;
+  education_level: EducationLevel;
+  branch_stream?: string;
+  syllabus_notes: string;
+  selected_topics: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuizTestSummary {
+  subject: string;
+  topic: string;
+  totalQuestions: number;
+  correctCount: number;
+  scorePercentage: number;
+  timeSpentSeconds: number;
+  date: string;
+}
+

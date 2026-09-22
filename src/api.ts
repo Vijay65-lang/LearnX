@@ -878,7 +878,9 @@ export async function askStudyDoubt(
   chatId?: string,
   model?: AIModelType,
   ollamaEndpoint?: string,
-  studentProfile?: Partial<StudentProfile>
+  studentProfile?: Partial<StudentProfile>,
+  syllabusNotes?: string,
+  subjectName?: string
 ): Promise<AskResponse> {
   const currentStudent = studentProfile || getActiveStudent();
   try {
@@ -890,6 +892,8 @@ export async function askStudyDoubt(
         model,
         ollama_endpoint: ollamaEndpoint,
         student_profile: currentStudent,
+        syllabus_notes: syllabusNotes,
+        subject_name: subjectName,
       }),
     });
 
@@ -968,6 +972,7 @@ export async function generateNextMCQ(payload: {
   ollama_endpoint?: string;
   education_level?: string;
   stream_branch?: string;
+  syllabus_notes?: string;
 }): Promise<{
   mcq: GeneratedMCQ & {
     id: string;
@@ -1952,3 +1957,96 @@ export async function setLeaderboardPrivacy(privacy: boolean): Promise<{
     body: JSON.stringify({ privacy }),
   });
 }
+
+/* ============================================================
+   CUSTOM SUBJECTS & SYLLABUS UPLOAD (FOR AI STRENGTHENING)
+   ============================================================ */
+
+import { CustomSubjectContext } from "./types";
+
+export function getLocalCustomSubjects(): CustomSubjectContext[] {
+  try {
+    const raw = localStorage.getItem(getStudentStorageKey("custom_subjects"));
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalCustomSubjects(subjects: CustomSubjectContext[]) {
+  try {
+    localStorage.setItem(getStudentStorageKey("custom_subjects"), JSON.stringify(subjects));
+  } catch {}
+}
+
+export async function getCustomSubjects(): Promise<{ customSubjects: CustomSubjectContext[] }> {
+  const localList = getLocalCustomSubjects();
+  try {
+    const res = await request<{ customSubjects: CustomSubjectContext[] }>("/student/custom-subjects");
+    if (res?.customSubjects) {
+      saveLocalCustomSubjects(res.customSubjects);
+      return res;
+    }
+  } catch {
+    // Return local offline
+  }
+  return { customSubjects: localList };
+}
+
+export async function saveCustomSubject(payload: {
+  subject_name: string;
+  subject_code?: string;
+  education_level: string;
+  branch_stream?: string;
+  syllabus_notes: string;
+  selected_topics: string[];
+}): Promise<{ success: boolean; id: string; message: string }> {
+  const localList = getLocalCustomSubjects();
+  const activeStudent = getActiveStudent();
+  const newSubject: CustomSubjectContext = {
+    id: "csubj_" + Date.now(),
+    student_id: activeStudent?.id || "anon",
+    subject_name: payload.subject_name,
+    subject_code: payload.subject_code,
+    education_level: payload.education_level as any,
+    branch_stream: payload.branch_stream,
+    syllabus_notes: payload.syllabus_notes,
+    selected_topics: payload.selected_topics,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  // Upsert locally
+  const filtered = localList.filter((s) => s.subject_name.toLowerCase() !== payload.subject_name.toLowerCase());
+  filtered.unshift(newSubject);
+  saveLocalCustomSubjects(filtered);
+
+  try {
+    const res = await request<{ success: boolean; id: string; message: string }>("/student/custom-subjects", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return res;
+  } catch {
+    return {
+      success: true,
+      id: newSubject.id,
+      message: `AI knowledge successfully strengthened locally for ${payload.subject_name}!`,
+    };
+  }
+}
+
+export async function deleteCustomSubject(id: string): Promise<{ success: boolean }> {
+  const localList = getLocalCustomSubjects();
+  const updated = localList.filter((s) => s.id !== id);
+  saveLocalCustomSubjects(updated);
+
+  try {
+    return await request<{ success: boolean }>(`/student/custom-subjects/${id}`, {
+      method: "DELETE",
+    });
+  } catch {
+    return { success: true };
+  }
+}
+

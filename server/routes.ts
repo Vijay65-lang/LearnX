@@ -360,12 +360,32 @@ apiRouter.get("/ai/ollama-status", async (req: Request, res: Response) => {
 
 apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const { question, chat_id, model, ollama_endpoint, student_profile } = req.body;
+    const { question, chat_id, model, ollama_endpoint, student_profile, syllabus_notes, subject_name } = req.body;
     if (!question || typeof question !== "string" || !question.trim()) {
       return res.status(400).json({ error: "Study question is required." });
     }
 
     let profile = get("SELECT * FROM student_profiles WHERE student_id = ?", [req.studentId]);
+
+    // If syllabus_notes not in req.body, check if student has any saved custom subject matching the doubt
+    let effectiveSyllabusNotes = syllabus_notes || "";
+    if (!effectiveSyllabusNotes && req.studentId) {
+      try {
+        const savedSubjs = query(
+          `SELECT subject_name, syllabus_notes FROM student_custom_subjects WHERE student_id = ? ORDER BY updated_at DESC`,
+          [req.studentId]
+        );
+        if (savedSubjs && savedSubjs.length > 0) {
+          const matched = savedSubjs.find((s: any) =>
+            (subject_name && s.subject_name.toLowerCase().includes(subject_name.toLowerCase())) ||
+            question.toLowerCase().includes(s.subject_name.toLowerCase())
+          ) || savedSubjs[0]; // Ground with latest custom subject
+          if (matched) {
+            effectiveSyllabusNotes = matched.syllabus_notes;
+          }
+        }
+      } catch {}
+    }
 
     // Sync student_profile if provided by client (handles immediate grade changes)
     if (student_profile && typeof student_profile === "object") {
@@ -482,7 +502,8 @@ apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) =
       effectiveEducationLevel,
       model,
       ollama_endpoint,
-      effectiveStream
+      effectiveStream,
+      effectiveSyllabusNotes
     );
 
     // Save doubt to database (Section 8) - Guarded for resilient response
@@ -534,7 +555,8 @@ apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) =
           ollama_endpoint,
           1,
           [],
-          effectiveStream
+          effectiveStream,
+          effectiveSyllabusNotes
         );
 
         // Save question in questions table so student can attempt it
@@ -690,7 +712,8 @@ apiRouter.post("/ai/mcq/generate-next", requireAuth, async (req: AuthRequest, re
       question_index,
       previous_questions,
       model,
-      ollama_endpoint
+      ollama_endpoint,
+      syllabus_notes
     } = req.body;
 
     if (!concept && !topic && !subject) {
@@ -718,7 +741,8 @@ apiRouter.post("/ai/mcq/generate-next", requireAuth, async (req: AuthRequest, re
       ollama_endpoint,
       qIndex,
       Array.isArray(previous_questions) ? previous_questions : [],
-      targetStream
+      targetStream,
+      syllabus_notes
     );
 
     // Save question in questions table so student can attempt it
@@ -753,6 +777,83 @@ apiRouter.post("/ai/mcq/generate-next", requireAuth, async (req: AuthRequest, re
   } catch (err: any) {
     console.error("Generate next MCQ error:", err);
     return res.status(500).json({ error: "Failed to generate next question." });
+  }
+});
+
+// Custom Subject Details Management for AI Strengthening
+apiRouter.get("/student/custom-subjects", requireAuth, (req: AuthRequest, res: Response) => {
+  try {
+    const list = query(
+      `SELECT * FROM student_custom_subjects WHERE student_id = ? ORDER BY updated_at DESC`,
+      [req.studentId]
+    );
+    const parsed = list.map((item: any) => ({
+      ...item,
+      selected_topics: item.selected_topics ? JSON.parse(item.selected_topics) : []
+    }));
+    return res.json({ customSubjects: parsed });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to load custom subjects." });
+  }
+});
+
+apiRouter.post("/student/custom-subjects", requireAuth, (req: AuthRequest, res: Response) => {
+  try {
+    const { subject_name, subject_code, education_level, branch_stream, syllabus_notes, selected_topics } = req.body;
+    if (!subject_name || !syllabus_notes) {
+      return res.status(400).json({ error: "Subject name and syllabus notes are required." });
+    }
+
+    const id = "csubj_" + crypto.randomUUID();
+    const topicsJson = JSON.stringify(Array.isArray(selected_topics) ? selected_topics : []);
+
+    run(
+      `INSERT INTO student_custom_subjects (
+        id, student_id, subject_name, subject_code, education_level, branch_stream,
+        syllabus_notes, selected_topics
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        req.studentId,
+        subject_name.trim(),
+        subject_code?.trim() || null,
+        education_level || "Student",
+        branch_stream || null,
+        syllabus_notes.trim(),
+        topicsJson
+      ]
+    );
+
+    // Also record an activity
+    run(
+      `INSERT INTO learning_activity (id, student_id, activity_type, description, subject, topic)
+       VALUES (?, ?, 'uploaded_syllabus', ?, ?, ?)`,
+      [
+        "act_" + crypto.randomUUID(),
+        req.studentId,
+        `Strengthened AI on custom syllabus for ${subject_name.trim()}`,
+        subject_name.trim(),
+        "Custom Subject Material"
+      ]
+    );
+
+    return res.status(201).json({
+      success: true,
+      id,
+      message: `AI knowledge successfully strengthened for ${subject_name}!`
+    });
+  } catch (err: any) {
+    console.error("Error saving custom subject:", err);
+    return res.status(500).json({ error: "Failed to save subject details." });
+  }
+});
+
+apiRouter.delete("/student/custom-subjects/:id", requireAuth, (req: AuthRequest, res: Response) => {
+  try {
+    run(`DELETE FROM student_custom_subjects WHERE id = ? AND student_id = ?`, [req.params.id, req.studentId]);
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to delete custom subject." });
   }
 });
 
@@ -1385,3 +1486,77 @@ apiRouter.post("/leaderboard/privacy", requireAuth, (req: AuthRequest, res: Resp
     return res.json({ success: true, privacy: Boolean(req.body.privacy) });
   }
 });
+
+// Custom Subjects & Syllabus Upload Endpoints (AI Strengthening)
+apiRouter.get("/student/custom-subjects", requireAuth, (req: AuthRequest, res: Response) => {
+  try {
+    const subjects = query(
+      `SELECT * FROM student_custom_subjects WHERE student_id = ? ORDER BY created_at DESC`,
+      [req.studentId]
+    ) || [];
+
+    const mapped = subjects.map((s: any) => ({
+      ...s,
+      selected_topics: s.selected_topics ? JSON.parse(s.selected_topics) : []
+    }));
+
+    return res.json({ customSubjects: mapped });
+  } catch (err: any) {
+    return res.json({ customSubjects: [] });
+  }
+});
+
+apiRouter.post("/student/custom-subjects", requireAuth, (req: AuthRequest, res: Response) => {
+  try {
+    const {
+      subject_name,
+      subject_code,
+      education_level,
+      branch_stream,
+      syllabus_notes,
+      selected_topics
+    } = req.body;
+
+    if (!subject_name || !syllabus_notes) {
+      return res.status(400).json({ error: "Subject name and syllabus notes are required." });
+    }
+
+    const id = "csubj_" + crypto.randomUUID();
+    const topicsJson = JSON.stringify(Array.isArray(selected_topics) ? selected_topics : []);
+
+    run(
+      `INSERT INTO student_custom_subjects (
+        id, student_id, subject_name, subject_code, education_level, branch_stream, syllabus_notes, selected_topics
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        req.studentId,
+        subject_name.trim(),
+        subject_code ? subject_code.trim() : null,
+        education_level || "Student",
+        branch_stream || null,
+        syllabus_notes.trim(),
+        topicsJson
+      ]
+    );
+
+    return res.json({
+      success: true,
+      id,
+      message: `AI knowledge successfully strengthened for ${subject_name}!`
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to save custom subject: " + err.message });
+  }
+});
+
+apiRouter.delete("/student/custom-subjects/:id", requireAuth, (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    run(`DELETE FROM student_custom_subjects WHERE id = ? AND student_id = ?`, [id, req.studentId]);
+    return res.json({ success: true });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to delete custom subject." });
+  }
+});
+

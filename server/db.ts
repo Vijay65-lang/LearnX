@@ -353,6 +353,20 @@ export async function initDatabase() {
       completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS student_custom_subjects (
+      id TEXT PRIMARY KEY,
+      student_id TEXT NOT NULL,
+      subject_name TEXT NOT NULL,
+      subject_code TEXT,
+      education_level TEXT NOT NULL,
+      branch_stream TEXT,
+      syllabus_notes TEXT NOT NULL,
+      selected_topics TEXT DEFAULT '[]',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+    );
   `);
 
   try {

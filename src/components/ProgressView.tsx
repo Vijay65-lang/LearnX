@@ -16,17 +16,22 @@ import {
 import { StudentProfile, StudentAnalytics, MasteryRecord, Certificate } from "../types";
 import { getStudentData } from "../api";
 import { generateProgressReportPDF } from "../utils/pdfReport";
+import { MasteryMilestones } from "./MasteryMilestones";
+import { KnowledgeGapsVisualization } from "./KnowledgeGapsVisualization";
+import { analyzeKnowledgeGaps } from "../utils/knowledgeGapsAnalyzer";
 
 interface ProgressViewProps {
   student: StudentProfile;
   onViewCertificate?: (cert: Certificate) => void;
   onAskTopic?: (topic: string) => void;
+  onNavigateTab?: (tab: "home" | "ask" | "courses" | "progress" | "profile") => void;
 }
 
 export const ProgressView: React.FC<ProgressViewProps> = ({
   student,
   onViewCertificate,
   onAskTopic,
+  onNavigateTab,
 }) => {
   const [data, setData] = useState<StudentAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,6 +95,19 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
   const masteryRecords = data?.masteryRecords || [];
   const repeatedDoubts = data?.repeatedDoubts || [];
   const certificates = data?.certificates || [];
+
+  // Analyze knowledge gaps from student's past quiz results and attempts
+  const knowledgeGaps = React.useMemo(() => {
+    return analyzeKnowledgeGaps(masteryRecords);
+  }, [masteryRecords]);
+
+  const handleReviewKnowledgeGap = (prompt: string, topic: string) => {
+    if (onAskTopic) {
+      onAskTopic(topic);
+    } else if (onNavigateTab) {
+      onNavigateTab("ask");
+    }
+  };
 
   return (
     <div id="progress-view" className="max-w-5xl mx-auto px-4 py-6 sm:px-6 space-y-6 pb-24 md:pb-12 text-slate-100">
@@ -179,6 +197,24 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
           <span className="text-[10px] text-slate-500 font-mono">Response speed</span>
         </div>
       </div>
+
+      {/* Mastery Milestones & Digital Badges Component */}
+      {data && (
+        <MasteryMilestones
+          analytics={data}
+          onNavigateTab={onNavigateTab}
+          onDataRefresh={loadData}
+        />
+      )}
+
+      {/* Knowledge Gaps & Targeted Review Visualization */}
+      <KnowledgeGapsVisualization
+        gaps={knowledgeGaps}
+        totalAttempts={stats?.totalAttempts || 0}
+        overallAccuracy={stats?.overallAccuracy || 0}
+        onReviewTopic={handleReviewKnowledgeGap}
+        onNavigateToCourses={() => onNavigateTab && onNavigateTab("courses")}
+      />
 
       {/* Topic Mastery Grid (Section 15) */}
       <div className="space-y-3">

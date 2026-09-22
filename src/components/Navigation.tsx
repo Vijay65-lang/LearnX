@@ -12,12 +12,13 @@ import {
   Wifi,
   WifiOff,
   RefreshCw,
-  ShieldCheck
+  ShieldCheck,
+  CheckSquare
 } from "lucide-react";
 import { StudentProfile } from "../types";
 import { useOfflineStatus } from "../utils/offlineManager";
 
-export type TabType = "home" | "ask" | "courses" | "progress" | "profile";
+export type TabType = "home" | "ask" | "quiz" | "courses" | "progress" | "profile";
 
 interface NavigationProps {
   currentTab: TabType;
@@ -58,6 +59,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   const navItems: Array<{ id: TabType; label: string; icon: React.ReactNode }> = [
     { id: "home", label: "Home", icon: <Home className="w-5 h-5" /> },
     { id: "ask", label: "Ask AI", icon: <Sparkles className="w-5 h-5" /> },
+    { id: "quiz", label: "Quiz Test", icon: <CheckSquare className="w-5 h-5" /> },
     { id: "courses", label: "Courses", icon: <BookOpen className="w-5 h-5" /> },
     { id: "progress", label: "Progress", icon: <BarChart2 className="w-5 h-5" /> },
     { id: "profile", label: "Profile", icon: <User className="w-5 h-5" /> },
@@ -201,7 +203,7 @@ export const Navigation: React.FC<NavigationProps> = ({
         id="app-bottom-nav"
         className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur border-t border-slate-800 px-2 py-1.5 shadow-2xl safe-area-bottom"
       >
-        <div className="max-w-md mx-auto grid grid-cols-5 gap-1">
+        <div className="max-w-lg mx-auto grid grid-cols-6 gap-1">
           {navItems.map((item) => {
             const active = currentTab === item.id;
             return (

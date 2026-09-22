@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import { StudentAnalytics } from "../types";
+import { analyzeKnowledgeGaps } from "./knowledgeGapsAnalyzer";
 
 export function generateProgressReportPDF(data: StudentAnalytics) {
   const doc = new jsPDF({
@@ -367,6 +368,75 @@ export function generateProgressReportPDF(data: StudentAnalytics) {
       }
 
       y += 7.5;
+    });
+    y += 5;
+  }
+
+  // ==========================================
+  // 5B. TARGETED KNOWLEDGE GAPS & REVIEW RECOMMENDATIONS
+  // ==========================================
+  const detectedGaps = analyzeKnowledgeGaps(masteryRecords || []);
+  if (detectedGaps.length > 0) {
+    checkPageBreak(45);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Detected Knowledge Gaps & Review Priority", margin, y);
+    y += 5;
+
+    // Table header
+    doc.setFillColor(254, 242, 242); // rose-50
+    doc.rect(margin, y, contentWidth, 7, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(159, 18, 57); // rose-900
+    doc.text("TOPIC & SUB-CONCEPT", margin + 3, y + 4.8);
+    doc.text("SUBJECT", margin + 80, y + 4.8);
+    doc.text("ACCURACY & MISTAKES", margin + 120, y + 4.8);
+    doc.text("REVIEW PRIORITY", margin + 165, y + 4.8);
+    y += 7;
+
+    detectedGaps.forEach((gap) => {
+      checkPageBreak(9);
+
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(241, 245, 249);
+      doc.setLineWidth(0.2);
+      doc.rect(margin, y, contentWidth, 8, "FD");
+
+      // Topic & Sub-concept
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      doc.setTextColor(15, 23, 42);
+      const gapTitle = gap.concept && gap.concept !== gap.topic ? `${gap.topic} (${gap.concept})` : gap.topic;
+      doc.text(gapTitle.length > 38 ? gapTitle.slice(0, 36) + "..." : gapTitle, margin + 3, y + 5);
+
+      // Subject
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(71, 85, 105);
+      doc.text(gap.subject.length > 20 ? gap.subject.slice(0, 18) + "..." : gap.subject, margin + 80, y + 5);
+
+      // Accuracy & Mistakes
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(gap.severity === "Critical" ? 225 : 217, gap.severity === "Critical" ? 29 : 119, gap.severity === "Critical" ? 72 : 6);
+      doc.text(`${gap.accuracy}% (${gap.mistakes} misses / ${gap.attempts} tries)`, margin + 120, y + 5);
+
+      // Priority Badge
+      doc.setFontSize(7);
+      if (gap.severity === "Critical") {
+        doc.setTextColor(225, 29, 72);
+        doc.text("CRITICAL", margin + 165, y + 5);
+      } else if (gap.severity === "Moderate") {
+        doc.setTextColor(217, 119, 6);
+        doc.text("MODERATE", margin + 165, y + 5);
+      } else {
+        doc.setTextColor(37, 99, 235);
+        doc.text("LOW", margin + 165, y + 5);
+      }
+
+      y += 8;
     });
     y += 5;
   }

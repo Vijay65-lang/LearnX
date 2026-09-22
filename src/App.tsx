@@ -10,6 +10,7 @@ import { Navigation, TabType } from "./components/Navigation";
 import { AuthView } from "./components/AuthView";
 import { HomeDashboard } from "./components/HomeDashboard";
 import { AskAI } from "./components/AskAI";
+import { QuizView } from "./components/QuizView";
 import { CoursesView } from "./components/CoursesView";
 import { ProgressView } from "./components/ProgressView";
 import { ProfileView } from "./components/ProfileView";
@@ -189,6 +190,14 @@ export default function App() {
           />
         )}
 
+        {currentTab === "quiz" && (
+          <QuizView
+            key={student.id}
+            student={student}
+            onAskTopic={handleAskTopic}
+          />
+        )}
+
         {currentTab === "courses" && (
           <CoursesView
             key={student.id}
@@ -203,6 +212,7 @@ export default function App() {
             student={student}
             onViewCertificate={(cert) => setSelectedCertificate(cert)}
             onAskTopic={handleAskTopic}
+            onNavigateTab={(tab) => setCurrentTab(tab)}
           />
         )}
 
