@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   BarChart2,
   Download,
@@ -36,6 +36,16 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
   const [data, setData] = useState<StudentAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const masteryRecords = data?.masteryRecords || [];
+  const stats = data?.stats;
+  const repeatedDoubts = data?.repeatedDoubts || [];
+  const certificates = data?.certificates || [];
+
+  // Analyze knowledge gaps from student's past quiz results and attempts (Hook called unconditionally)
+  const knowledgeGaps = useMemo(() => {
+    return analyzeKnowledgeGaps(masteryRecords);
+  }, [masteryRecords]);
 
   useEffect(() => {
     loadData();
@@ -90,16 +100,6 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
       </div>
     );
   }
-
-  const stats = data?.stats;
-  const masteryRecords = data?.masteryRecords || [];
-  const repeatedDoubts = data?.repeatedDoubts || [];
-  const certificates = data?.certificates || [];
-
-  // Analyze knowledge gaps from student's past quiz results and attempts
-  const knowledgeGaps = React.useMemo(() => {
-    return analyzeKnowledgeGaps(masteryRecords);
-  }, [masteryRecords]);
 
   const handleReviewKnowledgeGap = (prompt: string, topic: string) => {
     if (onAskTopic) {
