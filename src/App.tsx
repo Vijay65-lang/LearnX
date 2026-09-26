@@ -175,6 +175,7 @@ export default function App() {
               setCurrentTab(tab);
             }}
             onAskTopic={handleAskTopic}
+            onViewCertificate={(cert) => setSelectedCertificate(cert)}
             onOpenSecurityTrust={() => {
               setVerifyingCertId(undefined);
               setShowSecurityModal(true);

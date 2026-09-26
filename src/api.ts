@@ -456,12 +456,55 @@ export async function updateProfile(
 ): Promise<{
   student: StudentProfile;
 }> {
-  return request<{
-    student: StudentProfile;
-  }>("/auth/profile", {
-    method: "PUT",
-    body: JSON.stringify(payload),
-  });
+  try {
+    const res = await request<{
+      student: StudentProfile;
+    }>("/auth/profile", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+
+    if (res?.student) {
+      setActiveStudent(res.student);
+      const localStudents = getLocalStudents();
+      const idx = localStudents.findIndex(
+        (s) => s.id === res.student.id || s.email?.toLowerCase() === res.student.email?.toLowerCase()
+      );
+      if (idx >= 0) {
+        localStudents[idx] = { ...localStudents[idx], ...res.student };
+      } else {
+        localStudents.push(res.student);
+      }
+      saveLocalStudents(localStudents);
+    }
+    return res;
+  } catch (err: any) {
+    console.warn("Backend updateProfile failed or offline, updating local profile resiliently:", err);
+
+    const currentStudent = getActiveStudent();
+    const updatedStudent: StudentProfile = {
+      ...(currentStudent || {}),
+      ...(payload as any),
+      id: currentStudent?.id || "std_" + Math.random().toString(36).substring(2, 10),
+      email: currentStudent?.email || "student@learnx.edu",
+      name: payload.name?.trim() || currentStudent?.name || "Student Learner",
+      education_level: payload.education_level || currentStudent?.education_level || "B.Tech",
+    };
+
+    setActiveStudent(updatedStudent);
+    const localStudents = getLocalStudents();
+    const idx = localStudents.findIndex(
+      (s) => s.id === updatedStudent.id || s.email?.toLowerCase() === updatedStudent.email?.toLowerCase()
+    );
+    if (idx >= 0) {
+      localStudents[idx] = { ...localStudents[idx], ...updatedStudent };
+    } else {
+      localStudents.push(updatedStudent);
+    }
+    saveLocalStudents(localStudents);
+
+    return { student: updatedStudent };
+  }
 }
 
 /* ============================================================
@@ -792,61 +835,393 @@ You can pass any custom message to \`print()\`, or try printing variables and ca
     };
   }
 
-  // Dynamic explanation without rigid boilerplate
-  let structuredBody = "";
-  if (isExplicitProgramming) {
-    structuredBody = `#### 💻 Core Concept
-**${concept}** allows developers to write structured, readable, and efficient solutions in ${topic}.
+  // 2. High-Yield Student Concept Explanations (Crystal-Clear, Easy, and 100% Accurate)
+
+  // 2.1 Newton's Laws of Motion
+  if (qLower.includes("newton") || qLower.includes("laws of motion") || qLower.includes("inertia")) {
+    return {
+      doubtId: "dbt_newton_" + Date.now(),
+      explanation: `### 🚀 Newton's 3 Laws of Motion (Made Super Simple!)
+*Intermediate / School Physics · Classical Mechanics*
 
 ---
 
-#### 🔍 Practical Intuition
-Think of this like an instruction manual or workflow: each command is executed sequentially, managing inputs, state, and outputs predictably.
+#### 🎯 What are Newton's Laws in Plain English?
+Newton's three laws explain **why things move, why they stop, and how forces interact** in the real world.
 
 ---
 
-#### ⚙️ Key Mechanics
-- **Clarity & Syntax**: Follow clean language conventions and proper naming.
-- **Logic & Execution**: Trace variables step-by-step through execution flow.
-- **Edge Cases**: Always consider empty values, boundary limits, and unexpected inputs.`;
-  } else if (isMPC || subject.includes("Physics") || subject.includes("Chemistry") || subject.includes("Math")) {
-    structuredBody = `#### 💡 Conceptual Intuition
-**${concept}** in **${subject}** explains how physical or mathematical systems behave under specific conditions. Understanding the physical picture first helps you remember formulas effortlessly.
+#### 🌟 The 3 Laws with Everyday Real-World Examples:
+
+1. **1st Law (Law of Inertia) — "Objects are Lazy!"**
+   - **Rule**: An object at rest stays at rest, and an object moving at constant speed keeps moving in a straight line, *unless an outside force pushes or pulls it*.
+   - **Simple Example**: When you are in a car and the driver suddenly slams the brakes, your body lurches forward. That's inertia! Your body wants to keep moving at the car's original speed.
+   - **Formula**: Net Force $\\Sigma F = 0 \\implies$ Acceleration $a = 0$.
+
+2. **2nd Law ($F = ma$) — "Harder Push = Faster Acceleration!"**
+   - **Rule**: The acceleration of an object depends directly on the net force applied, and inversely on its mass.
+   - **Simple Example**: Pushing an empty supermarket shopping cart is easy (small mass $\\implies$ high acceleration). Pushing a cart loaded with 50 kg of groceries takes much more force to accelerate!
+   - **Formula**: $\\vec{F} = m \\cdot \\vec{a}$
+     - $F$ = Force (measured in Newtons, N)
+     - $m$ = Mass (in kilograms, kg)
+     - $a$ = Acceleration (in $m/s^2$)
+
+3. **3rd Law (Action & Reaction) — "Forces Always Come in Pairs!"**
+   - **Rule**: For every action force, there is an equal and opposite reaction force.
+   - **Simple Example**: When a rocket burns fuel, exhaust gases blast **downward** with immense force (Action). In reaction, the rocket is propelled **upward** into the sky (Reaction)!
+   - **Formula**: $\\vec{F}_{AB} = -\\vec{F}_{BA}$
 
 ---
 
-#### 🔬 Physical / Mathematical Reasoning
-- **Fundamental Law**: The underlying principle connects initial conditions to resulting observable behavior.
-- **Key Relationships**: Notice which variables increase or decrease together (proportionalities and ratios).
-- **Core Insights**: Connect the theory directly to observable real-world phenomena.`;
-  } else {
-    structuredBody = `#### 💡 Core Idea
-**${concept}** is a cornerstone of **${topic}**. It provides the framework needed to analyze, categorize, and solve domain-specific problems.
-
----
-
-#### 🔍 Clear Intuition
-Think of it like building blocks: mastering this foundational concept allows you to understand more advanced topics with ease.`;
+#### 💡 Easy Memory Trick & Key Exam Tip:
+- **1st Law**: What happens when Force = 0 (Inertia).
+- **2nd Law**: What happens when Force $\\neq 0$ ($F = ma$).
+- **3rd Law**: Action = -Reaction (Two different bodies, never cancel out).`,
+      detected_subject: "Physics",
+      detected_topic: "Laws of Motion & Mechanics",
+      detected_concept: "Newton's Laws of Motion",
+      validation_passed: true,
+      is_conversational: false,
+      mcq: {
+        id: "q_newton_" + Date.now(),
+        subject: "Physics",
+        topic: "Laws of Motion & Mechanics",
+        concept: "Newton's Laws of Motion",
+        question_text: "According to Newton's Second Law of Motion, if you apply a force of 20 N to a 4 kg cart on a frictionless floor, what is its acceleration?",
+        option_a: "5 m/s² (using a = F / m = 20 / 4)",
+        option_b: "80 m/s²",
+        option_c: "0.2 m/s²",
+        option_d: "16 m/s²",
+        correct_option: "A",
+        explanation: "By Newton's 2nd Law, F = m * a. Rearranging gives a = F / m = 20 N / 4 kg = 5 m/s².",
+        difficulty: "Easy"
+      }
+    };
   }
 
-  const examHeader = isMPC
-    ? "🎓 Key Takeaways for Intermediate Exams (Board / JEE / EAMCET)"
-    : "🎓 Key Exam Takeaways";
+  // 2.2 Ohm's Law (V = IR)
+  if (qLower.includes("ohm") || qLower.includes("v = ir") || qLower.includes("resistance") || qLower.includes("voltage") && qLower.includes("current")) {
+    return {
+      doubtId: "dbt_ohm_" + Date.now(),
+      explanation: `### ⚡ Ohm's Law: $V = IR$ (Made Simple & Intuitive!)
+*Physics & Electronics · Current Electricity*
 
+---
+
+#### 🎯 What is Ohm's Law in Plain English?
+Ohm's Law is the most famous rule in electricity! It states that the electric current ($I$) flowing through a conductor is **directly proportional to the voltage ($V$)** applied across it, provided the temperature remains constant.
+
+---
+
+#### 🚰 The Simple Water Pipe Analogy:
+Think of electricity like water flowing through a garden pipe:
+- **Voltage ($V$)**: The water pressure from the tap pushing the water.
+- **Current ($I$)**: The rate of water actually flowing through the pipe.
+- **Resistance ($R$)**: How narrow the pipe is or if someone steps on the hose, restricting the flow!
+
+The higher the pressure ($V$), the more water flows ($I$). But the more the pipe resists ($R$), the less water can get through!
+
+---
+
+#### 📐 The Golden Formula:
+$$\\mathbf{V = I \\times R}$$
+- **$V$ (Voltage)**: Measured in **Volts ($V$)** — the electrical potential push.
+- **$I$ (Current)**: Measured in **Amperes ($A$)** — the flow of electric charge.
+- **$R$ (Resistance)**: Measured in **Ohms ($\\Omega$)** — opposition to the current.
+
+#### 📝 Easy Numerical Example:
+If a small light bulb is connected to a **$12\\text{V}$ battery** and its filament has a resistance of **$4\\,\\Omega$**:
+$$I = \\frac{V}{R} = \\frac{12\\text{V}}{4\\,\\Omega} = \\mathbf{3\\text{ Amperes}}$$
+
+---
+
+#### 💡 Easy Memory Triangle Trick:
+Cover the letter you want to find:
+- Want $V$? $\\implies I \\times R$
+- Want $I$? $\\implies V / R$
+- Want $R$? $\\implies V / I$`,
+      detected_subject: "Physics",
+      detected_topic: "Current Electricity",
+      detected_concept: "Ohm's Law (V = IR)",
+      validation_passed: true,
+      is_conversational: false,
+      mcq: {
+        id: "q_ohm_" + Date.now(),
+        subject: "Physics",
+        topic: "Current Electricity",
+        concept: "Ohm's Law",
+        question_text: "A circuit has a voltage of 9V and a resistor of 3 Ohms. According to Ohm's Law (I = V / R), what is the current flowing?",
+        option_a: "3 Amperes",
+        option_b: "27 Amperes",
+        option_c: "0.33 Amperes",
+        option_d: "12 Amperes",
+        correct_option: "A",
+        explanation: "Using Ohm's Law, I = V / R = 9V / 3Ω = 3A.",
+        difficulty: "Easy"
+      }
+    };
+  }
+
+  // 2.3 Photosynthesis
+  if (qLower.includes("photosynthesis") || qLower.includes("plant") && qLower.includes("food")) {
+    return {
+      doubtId: "dbt_photo_" + Date.now(),
+      explanation: `### 🌿 Photosynthesis (How Plants Make Food Explained Simply!)
+*Biology & Life Sciences · Plant Physiology*
+
+---
+
+#### 🎯 What is Photosynthesis in Plain English?
+**Photosynthesis** (Photo = Light, Synthesis = Putting Together) is the miraculous biological process by which green plants use **sunlight energy** to convert **water** and **carbon dioxide** into **sugar (glucose food)** and release **oxygen** for us to breathe!
+
+---
+
+#### 🍳 The Plant's Kitchen Analogy:
+Think of a plant leaf like a green solar-powered kitchen:
+- **Ingredients**: Water from the roots ($H_2O$) + Carbon dioxide from air ($CO_2$).
+- **Chef & Stove**: Green pigment called **chlorophyll** inside **chloroplasts** captures sunlight heat/energy.
+- **Finished Meal**: Delicious energy-rich sugar (**glucose**), with fresh **oxygen gas ($O_2$)** as the clean byproduct!
+
+---
+
+#### 🔬 The Master Chemical Equation:
+$$\\mathbf{6CO_2 + 6H_2O + \\text{Sunlight} \\longrightarrow C_6H_{12}O_6 + 6O_2}$$
+
+1. **Light Reaction (Daytime in Thylakoids)**: Sunlight splits water molecules ($H_2O \\to H^+ + O_2$) and produces energy packets (ATP & NADPH).
+2. **Dark Reaction / Calvin Cycle (in Stroma)**: Uses ATP energy to combine $CO_2$ and hydrogen into glucose sugar ($C_6H_{12}O_6$).
+
+---
+
+#### 💡 Easy Memory Tip for Exams:
+- Plants take in what animals exhale ($CO_2$).
+- Plants give out what animals need to survive ($O_2$).
+- Key organelle: **Chloroplast** containing green **Chlorophyll**.`,
+      detected_subject: "Biology",
+      detected_topic: "Plant Physiology & Life Systems",
+      detected_concept: "Photosynthesis Process",
+      validation_passed: true,
+      is_conversational: false,
+      mcq: {
+        id: "q_photo_" + Date.now(),
+        subject: "Biology",
+        topic: "Plant Physiology",
+        concept: "Photosynthesis",
+        question_text: "What gas is absorbed by green plants from the atmosphere during photosynthesis, and what gas is released?",
+        option_a: "Absorbs Carbon Dioxide (CO2) and releases Oxygen (O2)",
+        option_b: "Absorbs Oxygen and releases Carbon Dioxide",
+        option_c: "Absorbs Nitrogen and releases Methane",
+        option_d: "Absorbs Hydrogen and releases Carbon Dioxide",
+        correct_option: "A",
+        explanation: "Plants take in Carbon Dioxide (6CO2) through leaf stomata and release Oxygen (6O2) as a byproduct of water photolysis.",
+        difficulty: "Easy"
+      }
+    };
+  }
+
+  // 2.4 Quadratic Equations
+  if (qLower.includes("quadratic") || qLower.includes("ax^2") || qLower.includes("ax2") || qLower.includes("b^2 - 4ac")) {
+    return {
+      doubtId: "dbt_quad_" + Date.now(),
+      explanation: `### 📐 Quadratic Equations (Solved Step-by-Step!)
+*Mathematics · Algebra*
+
+---
+
+#### 🎯 What is a Quadratic Equation?
+A quadratic equation is an algebraic equation of degree 2 (meaning the highest power of $x$ is $x^2$).
+The standard form is:
+$$\\mathbf{ax^2 + bx + c = 0 \\quad (a \\neq 0)}$$
+
+---
+
+#### 🪜 How to Solve Any Quadratic Equation:
+
+#### Method 1: The Universal Quadratic Formula (Never Fails!)
+$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$
+
+- **The Discriminant ($D = b^2 - 4ac$)**:
+  - If $D > 0$: 2 distinct real solutions.
+  - If $D = 0$: Exactly 1 real repeated root ($x = -b / 2a$).
+  - If $D < 0$: 2 complex/imaginary roots.
+
+#### Method 2: Factoring Example:
+Solve $x^2 - 5x + 6 = 0$:
+1. Find two numbers that **multiply to $+6$** and **add to $-5$**:
+   - The numbers are **$-2$ and $-3$**!
+2. Rewrite as: $(x - 2)(x - 3) = 0$
+3. Either $(x - 2) = 0 \\implies \\mathbf{x = 2}$
+4. Or $(x - 3) = 0 \\implies \\mathbf{x = 3}$
+✨ Solutions are $x = 2$ and $x = 3$!`,
+      detected_subject: "Mathematics",
+      detected_topic: "Algebra & Equations",
+      detected_concept: "Quadratic Equations",
+      validation_passed: true,
+      is_conversational: false,
+      mcq: {
+        id: "q_quad_" + Date.now(),
+        subject: "Mathematics",
+        topic: "Algebra",
+        concept: "Quadratic Equations",
+        question_text: "What are the roots of the quadratic equation x² - 7x + 12 = 0?",
+        option_a: "x = 3 and x = 4 (since 3 * 4 = 12 and 3 + 4 = 7)",
+        option_b: "x = -3 and x = -4",
+        option_c: "x = 2 and x = 6",
+        option_d: "x = 1 and x = 12",
+        correct_option: "A",
+        explanation: "Factoring (x - 3)(x - 4) = 0 yields x = 3 and x = 4.",
+        difficulty: "Easy"
+      }
+    };
+  }
+
+  // 2.5 Speed vs Velocity
+  if (qLower.includes("speed") && qLower.includes("velocity")) {
+    return {
+      doubtId: "dbt_spd_vel_" + Date.now(),
+      explanation: `### 🏃 Speed vs Velocity (The Key Difference Explained Simply!)
+*Physics · Kinematics*
+
+---
+
+#### 🎯 In One Sentence:
+- **Speed** is *how fast* you are moving (e.g. $60\\text{ km/h}$).
+- **Velocity** is *how fast AND in what direction* you are moving (e.g. $60\\text{ km/h}$ heading **North**)!
+
+---
+
+#### 📊 Quick Comparison Table:
+| Feature | Speed (Scalar) | Velocity (Vector) |
+| :--- | :--- | :--- |
+| **Quantity Type** | Scalar (Magnitude only) | Vector (Magnitude + Direction) |
+| **Formula** | $\\text{Speed} = \\frac{\\text{Total Distance}}{\\text{Time}}$ | $\\vec{v} = \\frac{\\text{Displacement}}{\\text{Time}}$ |
+| **Can it be zero on a round trip?** | No! You traveled distance. | **Yes!** If you return to the start, displacement = 0! |
+| **Can it be negative?** | Never negative. | Can be positive or negative (indicating backward direction). |
+| **SI Unit** | Meters per second ($m/s$) | Meters per second ($m/s$) |
+
+---
+
+#### 🏎️ The Running Track Analogy:
+If you run around a $400\\text{m}$ circular track and finish right where you started in $80\\text{ seconds}$:
+- Your **Average Speed** = $\\frac{400\\text{m}}{80\\text{s}} = \\mathbf{5\\text{ m/s}}$.
+- Your **Average Velocity** = $\\frac{0\\text{m (Displacement)}}{80\\text{s}} = \\mathbf{0\\text{ m/s}}$!`,
+      detected_subject: "Physics",
+      detected_topic: "Kinematics & Motion",
+      detected_concept: "Speed vs Velocity",
+      validation_passed: true,
+      is_conversational: false,
+      mcq: {
+        id: "q_spd_vel_" + Date.now(),
+        subject: "Physics",
+        topic: "Kinematics",
+        concept: "Speed vs Velocity",
+        question_text: "A runner completes one full circular lap of 400 meters and stops at the starting line. What is their net displacement and average velocity?",
+        option_a: "Displacement is 0 meters and average velocity is 0 m/s",
+        option_b: "Displacement is 400 meters and average velocity is 400 m/s",
+        option_c: "Displacement is 200 meters and average velocity is positive",
+        option_d: "Displacement cannot be calculated",
+        correct_option: "A",
+        explanation: "Because the runner returns to the exact starting point, the net change in position (displacement) is 0, making average velocity 0 m/s.",
+        difficulty: "Easy"
+      }
+    };
+  }
+
+  // 2.6 Python Loops
+  if (qLower.includes("loop") || (qLower.includes("python") && (qLower.includes("for") || qLower.includes("while")))) {
+    return {
+      doubtId: "dbt_py_loops_" + Date.now(),
+      explanation: `### 🔁 Python Loops (For & While Loops Made Easy!)
+*Computer Science & Programming · Python*
+
+---
+
+#### 🎯 What is a Loop in Plain English?
+A loop tells the computer: *"Do this block of instructions repeatedly until I tell you to stop!"* Instead of copying and pasting the same line 100 times, you write 2 lines of code.
+
+---
+
+#### 1. The \`for\` Loop (When you know how many times to repeat)
+Used to iterate over a list, range of numbers, or string:
+
+\`\`\`python
+# Print numbers from 1 to 5:
+for i in range(1, 6):
+    print(f"Count: {i}")
+
+# Loop over a list:
+fruits = ["Apple", "Banana", "Mango"]
+for fruit in fruits:
+    print(f"I love {fruit}!")
+\`\`\`
+
+---
+
+#### 2. The \`while\` Loop (Repeat as long as a condition is True)
+Runs repeatedly until the condition turns False:
+
+\`\`\`python
+countdown = 3
+while countdown > 0:
+    print(f"T-minus {countdown}...")
+    countdown -= 1  # Decrease count by 1 each time!
+
+print("Blastoff! 🚀")
+\`\`\`
+
+---
+
+#### 💡 Key Loop Controls:
+- \`break\`: Exit the loop immediately.
+- \`continue\`: Skip the rest of this current turn and jump straight to the next loop iteration.`,
+      detected_subject: "Computer Science & Programming",
+      detected_topic: "Control Flow & Iteration",
+      detected_concept: "Python Loops (for & while)",
+      validation_passed: true,
+      is_code_generation: true,
+      is_conversational: false,
+      mcq: {
+        id: "q_py_loops_" + Date.now(),
+        subject: "Computer Science",
+        topic: "Python Programming",
+        concept: "Loops",
+        question_text: "What will `for i in range(3): print(i)` output in Python?",
+        option_a: "0, 1, 2 on separate lines (range starts at 0 and stops before 3)",
+        option_b: "1, 2, 3",
+        option_c: "0, 1, 2, 3",
+        option_d: "3, 2, 1",
+        correct_option: "A",
+        explanation: "Python range(n) starts at 0 by default and stops at n - 1. Thus range(3) produces 0, 1, and 2.",
+        difficulty: "Easy"
+      }
+    };
+  }
+
+  // 3. Dynamic Student-Friendly Explanation for Any Other Subject
   const friendlyExplanation = `### 📚 ${concept}
 *${subject} · ${topic}*
 
 ---
 
-${structuredBody}
+#### 💡 In Plain English (Easy Concept Breakdown):
+**${concept}** is a core principle in **${subject}**. It gives us a clear, logical way to understand how things work and solve questions step-by-step without memorizing blind formulas.
 
 ---
 
-#### ${examHeader}
-- Build intuitive understanding first before memorizing exact definitions.
-- Focus on key terms, governing equations, and real-world relevance.
-- Try solving a related problem to lock this knowledge into permanent memory!`;
+#### 🔍 Everyday Intuition & Analogy:
+Think of learning **${concept}** like learning the rules of a sport: once you know how the pieces move, the game becomes fun, predictable, and easy to score top marks!
 
+---
+
+#### ⚙️ How It Works (Step-by-Step):
+1. **Understand the Goal**: Identify what the question asks and the given parameters.
+2. **Follow the Method**: Apply the standard definition or rule of ${topic} methodically.
+3. **Verify the Result**: Check units, signs, and verify that the final answer makes physical or mathematical sense.
+
+---
+
+#### 🎓 Easy Exam Takeaway:
+- Focus on understanding the core idea first before memorizing derivations.
+- Remember the primary units, formulas, and definitions for full step marks in your exams!`;
 
   return {
     doubtId: "dbt_local_" + Date.now(),
@@ -861,13 +1236,13 @@ ${structuredBody}
       subject: subject,
       topic: topic,
       concept: concept,
-      question_text: `What is the most effective way to master "${concept}" in ${subject}?`,
-      option_a: "Understand the real-life intuition, follow step-by-step logic, and solve sample practice questions",
-      option_b: "Blindly memorize formulas without understanding what they mean",
+      question_text: `When studying "${concept}" in ${subject}, what is the most effective approach for deep retention?`,
+      option_a: "Understand the real-world intuition, follow step-by-step logic, and solve sample practice questions",
+      option_b: "Blindly memorize formulas without understanding what the variables mean",
       option_c: "Skip reading the question and immediately guess an option",
-      option_d: "Ignore the fundamentals and rely entirely on luck in exams",
+      option_d: "Rely solely on luck in exams",
       correct_option: "A",
-      explanation: `Connecting the intuition with methodical practice is the proven, stress-free path to mastering ${concept}!`,
+      explanation: `Connecting real-world intuition with methodical practice is the proven, stress-free path to mastering ${concept}!`,
       difficulty: "Easy"
     }
   };
@@ -880,7 +1255,8 @@ export async function askStudyDoubt(
   ollamaEndpoint?: string,
   studentProfile?: Partial<StudentProfile>,
   syllabusNotes?: string,
-  subjectName?: string
+  subjectName?: string,
+  easyMode: boolean = true
 ): Promise<AskResponse> {
   const currentStudent = studentProfile || getActiveStudent();
   try {
@@ -894,6 +1270,7 @@ export async function askStudyDoubt(
         student_profile: currentStudent,
         syllabus_notes: syllabusNotes,
         subject_name: subjectName,
+        easy_mode: easyMode,
       }),
     });
 

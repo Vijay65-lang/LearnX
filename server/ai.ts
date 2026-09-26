@@ -1564,7 +1564,8 @@ export async function generateValidatedExplanation(
   preferredModel?: string,
   ollamaEndpoint?: string,
   streamBranch?: string,
-  syllabusNotes?: string
+  syllabusNotes?: string,
+  easyMode: boolean = true
 ): Promise<ExplanationResult> {
   // 1. If it is a friendly greeting or conversational inquiry
   if (analysis.is_conversational || isGreetingOrChitchat(question)) {
@@ -1581,7 +1582,7 @@ export async function generateValidatedExplanation(
 
   // 1.3. Dedicated Code Generation Handler (Bypasses academic lecturing)
   if (analysis.intent === "CODE_GENERATION" || analysis.is_code_generation) {
-    const ai = preferredModel !== "academic-engine" ? getAI() : null;
+    const ai = getAI();
     if (ai) {
       try {
         const codePrompt = `You are LearnX AI, a friendly, modern coding mentor and world-class software engineer (with the conversational warmth and precision of ChatGPT/Claude).
@@ -1592,7 +1593,7 @@ INSTRUCTIONS:
 2. Provide the COMPLETE, self-contained, working code inside appropriate markdown code blocks (e.g. \`\`\`html or \`\`\`python). If they asked for a game, single-file HTML, or calculator, write the full HTML5 + CSS + JavaScript in ONE complete, runnable file.
 3. Provide a clear "How to Run" section with numbered steps.
 4. List the key features and mechanics included.
-5. NEVER include academic textbook boilerplate like "Identify What is Given", "Real-Life Analogy", "Core Programming Fundamentals", or "Key Exam Takeaways". Keep it focused, practical, and immediately usable.`;
+5. Keep it simple, clean, and immediately usable.`;
 
         const codeText = await callGeminiWithFallback(codePrompt, 12000);
         if (codeText && codeText.trim().length > 60) {
@@ -1668,7 +1669,111 @@ INSTRUCTIONS:
     }
   }
 
-  // 2. Check curated Knowledge Base for high-yield, deeply verified concept matching student's grade & stream
+  // 2. Try cloud Gemini API if accessible (Primary intelligent AI tutor with easy student mode)
+  if (preferredModel !== "ollama") {
+    const ai = getAI();
+    if (ai) {
+      try {
+        const syllabusContextPrompt = syllabusNotes && syllabusNotes.trim().length > 0
+          ? `\nSTUDENT'S VERIFIED SYLLABUS & CURRICULUM NOTES:\n"""\n${syllabusNotes.slice(0, 4000)}\n"""\nIMPORTANT: Use the student's uploaded syllabus notes above as your primary academic reference ground truth. Ensure all terminology, derivations, formulas, and units match this curriculum exactly.`
+          : "";
+
+        const prompt = `You are LearnX AI, a warm, enthusiastic, crystal-clear, and mathematically rigorous academic mentor.
+STUDENT CONTEXT:
+- Academic Level: "${educationLevel || "Intermediate"}"
+- Stream / Branch: "${streamBranch || "MPC"}"
+- Subject: "${analysis.detected_subject}"
+- Topic: "${analysis.detected_topic}"
+- Concept: "${analysis.detected_concept}"${syllabusContextPrompt}
+
+Student Question: "${question}"
+
+STUDENT-FRIENDLY EASY LEARNING INSTRUCTIONS:
+- The student needs a simple, crystal-clear, easy-to-understand explanation! Avoid dense, dry, confusing academic jargon.
+- Tone: Friendly, encouraging, approachable (like an awesome tutor who makes tough concepts feel simple).
+- Ensure 100% scientific, mathematical, and conceptual correctness. Triple-check all formulas, equations, values, and units.
+- If solving a numerical problem, write each step simply and clearly with the final answer boxed or bolded.
+- Structure:
+  1. 🎯 Direct Answer in Plain English: Explain what this is in 1 to 2 simple sentences right away.
+  2. 💡 Everyday Real-World Analogy: Use a fun, simple analogy (cars, sports, daily life, food, machines) that makes the concept click instantly.
+  3. ⚙️ Step-by-Step Breakdown: 3 to 4 clear points explaining how it works. If there is a formula, explain what every symbol means in plain words (e.g. F = Force in Newtons, m = Mass in kg, a = Acceleration in m/s²).
+  4. 📝 Simple Example with Numbers or Code: A quick, realistic example walking through how to apply it.
+  5. 🎓 Easy Memory Trick / Key Exam Takeaway: A quick, memorable tip for tests and exams.`;
+
+        const explanationText = await callGeminiWithFallback(prompt, 12000);
+        if (explanationText && explanationText.trim().length > 50) {
+          return {
+            explanation: explanationText,
+            detected_subject: analysis.detected_subject,
+            detected_topic: analysis.detected_topic,
+            detected_concept: analysis.detected_concept,
+            validation_passed: true
+          };
+        }
+      } catch (err: any) {
+        if (err?.message?.includes("PERMISSION_DENIED") || err?.status === 403 || err?.code === 403) {
+          cloudApiBlockedOrRestricted = true;
+        }
+      }
+    }
+  }
+
+  // 3. If student connects Ollama local runtime with offline models (Qwen 2.5, DeepSeek R1, Llama 3.2)
+  if (
+    preferredModel === "ollama" ||
+    preferredModel === "qwen-2.5" ||
+    preferredModel === "deepseek-r1" ||
+    preferredModel === "llama-3.2"
+  ) {
+    const ollamaStatus = await checkOllamaStatus(ollamaEndpoint || "http://localhost:11434");
+    if (ollamaStatus.online) {
+      let targetModel = ollamaStatus.recommendedModel;
+      if (preferredModel === "deepseek-r1") {
+        targetModel =
+          ollamaStatus.models.find((m) => m.toLowerCase().includes("deepseek")) || "deepseek-r1:7b";
+      } else if (preferredModel === "llama-3.2") {
+        targetModel =
+          ollamaStatus.models.find((m) => m.toLowerCase().includes("llama")) || "llama3.2:3b";
+      } else if (preferredModel === "qwen-2.5") {
+        targetModel =
+          ollamaStatus.models.find((m) => m.toLowerCase().includes("qwen")) || "qwen2.5:1.5b";
+      }
+
+      const syllabusGuidance = syllabusNotes && syllabusNotes.trim().length > 0
+        ? `\nSTUDENT'S UPLOADED SUBJECT SYLLABUS & CURRICULUM NOTES:\n"""\n${syllabusNotes.slice(0, 3000)}\n"""\nCRITICAL: Strictly adhere to and ground your answer in these student-provided syllabus notes to ensure 100% academic alignment.\n`
+        : "";
+
+      const systemPrompt = `You are LearnX AI, a warm, encouraging, and brilliant academic mentor like ChatGPT.
+STUDENT ACADEMIC LEVEL: ${educationLevel || "Intermediate"} (${streamBranch || "MPC"})
+SUBJECT: ${analysis.detected_subject}
+TOPIC: ${analysis.detected_topic}${syllabusGuidance}
+
+CRITICAL RULES:
+1. Ensure 100% factual, scientific, and mathematical accuracy. Verify every formula, theorem, calculation step, and definition before answering. Never state incorrect or hallucinated facts.
+2. Make it EASY and SIMPLE for the student to understand with clear everyday analogies and step-by-step logic.
+3. Tone: Friendly, conversational, encouraging, and clear.`;
+
+      const prompt = `Student Question: "${question}"\nSubject: ${analysis.detected_subject}\nTopic: ${analysis.detected_topic}\nConcept: ${analysis.detected_concept}`;
+      const ollamaResponse = await queryOllama(
+        ollamaEndpoint || "http://localhost:11434",
+        targetModel,
+        prompt,
+        systemPrompt
+      );
+      if (ollamaResponse && ollamaResponse.length > 50) {
+        return {
+          explanation: ollamaResponse,
+          detected_subject: analysis.detected_subject,
+          detected_topic: analysis.detected_topic,
+          detected_concept: analysis.detected_concept,
+          validation_passed: true,
+          validation_notes: `Powered by offline AI model (${targetModel})`,
+        };
+      }
+    }
+  }
+
+  // 4. Check curated Knowledge Base for deeply verified high-yield concept
   const kbEntry = findKnowledgeBaseEntry(question, educationLevel, streamBranch) ||
     findKnowledgeBaseEntry(analysis.detected_concept, educationLevel, streamBranch) ||
     findKnowledgeBaseEntry(analysis.detected_topic, educationLevel, streamBranch);
@@ -1722,114 +1827,6 @@ Hope that makes it super clear! Let me know if you want to dive deeper into any 
       validation_passed: true,
       validation_notes: "Curriculum-verified precision response."
     };
-  }
-
-  // 3. If student connects Ollama local runtime with offline models (Qwen 2.5, DeepSeek R1, Llama 3.2)
-  if (
-    preferredModel === "ollama" ||
-    preferredModel === "qwen-2.5" ||
-    preferredModel === "deepseek-r1" ||
-    preferredModel === "llama-3.2"
-  ) {
-    const ollamaStatus = await checkOllamaStatus(ollamaEndpoint || "http://localhost:11434");
-    if (ollamaStatus.online) {
-      let targetModel = ollamaStatus.recommendedModel;
-      if (preferredModel === "deepseek-r1") {
-        targetModel =
-          ollamaStatus.models.find((m) => m.toLowerCase().includes("deepseek")) || "deepseek-r1:7b";
-      } else if (preferredModel === "llama-3.2") {
-        targetModel =
-          ollamaStatus.models.find((m) => m.toLowerCase().includes("llama")) || "llama3.2:3b";
-      } else if (preferredModel === "qwen-2.5") {
-        targetModel =
-          ollamaStatus.models.find((m) => m.toLowerCase().includes("qwen")) || "qwen2.5:1.5b";
-      }
-
-      const syllabusGuidance = syllabusNotes && syllabusNotes.trim().length > 0
-        ? `\nSTUDENT'S UPLOADED SUBJECT SYLLABUS & CURRICULUM NOTES:\n"""\n${syllabusNotes.slice(0, 3000)}\n"""\nCRITICAL: Strictly adhere to and ground your answer in these student-provided syllabus notes to ensure 100% academic alignment.\n`
-        : "";
-
-      const systemPrompt = `You are LearnX AI, a warm, encouraging, and brilliant academic mentor like ChatGPT.
-STUDENT ACADEMIC LEVEL: ${educationLevel || "Intermediate"} (${streamBranch || "MPC"})
-SUBJECT: ${analysis.detected_subject}
-TOPIC: ${analysis.detected_topic}${syllabusGuidance}
-
-CRITICAL RULES:
-1. Ensure 100% factual, scientific, and mathematical accuracy. Verify every formula, theorem, calculation step, and definition before answering. Never state incorrect or hallucinated facts.
-2. Explain this strictly according to the student's selected academic grade (${educationLevel}) and stream (${streamBranch}).
-3. If the student is in Intermediate MPC, you MUST use Class 11/12 senior secondary Mathematics, Physics, or Chemistry context, Intermediate Board syllabus, and JEE Main / EAMCET standards.
-4. NEVER assume Computer Science & Engineering (CSE), university software engineering, coding, or compilers unless the student explicitly asks a coding question.
-5. Tone: Friendly, conversational, encouraging, and easy to understand (like ChatGPT).`;
-
-      const prompt = `Student Question: "${question}"\nSubject: ${analysis.detected_subject}\nTopic: ${analysis.detected_topic}\nConcept: ${analysis.detected_concept}`;
-      const ollamaResponse = await queryOllama(
-        ollamaEndpoint || "http://localhost:11434",
-        targetModel,
-        prompt,
-        systemPrompt
-      );
-      if (ollamaResponse && ollamaResponse.length > 50) {
-        return {
-          explanation: ollamaResponse,
-          detected_subject: analysis.detected_subject,
-          detected_topic: analysis.detected_topic,
-          detected_concept: analysis.detected_concept,
-          validation_passed: true,
-          validation_notes: `Powered by offline AI model (${targetModel})`,
-        };
-      }
-    }
-  }
-
-  // 4. Try cloud Gemini API if configured & accessible
-  if (preferredModel !== "academic-engine") {
-    const ai = getAI();
-    if (ai) {
-      try {
-        const syllabusContextPrompt = syllabusNotes && syllabusNotes.trim().length > 0
-          ? `\nSTUDENT'S VERIFIED SYLLABUS & CURRICULUM NOTES:\n"""\n${syllabusNotes.slice(0, 4000)}\n"""\nIMPORTANT: Use the student's uploaded syllabus notes above as your primary academic reference ground truth. Ensure all terminology, derivations, formulas, and units match this curriculum exactly.`
-          : "";
-
-        const prompt = `You are LearnX AI, a friendly, enthusiastic, mathematically rigorous, and crystal-clear academic tutor.
-STUDENT CONTEXT:
-- Academic Level: "${educationLevel || "Intermediate"}"
-- Stream / Branch: "${streamBranch || "MPC"}"
-- Subject: "${analysis.detected_subject}"
-- Topic: "${analysis.detected_topic}"
-- Concept: "${analysis.detected_concept}"${syllabusContextPrompt}
-
-Student Question: "${question}"
-
-CRITICAL ACCURACY & GROUNDING INSTRUCTIONS:
-- You MUST ensure 100% scientific, mathematical, and conceptual correctness. Triple-check every formula, equation, step-by-step arithmetic, sign convention, and unit.
-- If solving a numerical problem, show every algebraic step clearly with the correct final answer highlighted.
-- Explain this strictly according to the student's selected academic grade (${educationLevel}) and stream (${streamBranch}).
-- If the student is in Intermediate MPC, you MUST use Class 11/12 senior secondary Mathematics, Physics, or Chemistry context, Intermediate Board syllabus, and JEE Main / EAMCET standards.
-- DO NOT default to or mention Computer Science & Engineering (CSE), university software engineering, coding, or compilers unless the student explicitly asks for code!
-- Tone: Friendly, conversational, encouraging, and easy to understand (like ChatGPT).
-- Structure:
-  1. Warm conversational opening with the intuitive 'In Plain English' concept definition suited to ${educationLevel} (${streamBranch}).
-  2. A relatable real-world analogy.
-  3. Clear, step-by-step explanation of how it works (with precise laws, formulas, and diagrams in ASCII or LaTeX where applicable).
-  4. A concrete example (with math/science problem walkthrough, formula, or real-life application).
-  5. Memorable key takeaways for Board exams, competitive tests, or interviews.`;
-
-        const explanationText = await callGeminiWithFallback(prompt, 12000);
-        if (explanationText && explanationText.trim().length > 50) {
-          return {
-            explanation: explanationText,
-            detected_subject: analysis.detected_subject,
-            detected_topic: analysis.detected_topic,
-            detected_concept: analysis.detected_concept,
-            validation_passed: true
-          };
-        }
-      } catch (err: any) {
-        if (err?.message?.includes("PERMISSION_DENIED") || err?.status === 403 || err?.code === 403) {
-          cloudApiBlockedOrRestricted = true;
-        }
-      }
-    }
   }
 
   // 5. Intelligent, Friendly Dynamic Synthesis (zero robotic filler)

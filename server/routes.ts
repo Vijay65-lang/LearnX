@@ -301,11 +301,22 @@ apiRouter.put("/auth/profile", requireAuth, (req: AuthRequest, res: Response) =>
       btech_semester
     } = req.body;
 
-    if (name) {
-      run("UPDATE students SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [name.trim(), req.studentId]);
+    const studentId = req.studentId!;
+
+    // 1. Ensure student exists in SQLite
+    const existingStudent = get("SELECT id, name, email FROM students WHERE id = ?", [studentId]);
+    if (!existingStudent) {
+      run(
+        `INSERT OR IGNORE INTO students (id, name, email, password_hash)
+         VALUES (?, ?, ?, ?)`,
+        [studentId, name?.trim() || "Student Learner", `student_${studentId.slice(0, 8)}@learnx.edu`, "managed_session"]
+      );
+    } else if (name) {
+      run("UPDATE students SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [name.trim(), studentId]);
     }
 
-    const existingProfile = get("SELECT id FROM student_profiles WHERE student_id = ?", [req.studentId]);
+    // 2. Ensure profile exists or insert it
+    const existingProfile = get("SELECT id FROM student_profiles WHERE student_id = ?", [studentId]);
     if (existingProfile) {
       run(
         `UPDATE student_profiles
@@ -328,23 +339,59 @@ apiRouter.put("/auth/profile", requireAuth, (req: AuthRequest, res: Response) =>
           btech_branch || null,
           btech_year || null,
           btech_semester || null,
-          req.studentId
+          studentId
+        ]
+      );
+    } else {
+      run(
+        `INSERT INTO student_profiles (
+          id, student_id, education_level, school_grade, inter_stream,
+          degree_name, degree_specialization, btech_branch, btech_year, btech_semester
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          "prf_" + studentId,
+          studentId,
+          education_level || "Intermediate",
+          school_grade || null,
+          inter_stream || null,
+          degree_name || null,
+          degree_specialization || null,
+          btech_branch || null,
+          btech_year || null,
+          btech_semester || null
         ]
       );
     }
 
-    const updated = get(
+    let updated = get(
       `SELECT s.id, s.name, s.email, p.education_level, p.school_grade, p.inter_stream,
               p.degree_name, p.degree_specialization, p.btech_branch, p.btech_year, p.btech_semester
        FROM students s
        LEFT JOIN student_profiles p ON p.student_id = s.id
        WHERE s.id = ?`,
-      [req.studentId]
+      [studentId]
     );
+
+    if (!updated) {
+      updated = {
+        id: studentId,
+        name: name || existingStudent?.name || "Student Learner",
+        email: existingStudent?.email || `student_${studentId.slice(0, 8)}@learnx.edu`,
+        education_level: education_level || "Intermediate",
+        school_grade: school_grade || null,
+        inter_stream: inter_stream || null,
+        degree_name: degree_name || null,
+        degree_specialization: degree_specialization || null,
+        btech_branch: btech_branch || null,
+        btech_year: btech_year || null,
+        btech_semester: btech_semester || null
+      };
+    }
 
     return res.json({ student: updated });
   } catch (err: any) {
-    return res.status(500).json({ error: "Failed to update profile." });
+    console.error("Profile update error:", err);
+    return res.status(500).json({ error: "Failed to update profile: " + (err?.message || "") });
   }
 });
 
@@ -360,7 +407,7 @@ apiRouter.get("/ai/ollama-status", async (req: Request, res: Response) => {
 
 apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const { question, chat_id, model, ollama_endpoint, student_profile, syllabus_notes, subject_name } = req.body;
+    const { question, chat_id, model, ollama_endpoint, student_profile, syllabus_notes, subject_name, easy_mode } = req.body;
     if (!question || typeof question !== "string" || !question.trim()) {
       return res.status(400).json({ error: "Study question is required." });
     }
@@ -503,7 +550,8 @@ apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) =
       model,
       ollama_endpoint,
       effectiveStream,
-      effectiveSyllabusNotes
+      effectiveSyllabusNotes,
+      Boolean(easy_mode)
     );
 
     // Save doubt to database (Section 8) - Guarded for resilient response

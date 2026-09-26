@@ -72,8 +72,18 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
 
   // Model Selection & Offline Model State
   const [selectedModel, setSelectedModel] = useState<AIModelType>(() => {
-    return (localStorage.getItem("learnx_preferred_model") as AIModelType) || "academic-engine";
+    return (localStorage.getItem("learnx_preferred_model") as AIModelType) || "gemini";
   });
+  const [easyMode, setEasyMode] = useState<boolean>(() => {
+    const raw = localStorage.getItem("learnx_easy_mode");
+    return raw !== null ? raw === "true" : true;
+  });
+
+  const handleToggleEasyMode = () => {
+    const nextVal = !easyMode;
+    setEasyMode(nextVal);
+    localStorage.setItem("learnx_easy_mode", String(nextVal));
+  };
   const [ollamaEndpoint, setOllamaEndpoint] = useState<string>(() => {
     return localStorage.getItem("learnx_ollama_endpoint") || "http://localhost:11434";
   });
@@ -288,7 +298,16 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
       const effectiveModel: AIModelType = (isMobile && selectedModel === "ollama") ? "academic-engine" : selectedModel;
       const effectiveEndpoint = isMobile ? undefined : ollamaEndpoint;
 
-      const res = await askStudyDoubt(questionText, activeChatId, effectiveModel, effectiveEndpoint, student);
+      const res = await askStudyDoubt(
+        questionText,
+        activeChatId,
+        effectiveModel,
+        effectiveEndpoint,
+        student,
+        undefined,
+        undefined,
+        easyMode
+      );
 
       if (res.is_unclear) {
         const clarificationMsg: ChatMessage = {
@@ -660,14 +679,33 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
                   <span className="font-semibold text-amber-300">Academic Engine</span>
                 </>
               )}
-              {selectedModel === "cloud-gemini" && (
+              {(selectedModel === "cloud-gemini" || selectedModel === "gemini") && (
                 <>
-                  <span className="w-2 h-2 rounded-full bg-purple-400"></span>
-                  <Wifi className="w-3.5 h-3.5 text-purple-400" />
-                  <span className="font-semibold text-purple-300">Cloud Gemini</span>
+                  <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                  <span className="font-semibold text-indigo-300">Gemini AI Tutor</span>
                 </>
               )}
               <Settings className="w-3 h-3 text-slate-400 ml-0.5" />
+            </button>
+
+            {/* Easy Student Mode Toggle Button */}
+            <button
+              id="easy-mode-toggle-btn"
+              type="button"
+              onClick={handleToggleEasyMode}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition border ${
+                easyMode
+                  ? "bg-emerald-950/70 border-emerald-500/50 text-emerald-300 shadow-sm shadow-emerald-900/30"
+                  : "bg-slate-850 hover:bg-slate-800 border-slate-700 text-slate-400"
+              }`}
+              title={easyMode ? "Easy Student Mode active: AI explains using simple words, fun analogies, and clear steps" : "Click to enable Easy Student Mode"}
+            >
+              <Sparkles className={`w-3.5 h-3.5 ${easyMode ? "text-emerald-400" : "text-slate-500"}`} />
+              <span>Easy Mode</span>
+              {easyMode && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              )}
             </button>
 
             {/* Pomodoro Study Timer Widget */}
@@ -751,15 +789,16 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
               {/* Quick Inspiration Pills */}
               <div className="w-full pt-2">
                 <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">
-                  Sample Topics:
+                  Try asking (Easy Student Topics):
                 </span>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {[
-                    "LL(1) Parser in Compiler Design",
-                    "Binary Search Tree Traversal",
-                    "Newton's Laws of Motion",
-                    "Bernoulli's Principle",
-                    "Mendelian Inheritance in Biology",
+                    "Newton's 3 Laws with simple examples",
+                    "How Photosynthesis works step-by-step",
+                    "What is Ohm's Law (V = IR)?",
+                    "How to solve Quadratic Equations easily",
+                    "Difference between Speed and Velocity",
+                    "Explain Python Loops for beginners",
                   ].map((sample) => (
                     <button
                       key={sample}
@@ -1163,13 +1202,38 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
               </button>
             </div>
           )}
+          {/* Quick Concept Suggestions (Helps students get easy, accurate answers instantly) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-1 scrollbar-none text-[11px]">
+            <span className="text-slate-500 shrink-0 font-medium flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-indigo-400" />
+              Easy topics:
+            </span>
+            {[
+              "Explain Newton's 3 Laws with simple examples",
+              "How Photosynthesis works step-by-step",
+              "What is Ohm's Law (V = IR)?",
+              "How to solve Quadratic Equations easily",
+              "Difference between Speed and Velocity",
+              "Explain Python Loops for beginners",
+            ].map((topic) => (
+              <button
+                key={topic}
+                type="button"
+                onClick={() => setInputQuestion(`Explain ${topic}`)}
+                className="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-950/60 border border-slate-700/80 hover:border-indigo-500/50 text-slate-300 hover:text-indigo-200 shrink-0 transition text-left text-[11px]"
+              >
+                {topic}
+              </button>
+            ))}
+          </div>
+
           <form onSubmit={handleAskQuestion} className="flex items-center gap-2">
             <input
               id="ask-question-input"
               type="text"
               value={inputQuestion}
               onChange={(e) => setInputQuestion(e.target.value)}
-              placeholder="Ask any study question (e.g., 'What is an LL(1) parser?' or 'Explain photosynthesis')..."
+              placeholder={easyMode ? "Ask any study doubt (Explained simply with easy examples & steps)..." : "Ask any study question..."}
               disabled={loading}
               className="flex-1 px-4 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-60"
             />
