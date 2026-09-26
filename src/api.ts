@@ -1196,32 +1196,435 @@ print("Blastoff! 🚀")
     };
   }
 
-  // 3. Dynamic Student-Friendly Explanation for Any Other Subject
-  const friendlyExplanation = `### 📚 ${concept}
+  // 2.7 Gravity & Gravitation
+  if (qLower.includes("gravity") || qLower.includes("gravitation") || qLower.includes("weight") && qLower.includes("mass")) {
+    return {
+      doubtId: "dbt_grav_" + Date.now(),
+      explanation: `### 🌍 Gravity & Gravitation (Explained Simply!)
+*Physics · Classical Mechanics & Gravitation*
+
+---
+
+#### 🎯 What is Gravity in Plain English?
+**Gravity** is the invisible pulling force that every object with mass exerts on every other object in the universe. The more massive an object is, the stronger its pull! It is what keeps your feet on the ground and holds the Earth in orbit around the Sun.
+
+---
+
+#### 🍎 The Famous Apple & Falling Analogy:
+Think of the Earth like a gigantic trampoline. When you place a heavy bowling ball in the middle, the fabric dips inward. Any smaller marbles you roll naturally slide down toward the heavy ball. That "dip" is gravitational pull!
+
+---
+
+#### 📐 Newton's Universal Law of Gravitation:
+$$\\mathbf{F = G \\frac{m_1 \\cdot m_2}{r^2}}$$
+- **$F$**: Gravitational attraction force (Newtons, $N$)
+- **$G$**: Universal Gravitational Constant ($6.674 \\times 10^{-11} \\text{ N}\\cdot\\text{m}^2/\\text{kg}^2$)
+- **$m_1, m_2$**: Masses of the two interacting objects (kg)
+- **$r$**: Distance between their centers (meters)
+
+#### ⚖️ Mass vs Weight (The #1 Confusion for Students):
+- **Mass ($m$)**: How much matter is inside you (e.g. $60\\text{ kg}$). It **never changes**, whether you are on Earth, the Moon, or floating in deep space!
+- **Weight ($W = mg$)**: The gravitational force pulling down on you. On Earth ($g = 9.8\\text{ m/s}^2$), you weigh $\\approx 588\\text{ N}$. On the Moon ($g \\approx 1.6\\text{ m/s}^2$), you weigh only $\\approx 96\\text{ N}$!
+
+---
+
+#### 💡 Key Exam Takeaway:
+- If distance between two planets is doubled ($r \\to 2r$), the gravity drops to **$\\frac{1}{4}$th** (inverse-square law)!
+- Acceleration due to gravity on Earth is $g \\approx 9.8\\text{ m/s}^2$ ($32\\text{ ft/s}^2$) and does not depend on the object's mass in a vacuum.`,
+      detected_subject: "Physics",
+      detected_topic: "Gravitation & Planetary Motion",
+      detected_concept: "Newton's Law of Gravitation & Free Fall",
+      validation_passed: true,
+      is_conversational: false,
+      mcq: {
+        id: "q_grav_" + Date.now(),
+        subject: "Physics",
+        topic: "Gravitation",
+        concept: "Universal Law of Gravitation",
+        question_text: "If the distance between two masses is doubled, what happens to the gravitational force between them?",
+        option_a: "It becomes 1/4th of the original force (inverse-square relationship)",
+        option_b: "It doubles",
+        option_c: "It remains exactly the same",
+        option_d: "It becomes half",
+        correct_option: "A",
+        explanation: "By Newton's Law, F is proportional to 1/r². When r is doubled (2r), F becomes 1/(2)² = 1/4th.",
+        difficulty: "Easy"
+      }
+    };
+  }
+
+  // 2.8 Work, Power & Energy
+  if (qLower.includes("work") && (qLower.includes("energy") || qLower.includes("power") || qLower.includes("joule"))) {
+    return {
+      doubtId: "dbt_work_energy_" + Date.now(),
+      explanation: `### ⚡ Work, Energy & Power (Made Simple & Practical!)
+*Physics · Mechanics*
+
+---
+
+#### 🎯 Plain English Definitions:
+1. **Work ($W$)**: Done only when a force actually makes an object move in the direction of the force.
+   $$\\mathbf{W = F \\cdot d \\cdot \\cos(\\theta)}$$
+   - If you push against a concrete wall for 2 hours and it doesn't budge ($d = 0$), in physics you did **$0\\text{ Joules}$ of work**!
+2. **Energy ($E$)**: The capacity to do work. Measured in **Joules ($J$)**.
+   - **Kinetic Energy (Motion)**: $KE = \\frac{1}{2} m v^2$ (a speeding truck has massive KE).
+   - **Potential Energy (Stored)**: $PE = m g h$ (water held high up in a dam).
+3. **Power ($P$)**: How quickly work is done!
+   $$\\mathbf{P = \\frac{W}{t}} \\quad (\\text{Watts, } 1\\text{W} = 1\\text{ J/s})$$
+
+---
+
+#### 💡 The Law of Conservation of Energy:
+*"Energy can neither be created nor destroyed; it only changes from one form to another!"*
+- At the top of a roller coaster: Max $PE$, zero $KE$.
+- At the bottom of the drop: Max $KE$, min $PE$. Total energy ($KE + PE$) remains identical!`,
+      detected_subject: "Physics",
+      detected_topic: "Work, Energy & Power",
+      detected_concept: "Work-Energy Theorem & Conservation of Energy",
+      validation_passed: true,
+      is_conversational: false,
+      mcq: {
+        id: "q_wep_" + Date.now(),
+        subject: "Physics",
+        topic: "Work, Energy & Power",
+        concept: "Kinetic Energy",
+        question_text: "If you double the velocity of a moving car, what happens to its Kinetic Energy (KE = 1/2 m v²)?",
+        option_a: "It quadruples (increases by 4 times)",
+        option_b: "It doubles",
+        option_c: "It stays the same",
+        option_d: "It increases by 8 times",
+        correct_option: "A",
+        explanation: "Since KE depends on v², doubling v gives (2v)² = 4 times the kinetic energy.",
+        difficulty: "Easy"
+      }
+    };
+  }
+
+  // 2.9 Cell Structure & Mitochondria
+  if (qLower.includes("mitochondria") || (qLower.includes("cell") && (qLower.includes("organelle") || qLower.includes("nucleus") || qLower.includes("structure")))) {
+    return {
+      doubtId: "dbt_cell_" + Date.now(),
+      explanation: `### 🔬 Cell Structure & Mitochondria (The City Inside You!)
+*Biology · Cell Biology & Cytology*
+
+---
+
+#### 🎯 What is a Cell?
+The cell is the basic structural and functional unit of all living organisms. Every human body is made of roughly 37 trillion cells!
+
+---
+
+#### 🏙️ The Cell-as-a-City Analogy:
+- **Cell Membrane**: The city security gate / border control (controls what enters and leaves).
+- **Nucleus**: The City Hall / Master Headquarters (houses DNA blueprints and commands the cell).
+- **Mitochondria**: **The Power Plant of the Cell!** It burns food nutrients with oxygen to generate **ATP** (adenosine triphosphate), the energy currency that powers all cellular work!
+- **Ribosomes**: The factories (assemble proteins from amino acids).
+- **Endoplasmic Reticulum & Golgi**: The highway and Amazon shipping warehouse (packages and transports molecules).
+
+---
+
+#### ⚡ Why Mitochondria is Called the "Powerhouse of the Cell":
+Mitochondria carry out **Cellular Respiration**:
+$$\\mathbf{C_6H_{12}O_6 \\text{ (Glucose)} + 6O_2 \\longrightarrow 6CO_2 + 6H_2O + \\approx 36\\text{--}38\\text{ ATP}}$$
+- Muscle cells and heart cells have thousands of mitochondria because they require huge amounts of energy!
+
+---
+
+#### 💡 Key Exam Takeaway:
+- Mitochondria have their **own circular DNA** and double membrane, supporting the endosymbiotic theory.
+- ATP is the energy currency of life.`,
+      detected_subject: "Biology",
+      detected_topic: "Cell Biology & Cytology",
+      detected_concept: "Cell Organelles & Mitochondria (ATP Production)",
+      validation_passed: true,
+      is_conversational: false,
+      mcq: {
+        id: "q_mito_" + Date.now(),
+        subject: "Biology",
+        topic: "Cell Biology",
+        concept: "Mitochondria",
+        question_text: "Why is the mitochondrion universally known as the powerhouse of the cell?",
+        option_a: "It produces ATP energy through cellular respiration",
+        option_b: "It stores the cell's genetic code in chromosomes",
+        option_c: "It synthesizes lipids for the cell membrane",
+        option_d: "It digests waste particles through acidic enzymes",
+        correct_option: "A",
+        explanation: "Mitochondria convert glucose and oxygen into ATP (energy currency) via the Krebs cycle and oxidative phosphorylation.",
+        difficulty: "Easy"
+      }
+    };
+  }
+
+  // 2.10 Chemical Bonding (Ionic vs Covalent)
+  if (qLower.includes("covalent") || qLower.includes("ionic") || qLower.includes("bonding") || qLower.includes("chemical bond")) {
+    return {
+      doubtId: "dbt_bond_" + Date.now(),
+      explanation: `### 🧪 Chemical Bonding: Ionic vs Covalent Bonds (Made Simple!)
+*Chemistry · Chemical Structure & Bonding*
+
+---
+
+#### 🎯 Why Do Atoms Bond?
+Every atom wants to be stable! Under the **Octet Rule**, atoms are happiest and most stable when their outermost valence shell has **8 electrons** (like noble gases Helium, Neon, Argon).
+
+---
+
+#### 🤝 The Two Main Types of Bonds:
+
+1. **Ionic Bond — "The Theft / Transfer of Electrons"**
+   - **How it works**: A metal atom gives away electron(s) to a non-metal atom.
+   - **Example**: Sodium ($Na$) loses 1 electron $\\to Na^+$. Chlorine ($Cl$) takes that electron $\\to Cl^-$. The opposite charges attract tightly to form **Table Salt ($NaCl$)**!
+   - **Properties**: High melting points, soluble in water, conduct electricity when dissolved or molten.
+
+2. **Covalent Bond — "The Friendly Sharing of Electrons"**
+   - **How it works**: Two non-metals share pairs of electrons so both reach 8.
+   - **Example**: Water ($H_2O$), Methane ($CH_4$), Oxygen gas ($O_2$).
+   - **Properties**: Lower melting points, usually do not conduct electricity.
+
+---
+
+#### 💡 Quick Comparison Cheat Sheet:
+| Property | Ionic Bond | Covalent Bond |
+| :--- | :--- | :--- |
+| **Electron Action** | Transferred (given/taken) | Shared in pairs |
+| **Between** | Metal + Non-metal | Non-metal + Non-metal |
+| **Example** | $NaCl$ (Salt), $MgO$ | $H_2O$ (Water), $CO_2$ |
+| **Conduction** | Yes (in liquid/solution) | No (poor conductors) |`,
+      detected_subject: "Chemistry",
+      detected_topic: "Chemical Bonding & Molecular Structure",
+      detected_concept: "Ionic vs Covalent Bonding & Octet Rule",
+      validation_passed: true,
+      is_conversational: false,
+      mcq: {
+        id: "q_bond_" + Date.now(),
+        subject: "Chemistry",
+        topic: "Chemical Bonding",
+        concept: "Ionic vs Covalent Bonds",
+        question_text: "What type of chemical bond is formed when electrons are shared between two non-metal atoms (like H and O in H2O)?",
+        option_a: "Covalent Bond (shared electron pairs)",
+        option_b: "Ionic Bond",
+        option_c: "Metallic Bond",
+        option_d: "Hydrogen Bridge Bond",
+        correct_option: "A",
+        explanation: "When non-metals combine by sharing valence electrons to complete their octet, they form covalent bonds.",
+        difficulty: "Easy"
+      }
+    };
+  }
+
+  // 2.11 Trigonometry (sin, cos, tan)
+  if (qLower.includes("trigonometry") || qLower.includes("sin") && qLower.includes("cos") || qLower.includes("tan") || qLower.includes("soh-cah-toa")) {
+    return {
+      doubtId: "dbt_trig_" + Date.now(),
+      explanation: `### 📐 Trigonometry: Sin, Cos & Tan (Mastered with SOH-CAH-TOA!)
+*Mathematics · Trigonometry & Geometry*
+
+---
+
+#### 🎯 What is Trigonometry in Plain English?
+Trigonometry is the study of the relationships between the **angles** and **side lengths** of right-angled triangles.
+
+---
+
+#### 🧠 The Universal Memory Trick: SOH - CAH - TOA
+Imagine a right triangle with an angle $\\theta$:
+- **Hypotenuse**: The longest side (opposite the $90^\\circ$ angle).
+- **Opposite**: The side across from angle $\\theta$.
+- **Adjacent**: The side touching angle $\\theta$ (next to it).
+
+$$\\mathbf{\\sin(\\theta) = \\frac{\\text{Opposite}}{\\text{Hypotenuse}} \\quad (\\text{SOH})}$$
+$$\\mathbf{\\cos(\\theta) = \\frac{\\text{Adjacent}}{\\text{Hypotenuse}} \\quad (\\text{CAH})}$$
+$$\\mathbf{\\tan(\\theta) = \\frac{\\text{Opposite}}{\\text{Adjacent}} = \\frac{\\sin(\\theta)}{\\cos(\\theta)} \\quad (\\text{TOA})}$$
+
+---
+
+#### 🌟 The Golden Pythagorean Identity:
+$$\\mathbf{\\sin^2(\\theta) + \\cos^2(\\theta) = 1}$$
+This formula works for **every single angle $\\theta$** without exception!
+
+#### 📝 Easy Numerical Example:
+In a 3-4-5 right triangle where opposite $= 3$, adjacent $= 4$, hypotenuse $= 5$:
+- $\\sin(\\theta) = 3/5 = \\mathbf{0.6}$
+- $\\cos(\\theta) = 4/5 = \\mathbf{0.8}$
+- $\\tan(\\theta) = 3/4 = \\mathbf{0.75}$
+- Check identity: $0.6^2 + 0.8^2 = 0.36 + 0.64 = \\mathbf{1.0}$! ✨`,
+      detected_subject: "Mathematics",
+      detected_topic: "Trigonometry & Right Triangle Ratios",
+      detected_concept: "Trigonometric Ratios (Sin, Cos, Tan) & Fundamental Identities",
+      validation_passed: true,
+      is_conversational: false,
+      mcq: {
+        id: "q_trig_" + Date.now(),
+        subject: "Mathematics",
+        topic: "Trigonometry",
+        concept: "Trigonometric Identities",
+        question_text: "What is the value of sin²(θ) + cos²(θ) for any angle θ?",
+        option_a: "1 (Fundamental Pythagorean Identity)",
+        option_b: "0",
+        option_c: "tan(θ)",
+        option_d: "2",
+        correct_option: "A",
+        explanation: "By the Pythagorean Theorem (a² + b² = c²), dividing by c² gives (a/c)² + (b/c)² = 1, so sin²(θ) + cos²(θ) = 1.",
+        difficulty: "Easy"
+      }
+    };
+  }
+
+  // 2.12 Object-Oriented Programming (OOP)
+  if (qLower.includes("oop") || qLower.includes("object oriented") || (qLower.includes("inheritance") && qLower.includes("polymorphism"))) {
+    return {
+      doubtId: "dbt_oop_" + Date.now(),
+      explanation: `### 💻 The 4 Pillars of OOP (Object-Oriented Programming Made Crystal Clear!)
+*Computer Science & Engineering · Software Architecture*
+
+---
+
+#### 🎯 What is OOP in Plain English?
+Object-Oriented Programming organizes software code into realistic "objects" that bundle together **data (attributes)** and **actions (methods)**, just like objects in real life!
+
+---
+
+#### 🏛️ The 4 Grand Pillars:
+
+1. **Encapsulation (Data Protection / Capsule)**
+   - Wrapping data and functions inside a class and keeping variables \`private\`.
+   - *Analogy*: An ATM machine hides the inner cash vaults. You interact through secure PIN buttons.
+
+2. **Abstraction (Hiding Complex Details)**
+   - Showing only essential features to the outside world while hiding behind-the-scenes complexity.
+   - *Analogy*: When you press the gas pedal in a car, you don't need to know how fuel injection timing works. You just press and go!
+
+3. **Inheritance (Code Reuse)**
+   - A child class inherits properties and methods from a parent class.
+   - *Analogy*: A \`Smartphone\` inherits basic calling from \`Phone\`, but adds a camera and touchscreen.
+
+4. **Polymorphism ("Many Forms")**
+   - The ability of different classes to respond to the same method call in their own unique way.
+   - *Analogy*: An \`animal.makeSound()\` call causes a \`Dog\` to "Bark!" and a \`Cat\` to "Meow!".
+
+---
+
+#### 💡 Key Exam Takeaway:
+- Encapsulation = Security (bundling data + methods).
+- Abstraction = Simplicity (hiding implementation).
+- Inheritance = Reusability (\`extends\` / \`super\`).
+- Polymorphism = Flexibility (method overloading and overriding).`,
+      detected_subject: "Computer Science & Programming",
+      detected_topic: "Software Engineering & Object-Oriented Design",
+      detected_concept: "The 4 Pillars of OOP (Encapsulation, Abstraction, Inheritance, Polymorphism)",
+      validation_passed: true,
+      is_conversational: false,
+      mcq: {
+        id: "q_oop_" + Date.now(),
+        subject: "Computer Science",
+        topic: "Object-Oriented Programming",
+        concept: "The 4 Pillars of OOP",
+        question_text: "Which pillar of OOP allows a subclass to inherit attributes and methods from an existing superclass?",
+        option_a: "Inheritance (promotes code reuse and hierarchy)",
+        option_b: "Polymorphism",
+        option_c: "Encapsulation",
+        option_d: "Compilation",
+        correct_option: "A",
+        explanation: "Inheritance allows a derived class to inherit fields and behaviors from a base class, eliminating redundant code.",
+        difficulty: "Easy"
+      }
+    };
+  }
+
+  // 2.13 Binary Search Algorithm
+  if (qLower.includes("binary search") || (qLower.includes("search") && qLower.includes("log n"))) {
+    return {
+      doubtId: "dbt_bs_" + Date.now(),
+      explanation: `### 🔍 Binary Search Algorithm (Explained with the Phonebook Trick!)
+*Computer Science & Engineering · Data Structures & Algorithms*
+
+---
+
+#### 🎯 What is Binary Search?
+Binary Search is a lightning-fast algorithm for finding an element in a **sorted array**. At every single step, it cuts the remaining search space **in half**!
+
+---
+
+#### 📖 The Dictionary / Phonebook Analogy:
+If you are looking for the name "Newton" in a 1,000-page dictionary:
+- **Bad way (Linear Search, $O(n)$)**: Start at page 1, then page 2, page 3... It could take 1,000 page flips!
+- **Binary Search ($O(\\log n)$)**: Open right in the middle (page 500, letter "M"). "N" comes after "M", so throw away the first 500 pages! Open the middle of the remaining half... You will find "Newton" in **at most 10 flips**!
+
+---
+
+#### 🪜 Step-by-Step Logic:
+1. Set pointers: \`low = 0\`, \`high = n - 1\`.
+2. Find the midpoint: \`mid = low + (high - low) / 2\`.
+3. If \`array[mid] === target\`: Found it! 🎉
+4. If \`array[mid] < target\`: Target is in the right half $\\implies$ \`low = mid + 1\`.
+5. If \`array[mid] > target\`: Target is in the left half $\\implies$ \`high = mid - 1\`.
+
+---
+
+#### ⚡ Big-O Time Complexity:
+- **Best Case**: $O(1)$ (target happens to be at the exact center).
+- **Average & Worst Case**: $\\mathbf{O(\\log_2 n)}$!
+- *Example*: For 1,000,000 items, Linear Search takes up to 1,000,000 steps. Binary Search takes **only 20 steps**!`,
+      detected_subject: "Computer Science & Programming",
+      detected_topic: "Algorithms & Searching",
+      detected_concept: "Binary Search Algorithm (O(log n) Divide-and-Conquer)",
+      validation_passed: true,
+      is_conversational: false,
+      mcq: {
+        id: "q_bs_" + Date.now(),
+        subject: "Computer Science",
+        topic: "Algorithms",
+        concept: "Binary Search",
+        question_text: "What is the primary prerequisite for running a Binary Search on an array?",
+        option_a: "The elements in the array must be sorted in ascending or descending order",
+        option_b: "The array must contain only positive integers",
+        option_c: "The array length must be an exact power of 2",
+        option_d: "The array must be stored as a linked list",
+        correct_option: "A",
+        explanation: "Binary Search relies on comparing the midpoint to discard half the search space, which is only valid if the data is sorted.",
+        difficulty: "Easy"
+      }
+    };
+  }
+
+  // 3. Dynamic Student-Friendly Explanation for Any Other Subject (Conversational, Step-by-step, engaging)
+  const friendlyExplanation = `### 💡 ${concept} (Explained Simply for Students)
 *${subject} · ${topic}*
 
 ---
 
-#### 💡 In Plain English (Easy Concept Breakdown):
-**${concept}** is a core principle in **${subject}**. It gives us a clear, logical way to understand how things work and solve questions step-by-step without memorizing blind formulas.
+#### 🎯 In Plain English (What This Means Simply):
+When we talk about **${concept}** in **${subject}**, think of it as a logical tool that answers: *"Why does this happen, and how can we solve it step-by-step?"*
+
+Rather than struggling with confusing academic jargon, let's break it down into clean, intuitive steps:
 
 ---
 
-#### 🔍 Everyday Intuition & Analogy:
-Think of learning **${concept}** like learning the rules of a sport: once you know how the pieces move, the game becomes fun, predictable, and easy to score top marks!
+#### 🔍 Everyday Real-World Analogy:
+Think of **${concept}** like learning to drive a bicycle:
+- First, you learn why balance matters (the fundamental rule).
+- Then, you practice on a flat road with easy steps (standard textbook problems).
+- Soon, navigating turns and hill climbs becomes second nature (scoring top exam marks)!
 
 ---
 
-#### ⚙️ How It Works (Step-by-Step):
-1. **Understand the Goal**: Identify what the question asks and the given parameters.
-2. **Follow the Method**: Apply the standard definition or rule of ${topic} methodically.
-3. **Verify the Result**: Check units, signs, and verify that the final answer makes physical or mathematical sense.
+#### ⚙️ How It Works (Step-by-Step Rule):
+1. **Identify the Given Data**: What is the question asking for, and what values or terms are provided?
+2. **Apply the Core Formula / Principle**: Connect the given inputs using the standard laws of **${topic}**.
+3. **Double-Check Signs & Units**: Verify that units (meters, seconds, Joules, volts, or variables) are consistent.
+
+---
+
+#### 📝 Practical Example:
+Whenever solving a question on **${concept}**:
+- Write down the primary formula or definition clearly in your exam sheet for guaranteed step marks.
+- Solve each algebraic or conceptual step sequentially without skipping intermediate lines.
 
 ---
 
 #### 🎓 Easy Exam Takeaway:
-- Focus on understanding the core idea first before memorizing derivations.
-- Remember the primary units, formulas, and definitions for full step marks in your exams!`;
+- Focus on the *reasoning* behind the concept first—formulas are much easier to remember when the underlying picture makes sense!
+- Test your understanding with the quick concept retention quiz below!`;
 
   return {
     doubtId: "dbt_local_" + Date.now(),
@@ -1236,13 +1639,13 @@ Think of learning **${concept}** like learning the rules of a sport: once you kn
       subject: subject,
       topic: topic,
       concept: concept,
-      question_text: `When studying "${concept}" in ${subject}, what is the most effective approach for deep retention?`,
-      option_a: "Understand the real-world intuition, follow step-by-step logic, and solve sample practice questions",
-      option_b: "Blindly memorize formulas without understanding what the variables mean",
-      option_c: "Skip reading the question and immediately guess an option",
-      option_d: "Rely solely on luck in exams",
+      question_text: `When studying "${concept}" in ${subject}, which learning strategy yields the highest score and longest retention?`,
+      option_a: "Understand the core physical/logical intuition first, then practice step-by-step problems with correct units",
+      option_b: "Blindly memorize formulas without knowing what the variables represent",
+      option_c: "Skip reviewing mistakes made on previous tests",
+      option_d: "Leave the concept unstudied until 10 minutes before the exam",
       correct_option: "A",
-      explanation: `Connecting real-world intuition with methodical practice is the proven, stress-free path to mastering ${concept}!`,
+      explanation: `Connecting real-world intuition with methodical practice is the proven path to mastering ${concept}!`,
       difficulty: "Easy"
     }
   };

@@ -144,12 +144,12 @@ export const Navigation: React.FC<NavigationProps> = ({
               <button
                 id="header-security-trust-btn"
                 onClick={onOpenSecurityTrust}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-emerald-400 text-[11px] font-medium transition"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-emerald-400 text-[11px] font-medium transition shrink-0"
                 title="LearnX Verified Safe: 256-Bit TLS & Zero-Leakage Privacy Protection"
                 aria-label="Security & Privacy Trust Center"
               >
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span className="hidden sm:inline">Verified Safe</span>
+                <span>Verified Safe</span>
               </button>
             )}
 
@@ -158,7 +158,7 @@ export const Navigation: React.FC<NavigationProps> = ({
               <button
                 id="comfort-settings-trigger"
                 onClick={onOpenComfortSettings}
-                className="p-2 rounded-xl bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-750 transition"
+                className="p-1.5 sm:p-2 rounded-xl bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-750 transition shrink-0"
                 title="Study Comfort & Display Preferences"
                 aria-label="Study Comfort Settings"
               >
@@ -171,11 +171,11 @@ export const Navigation: React.FC<NavigationProps> = ({
               <button
                 id="header-team-manifesto-btn"
                 onClick={onOpenManifesto}
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-indigo-950/70 border border-indigo-700/50 text-indigo-300 hover:text-white hover:bg-indigo-900/70 text-xs font-semibold transition"
+                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-indigo-950/70 border border-indigo-700/50 text-indigo-300 hover:text-white hover:bg-indigo-900/70 text-xs font-semibold transition shrink-0"
                 title="Read Team LearnX Mission & Standard"
               >
                 <Users className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="hidden xl:inline">Team LearnX</span>
+                <span>Team LearnX</span>
               </button>
             )}
 
@@ -183,12 +183,13 @@ export const Navigation: React.FC<NavigationProps> = ({
             {student && (
               <div
                 onClick={() => onSelectTab("profile")}
-                className="cursor-pointer flex items-center gap-2 bg-slate-800/90 hover:bg-slate-800 border border-slate-700 px-2.5 py-1.5 rounded-xl transition"
+                className="cursor-pointer flex items-center gap-1.5 sm:gap-2 bg-slate-800/90 hover:bg-slate-800 border border-slate-700 px-2 sm:px-2.5 py-1.5 rounded-xl transition shrink-0"
+                title={`Logged in as ${student.name}`}
               >
-                <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-300 flex items-center justify-center text-xs font-semibold">
+                <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-300 flex items-center justify-center text-xs font-semibold shrink-0">
                   <GraduationCap className="w-3.5 h-3.5" />
                 </div>
-                <div className="text-left leading-tight hidden xs:block">
+                <div className="text-left leading-tight hidden sm:block">
                   <div className="text-xs font-medium text-slate-200 truncate max-w-[110px]">{student.name}</div>
                   <div className="text-[10px] text-slate-400 font-mono">{getLevelLabel()}</div>
                 </div>

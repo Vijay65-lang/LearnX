@@ -614,20 +614,21 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
       {/* MAIN CHAT CONVERSATION AREA */}
       <main className="flex-1 flex flex-col bg-slate-950 overflow-hidden relative">
         {/* Chat Header Bar */}
-        <div className="px-4 py-2 border-b border-slate-800/80 bg-slate-900/70 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+        <div className="px-3 sm:px-4 py-2 border-b border-slate-800/80 bg-slate-900/85 backdrop-blur flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => setShowHistoryDrawer(!showHistoryDrawer)}
-              className="md:hidden p-1.5 text-slate-400 hover:text-white bg-slate-800 rounded-lg"
+              className="md:hidden p-1.5 text-slate-400 hover:text-white bg-slate-800 rounded-lg shrink-0"
               title="Toggle History"
+              aria-label="Toggle Conversation History"
             >
               <MessageSquare className="w-4 h-4" />
             </button>
-            <div>
-              <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span>{sessions.find((s) => s.id === currentSessionId)?.title || "Study Session"}</span>
+            <div className="min-w-0">
+              <div className="text-xs sm:text-sm font-bold text-white truncate max-w-[140px] xs:max-w-[180px] sm:max-w-xs">
+                {sessions.find((s) => s.id === currentSessionId)?.title || "Study Session"}
               </div>
-              <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
+              <div className="text-[10px] text-slate-400 font-mono hidden sm:flex items-center gap-1">
                 <span>Clean Context</span>
                 <span>·</span>
                 <span>Independent Validation</span>
@@ -635,58 +636,64 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* AI Model Badge & Switcher Button */}
             <button
               id="model-selector-btn"
               type="button"
               onClick={() => setShowModelModal(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-slate-850 hover:bg-slate-800 border border-slate-700/80 text-slate-200 transition shadow-xs"
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-medium bg-slate-850 hover:bg-slate-800 border border-slate-700/80 text-slate-200 transition shadow-xs"
               title="Change AI Model or Configure Offline Qwen 2.5"
             >
               {selectedModel === "qwen-2.5" && (
                 <>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <Cpu className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="font-semibold text-emerald-300">Qwen 2.5 (Offline)</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                  <Cpu className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span className="font-semibold text-emerald-300 hidden sm:inline">Qwen 2.5 (Offline)</span>
+                  <span className="font-semibold text-emerald-300 sm:hidden">Qwen</span>
                 </>
               )}
               {selectedModel === "deepseek-r1" && (
                 <>
-                  <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
-                  <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                  <span className="font-semibold text-blue-300">DeepSeek R1 (Offline)</span>
+                  <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse shrink-0"></span>
+                  <Sparkles className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  <span className="font-semibold text-blue-300 hidden sm:inline">DeepSeek R1</span>
+                  <span className="font-semibold text-blue-300 sm:hidden">DeepSeek</span>
                 </>
               )}
               {selectedModel === "llama-3.2" && (
                 <>
-                  <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse"></span>
-                  <Cpu className="w-3.5 h-3.5 text-violet-400" />
-                  <span className="font-semibold text-violet-300">Llama 3.2 (Offline)</span>
+                  <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse shrink-0"></span>
+                  <Cpu className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                  <span className="font-semibold text-violet-300 hidden sm:inline">Llama 3.2</span>
+                  <span className="font-semibold text-violet-300 sm:hidden">Llama</span>
                 </>
               )}
               {selectedModel === "ollama" && (
                 <>
-                  <span className={`w-2 h-2 rounded-full ${ollamaStatus?.online ? "bg-cyan-400" : "bg-amber-400"}`}></span>
-                  <Terminal className="w-3.5 h-3.5 text-cyan-400" />
-                  <span className="font-semibold text-cyan-300">Ollama Local</span>
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${ollamaStatus?.online ? "bg-cyan-400" : "bg-amber-400"}`}></span>
+                  <Terminal className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <span className="font-semibold text-cyan-300 hidden sm:inline">Ollama Local</span>
+                  <span className="font-semibold text-cyan-300 sm:hidden">Ollama</span>
                 </>
               )}
               {selectedModel === "academic-engine" && (
                 <>
-                  <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                  <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="font-semibold text-amber-300">Academic Engine</span>
+                  <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+                  <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="font-semibold text-amber-300 hidden sm:inline">Academic Engine</span>
+                  <span className="font-semibold text-amber-300 sm:hidden">Academic</span>
                 </>
               )}
               {(selectedModel === "cloud-gemini" || selectedModel === "gemini") && (
                 <>
-                  <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                  <span className="font-semibold text-indigo-300">Gemini AI Tutor</span>
+                  <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse shrink-0"></span>
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  <span className="font-semibold text-indigo-300 hidden sm:inline">Gemini AI Tutor</span>
+                  <span className="font-semibold text-indigo-300 sm:hidden">Gemini</span>
                 </>
               )}
-              <Settings className="w-3 h-3 text-slate-400 ml-0.5" />
+              <Settings className="w-3 h-3 text-slate-400 ml-0.5 shrink-0" />
             </button>
 
             {/* Easy Student Mode Toggle Button */}
@@ -694,39 +701,41 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
               id="easy-mode-toggle-btn"
               type="button"
               onClick={handleToggleEasyMode}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition border ${
+              className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-semibold transition border ${
                 easyMode
                   ? "bg-emerald-950/70 border-emerald-500/50 text-emerald-300 shadow-sm shadow-emerald-900/30"
                   : "bg-slate-850 hover:bg-slate-800 border-slate-700 text-slate-400"
               }`}
               title={easyMode ? "Easy Student Mode active: AI explains using simple words, fun analogies, and clear steps" : "Click to enable Easy Student Mode"}
             >
-              <Sparkles className={`w-3.5 h-3.5 ${easyMode ? "text-emerald-400" : "text-slate-500"}`} />
-              <span>Easy Mode</span>
+              <Sparkles className={`w-3.5 h-3.5 shrink-0 ${easyMode ? "text-emerald-400" : "text-slate-500"}`} />
+              <span className="hidden sm:inline">Easy Mode</span>
               {easyMode && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               )}
             </button>
 
-            {/* Pomodoro Study Timer Widget */}
-            <PomodoroTimer />
+            {/* Pomodoro Study Timer Widget (visible on tablet and desktop) */}
+            <div className="hidden md:block">
+              <PomodoroTimer />
+            </div>
 
-            {/* Prominent New Chat Button (requested by user) */}
+            {/* Prominent New Chat Button */}
             <button
               id="new-chat-header-btn"
               type="button"
               onClick={() => startNewChat()}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-400/40 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm transition active:scale-95"
+              className="px-2.5 sm:px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-400/40 rounded-xl text-xs font-semibold flex items-center gap-1 shadow-sm transition active:scale-95 shrink-0"
               title="Start a new chat conversation with a fresh context"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>+ New Chat</span>
+              <span className="hidden xs:inline">+ New</span>
             </button>
           </div>
         </div>
 
         {/* Offline AI Status Notice Strip */}
-        <div className="px-4 py-1.5 bg-emerald-950/40 border-b border-emerald-900/40 text-[11px] text-emerald-300/90 flex items-center justify-between">
+        <div className="px-3 sm:px-4 py-1.5 bg-emerald-950/40 border-b border-emerald-900/40 text-[11px] text-emerald-300/90 hidden sm:flex items-center justify-between shrink-0">
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             <span>

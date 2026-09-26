@@ -736,6 +736,111 @@ const ACADEMIC_KNOWLEDGE_BASE: ConceptMasteryEntry[] = [
       explanation: "The four Coffman conditions are Mutual Exclusion, Hold and Wait, No Preemption, and Circular Wait. Asynchronous message passing is a communication paradigm, not a Coffman condition."
     }
   },
+  {
+    subject: "Computer Networks",
+    topic: "Network Protocol Architectures",
+    concept: "OSI 7-Layer Reference Model",
+    keywords: [
+      "osi model",
+      "osi",
+      "osi 7 layer",
+      "osi layers",
+      "open systems interconnection",
+      "7 layers",
+      "7 layer model",
+      "osi reference model",
+      "physical data link network",
+      "osi architecture",
+      "layers of osi"
+    ],
+    plainEnglish: "The **OSI (Open Systems Interconnection) Model** is a 7-layer architectural framework developed by the International Organization for Standardization (ISO) in 1984. It describes how data travels from a software application on your computer (like Google Chrome), down through physical network hardware, across the internet, and back up into an application on another computer.",
+    analogy: "Think of sending a letter to an overseas pen pal:\n1. You write the message on paper (Layer 7 - Application).\n2. You translate it into English and seal it in an envelope (Layer 6 - Presentation).\n3. You confirm you both have an active pen-pal correspondence (Layer 5 - Session).\n4. You write page numbers '1 of 3, 2 of 3, 3 of 3' so no pages get lost (Layer 4 - Transport / TCP).\n5. You write the destination and return postal address so the post office can route it across countries (Layer 3 - Network / IP).\n6. The local courier places the envelope into a barcoded neighborhood postal sack (Layer 2 - Data Link / MAC Frame).\n7. The delivery truck physically drives over roads and highways to transport the sack (Layer 1 - Physical / Bits over cables).",
+    howItWorks: [
+      "**The 7 Layers in Exact Order (From Top to Bottom / Layer 7 to Layer 1)**:",
+      "",
+      "**Layer 7: Application Layer**",
+      "- **Function**: Closest to the end user. Provides network services directly to software applications (browsers, email clients).",
+      "- **Protocols**: HTTP, HTTPS, FTP, SMTP, DNS, SSH, DHCP.",
+      "- **PDU (Protocol Data Unit)**: **Data**.",
+      "",
+      "**Layer 6: Presentation Layer**",
+      "- **Function**: Responsible for data translation, syntax formatting, compression, and encryption/decryption.",
+      "- **Protocols & Standards**: SSL/TLS, ASCII, Unicode, JPEG, MPEG, GIF.",
+      "- **PDU**: **Data**.",
+      "",
+      "**Layer 5: Session Layer**",
+      "- **Function**: Establishes, manages, coordinates, and terminates conversational sessions between two end applications (handles authentication, checkpoints, and reconnection).",
+      "- **Protocols**: NetBIOS, RPC, PPTP, SOCKS.",
+      "- **PDU**: **Data**.",
+      "",
+      "**Layer 4: Transport Layer**",
+      "- **Function**: End-to-end communication, segmentation, error detection, packet reordering, and flow/congestion control.",
+      "- **Protocols**: TCP (Connection-oriented, reliable), UDP (Connectionless, fast).",
+      "- **PDU**: **Segment** (TCP) or **Datagram** (UDP).",
+      "",
+      "**Layer 3: Network Layer**",
+      "- **Function**: Logical addressing (IP addressing) and path determination (routing) across multiple distinct networks.",
+      "- **Protocols & Hardware**: IPv4, IPv6, ICMP, OSPF, BGP. **Routers and Layer-3 Switches** operate here.",
+      "- **PDU**: **Packet**.",
+      "",
+      "**Layer 2: Data Link Layer**",
+      "- **Function**: Hop-to-hop physical delivery within the same local network, physical MAC addressing, media access control, framing, and CRC error checking.",
+      "- **Protocols & Hardware**: Ethernet (IEEE 802.3), Wi-Fi (802.11), PPP. **Network Switches and Bridges** operate here.",
+      "- **PDU**: **Frame**.",
+      "",
+      "**Layer 1: Physical Layer**",
+      "- **Function**: Transmits unstructured raw bits (0s and 1s) over physical communication media as electrical pulses, light flashes, or radio frequencies.",
+      "- **Hardware**: Twisted-pair Cat6 copper cables, Fiber optic, Hubs, Repeaters, Network Interface Cards (NICs), Modems.",
+      "- **PDU**: **Bits**."
+    ],
+    realWorldExample: "### The 7-Layer Encapsulation Walkthrough\nWhen you open `https://google.com` in your browser:\n1. **Application (L7)**: Browser constructs an `HTTP GET` request.\n2. **Presentation (L6)**: TLS encrypts the payload into secure ciphertext.\n3. **Session (L5)**: Maintains the TLS session and connection context.\n4. **Transport (L4)**: TCP breaks data into numbered **Segments** with destination port `443`.\n5. **Network (L3)**: Wraps segments into **IP Packets** with your IP and Google's IP (`142.250.190.46`).\n6. **Data Link (L2)**: Wraps packets into **Ethernet Frames** with your router's hardware MAC address.\n7. **Physical (L1)**: Network card converts frames into light or electrical pulses (**Bits**) travelling through fiber cables.",
+    keyTakeaways: [
+      "**Two Famous Mnemonics**:",
+      "  - Top to Bottom (7 to 1): **A**ll **P**eople **S**eem **T**o **N**eed **D**ata **P**rocessing (**A**pplication, **P**resentation, **S**ession, **T**ransport, **N**etwork, **D**ata Link, **P**hysical).",
+      "  - Bottom to Top (1 to 7): **P**lease **D**o **N**ot **T**hrow **S**ausage **P**izza **A**way.",
+      "**PDUs by Layer**: Application/Presentation/Session = **Data**, Transport = **Segment**, Network = **Packet**, Data Link = **Frame**, Physical = **Bits**.",
+      "**Device Layer Mapping**: Hubs = Layer 1; Switches = Layer 2; Routers = Layer 3; Gateways/Firewalls = Layers 4-7.",
+      "**Encapsulation vs Decapsulation**: Sender encapsulates headers moving 7 → 1; Receiver strips headers moving 1 → 7."
+    ],
+    mcq: {
+      question: "At which layer of the OSI model does logical IP packet routing occur, and what is its Protocol Data Unit (PDU)?",
+      a: "Network Layer (Layer 3) with PDU 'Packet'",
+      b: "Transport Layer (Layer 4) with PDU 'Segment'",
+      c: "Data Link Layer (Layer 2) with PDU 'Frame'",
+      d: "Physical Layer (Layer 1) with PDU 'Bit'",
+      correct: "A",
+      explanation: "Routers operate at the Network Layer (Layer 3) to route IP packets between distinct subnets based on logical IP addresses."
+    },
+    mcqs: [
+      {
+        question: "Which layer of the OSI model is responsible for data translation, compression, and SSL/TLS encryption?",
+        a: "Presentation Layer (Layer 6)",
+        b: "Session Layer (Layer 5)",
+        c: "Application Layer (Layer 7)",
+        d: "Transport Layer (Layer 4)",
+        correct: "A",
+        explanation: "The Presentation Layer (Layer 6) formats, compresses, and encrypts/decrypts data so the receiving application layer can interpret it."
+      },
+      {
+        question: "Which networking device operates primarily at Layer 2 (Data Link Layer) to forward traffic based on MAC addresses?",
+        a: "Network Switch",
+        b: "IP Router",
+        c: "Passive Hub",
+        d: "Analog Repeater",
+        correct: "A",
+        explanation: "Network switches operate at Layer 2 and forward Ethernet Frames using physical MAC addresses stored in their forwarding table."
+      },
+      {
+        question: "What is the correct top-to-bottom sequence of the 7 OSI layers?",
+        a: "Application, Presentation, Session, Transport, Network, Data Link, Physical",
+        b: "Physical, Data Link, Network, Transport, Session, Presentation, Application",
+        c: "Application, Session, Presentation, Transport, Network, Data Link, Physical",
+        d: "Application, Presentation, Transport, Session, Network, Data Link, Physical",
+        correct: "A",
+        explanation: "Top-to-bottom (Layer 7 down to Layer 1) is Application, Presentation, Session, Transport, Network, Data Link, Physical (Mnemonic: All People Seem To Need Data Processing)."
+      }
+    ]
+  },
   // ==========================================================================
   // INTERMEDIATE MPC (MATHEMATICS, PHYSICS, CHEMISTRY) CURRICULUM ENTRIES
   // ==========================================================================
@@ -921,34 +1026,65 @@ function findKnowledgeBaseEntry(
   streamBranch?: string
 ): ConceptMasteryEntry | null {
   const q = query.toLowerCase();
+  const cleanQ = q.replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
   const isInter = educationLevel === "Intermediate";
   const isMPC = !streamBranch || streamBranch.toUpperCase().includes("MPC");
   const isSchool = educationLevel === "School";
 
-  // Check if query is explicitly asking about computer coding
-  const isExplicitCodingQuery = q.includes("python") ||
+  // Check if query is explicitly asking about computer science, engineering, or coding
+  const isExplicitTechQuery =
+    q.includes("osi") ||
+    q.includes("network") ||
+    q.includes("tcp") ||
+    q.includes("udp") ||
+    q.includes("protocol") ||
+    q.includes("layer") ||
+    q.includes("database") ||
+    q.includes("sql") ||
+    q.includes("normalization") ||
+    q.includes("deadlock") ||
+    q.includes("round robin") ||
+    q.includes("scheduling") ||
+    q.includes("binary search") ||
+    q.includes("algorithm") ||
+    q.includes("automata") ||
+    q.includes("grammar") ||
+    q.includes("cfg") ||
+    q.includes("dfa") ||
+    q.includes("nfa") ||
+    q.includes("python") ||
     q.includes("javascript") ||
     q.includes("c++") ||
-    q.includes("java code") ||
-    q.includes("sql query") ||
-    q.includes("write code");
+    q.includes("java") ||
+    q.includes("oop") ||
+    q.includes("recursion");
 
   for (const entry of ACADEMIC_KNOWLEDGE_BASE) {
-    if (entry.keywords.some((kw) => q.includes(kw.toLowerCase()))) {
-      // If student is Intermediate MPC or School, avoid pure university CSE entries unless explicitly requested
-      const isCSEEntry = entry.subject.includes("Theory of Computation") ||
+    const conceptLower = entry.concept.toLowerCase();
+    const matchesKeyword =
+      q.includes(conceptLower) ||
+      cleanQ.includes(conceptLower) ||
+      entry.keywords.some((kw) => {
+        const kwLower = kw.toLowerCase();
+        return q.includes(kwLower) || cleanQ.includes(kwLower);
+      });
+
+    if (matchesKeyword) {
+      // If student is Intermediate MPC or School, avoid pure university CSE entries ONLY if query was NOT technical
+      const isCSEEntry =
+        entry.subject.includes("Theory of Computation") ||
         entry.subject.includes("Operating Systems") ||
         entry.subject.includes("Database Management") ||
         entry.subject.includes("Compiler") ||
         entry.subject.includes("Computer Networks") ||
         (entry.subject.includes("Data Structures") && !q.includes("algorithm"));
 
-      if ((isInter || isSchool) && isCSEEntry && !isExplicitCodingQuery) {
+      if ((isInter || isSchool) && isCSEEntry && !isExplicitTechQuery) {
         continue;
       }
 
       // If Intermediate MPC student, prioritize Intermediate MPC entries
-      if (isInter && isMPC && !entry.subject.includes("Intermediate") && !isExplicitCodingQuery) {
+      if (isInter && isMPC && !entry.subject.includes("Intermediate") && !isExplicitTechQuery) {
         // Look ahead for an Intermediate entry first
         const betterMatch = ACADEMIC_KNOWLEDGE_BASE.find(
           (e) => e.subject.includes("Intermediate") && e.keywords.some((kw) => q.includes(kw.toLowerCase()))
@@ -1851,8 +1987,9 @@ function generateInfiniteDynamicMCQ(
   difficulty: "Easy" | "Medium" | "Hard",
   questionNumber: number
 ): GeneratedMCQ {
-  const patternIndex = (questionNumber - 1) % 8;
-  const correctChoiceIndex = (questionNumber * 2 + 1) % 4; // Cycles through 1(B), 3(D), 1(B), 3(D)... or varied
+  const sLower = (subject + " " + topic + " " + concept).toLowerCase();
+  const patternIndex = (questionNumber - 1) % 6;
+  const correctChoiceIndex = (questionNumber * 2 + 1) % 4; // Cycles through A, B, C, D
   const optionsKeys: ("A" | "B" | "C" | "D")[] = ["A", "B", "C", "D"];
   const correctKey = optionsKeys[correctChoiceIndex];
 
@@ -1861,95 +1998,258 @@ function generateInfiniteDynamicMCQ(
   let distractors: string[] = [];
   let explanation = "";
 
-  switch (patternIndex) {
-    case 0:
-      questionText = `What is the main purpose of learning "${concept}" in ${topic}?`;
-      correctText = `To understand how to solve problems systematically and accurately using the principles of ${topic}`;
+  // 1. COMPUTER NETWORKS & OSI / TCP TOPICS
+  if (sLower.includes("network") || sLower.includes("osi") || sLower.includes("tcp") || sLower.includes("udp") || sLower.includes("ip") || sLower.includes("protocol") || sLower.includes("packet")) {
+    if (patternIndex === 0) {
+      questionText = `In network architectures, what is the primary responsibility of the Network Layer (Layer 3) regarding "${concept}"?`;
+      correctText = `Logical addressing (IP) and path determination (routing) of packets across distinct networks`;
       distractors = [
-        `To memorize formulas and answers without understanding why they work`,
-        `To make simple calculations and everyday problems unnecessarily confusing`,
-        `To guess the correct answer randomly without following any logical steps`
+        `Transmitting unformatted raw bitstreams over copper wires and fiber optics`,
+        `Translating and compressing application-layer data payloads into JSON or ASCII`,
+        `Direct physical hop-to-hop framing using local hardware MAC addresses`
       ];
-      explanation = `The main goal of ${concept} is to give you a clear, systematic way to solve problems in ${topic} with confidence and accuracy.`;
-      break;
+      explanation = `The Network Layer (Layer 3) is responsible for logical addressing (IPv4/IPv6) and routing packets between different networks and subnets.`;
+    } else if (patternIndex === 1) {
+      questionText = `Which Protocol Data Unit (PDU) corresponds specifically to the Transport Layer (Layer 4) when using TCP?`;
+      correctText = `Segment (TCP) or Datagram (UDP)`;
+      distractors = [
+        `Frame (Layer 2 - Data Link)`,
+        `Packet (Layer 3 - Network)`,
+        `Raw Electrical Bits (Layer 1 - Physical)`
+      ];
+      explanation = `At the Transport Layer (Layer 4), data is divided into Segments for TCP or Datagrams for UDP, each prepended with port numbers.`;
+    } else if (patternIndex === 2) {
+      questionText = `Why do real-time voice and video streaming applications frequently prefer UDP over TCP?`;
+      correctText = `UDP is connectionless and eliminates retransmission delays, prioritizing low latency`;
+      distractors = [
+        `UDP provides automatic SSL/TLS encryption for all packet payloads`,
+        `UDP guarantees 100% in-order packet delivery across congested routers`,
+        `UDP uses a 4-way handshake to verify physical link integrity before sending`
+      ];
+      explanation = `Real-time communications require minimal latency. Retransmitting lost packets seconds later is useless because live audio/video has already moved on.`;
+    } else if (patternIndex === 3) {
+      questionText = `Which networking device operates primarily at Layer 2 (Data Link Layer) to forward traffic using MAC addresses?`;
+      correctText = `Network Switch (Layer 2)`;
+      distractors = [
+        `IP Router (Layer 3)`,
+        `Passive Repeater Hub (Layer 1)`,
+        `Application Gateway (Layer 7)`
+      ];
+      explanation = `Standard network switches inspect the Layer 2 Ethernet Frame header and forward data based on hardware MAC addresses stored in their forwarding table.`;
+    } else if (patternIndex === 4) {
+      questionText = `In the 7-layer OSI model, which layer is responsible for data encryption, compression, and format translation?`;
+      correctText = `Presentation Layer (Layer 6)`;
+      distractors = [
+        `Session Layer (Layer 5)`,
+        `Application Layer (Layer 7)`,
+        `Transport Layer (Layer 4)`
+      ];
+      explanation = `The Presentation Layer (Layer 6) transforms data into a standard syntax, performing character code translation (ASCII/Unicode), compression, and cryptographic encryption (SSL/TLS).`;
+    } else {
+      questionText = `What is the correct encapsulation order as data travels DOWN the network stack from sender to wire?`;
+      correctText = `Data → Segment → Packet → Frame → Bits`;
+      distractors = [
+        `Bits → Frame → Packet → Segment → Data`,
+        `Data → Packet → Segment → Frame → Bits`,
+        `Packet → Frame → Segment → Bits → Data`
+      ];
+      explanation = `As data moves down the stack, the Application creates Data, Transport encapsulates it into a Segment, Network wraps it into a Packet, Data Link wraps it into a Frame, and Physical transmits Bits.`;
+    }
+  }
 
-    case 1:
-      questionText = `Which of the following best describes how "${concept}" works in practice?`;
-      correctText = `It follows clear, step-by-step principles to produce an accurate, dependable result`;
+  // 2. OPERATING SYSTEMS
+  else if (sLower.includes("operating") || sLower.includes("process") || sLower.includes("thread") || sLower.includes("deadlock") || sLower.includes("scheduling") || sLower.includes("memory") || sLower.includes("paging")) {
+    if (patternIndex === 0) {
+      questionText = `What is the fundamental difference between a Process and a Thread in operating systems?`;
+      correctText = `A process possesses an isolated virtual memory space, whereas threads within the same process share heap, code, and global data`;
       distractors = [
-        `It changes its rules and formulas randomly every time you use it`,
-        `It only works if you completely ignore the core fundamentals of ${subject}`,
-        `It produces an answer without needing any input or problem statement`
+        `Threads execute on separate physical machines while processes run on a single CPU`,
+        `A process can contain only one thread of execution at any given moment`,
+        `Threads have private heap allocations while processes share CPU register state`
       ];
-      explanation = `In practice, ${concept} relies on consistent, step-by-step logic to guarantee reproducible and correct results.`;
-      break;
+      explanation = `Processes run in separate, isolated address spaces with independent page tables; threads within the same process share the text, data, and heap segments.`;
+    } else if (patternIndex === 1) {
+      questionText = `Which of the following is NOT one of the 4 Coffman conditions required for a Deadlock to occur?`;
+      correctText = `Preemptive Resource Revocation`;
+      distractors = [
+        `Mutual Exclusion (non-shareable resources)`,
+        `Hold and Wait (holding a resource while requesting another)`,
+        `Circular Wait (closed loop of dependency)`
+      ];
+      explanation = `The Coffman conditions require No Preemption (resources cannot be confiscated). If preemptive resource revocation is enforced, deadlocks cannot occur.`;
+    } else if (patternIndex === 2) {
+      questionText = `In CPU Scheduling, what happens when the Round Robin time quantum is set arbitrarily large?`;
+      correctText = `The algorithm degenerates into First-Come First-Served (FCFS)`;
+      distractors = [
+        `Context switching overhead increases exponentially`,
+        `Shortest Job First (SJF) priority is automatically enforced`,
+        `Processes experience immediate starvation`
+      ];
+      explanation = `If the time quantum exceeds the burst time of all processes in the queue, every process completes in its first allocation, matching FCFS behavior.`;
+    } else {
+      questionText = `In Virtual Memory systems, what occurs when a process attempts to access a virtual page not currently resident in physical RAM?`;
+      correctText = `A Page Fault trap triggers the OS kernel to load the requested page from disk storage`;
+      distractors = [
+        `The process is immediately aborted and marked as crashed`,
+        `The CPU executes an unrecoverable hardware halt`,
+        `The virtual address is silently rewritten to address zero`
+      ];
+      explanation = `A page fault is a software interrupt raised by the Memory Management Unit (MMU). The OS intercepts it, fetches the missing page from swap space into an available frame, and resumes the process.`;
+    }
+  }
 
-    case 2:
-      questionText = `When solving questions on "${concept}", what is the best practice to avoid mistakes?`;
-      correctText = `Carefully check given values, apply the standard formula or steps, and verify the final answer`;
+  // 3. DATABASE SYSTEMS
+  else if (sLower.includes("database") || sLower.includes("sql") || sLower.includes("normalization") || sLower.includes("acid") || sLower.includes("relational")) {
+    if (patternIndex === 0) {
+      questionText = `Which ACID property guarantees that all operations within a database transaction either complete fully or have zero effect (all-or-nothing)?`;
+      correctText = `Atomicity`;
       distractors = [
-        `Skip reading the question and jump directly to guessing an option`,
-        `Assume that all numbers and conditions are identical in every problem`,
-        `Ignore the units (like meters, seconds, or data types) completely`
+        `Consistency`,
+        `Isolation`,
+        `Durability`
       ];
-      explanation = `To score high and avoid careless mistakes in ${concept}, always note down what is given, follow each step methodically, and double-check your units.`;
-      break;
+      explanation = `Atomicity guarantees that a transaction is treated as a single indivisible unit: if any statement fails, the entire transaction is rolled back.`;
+    } else if (patternIndex === 1) {
+      questionText = `What structural requirement is specifically enforced by Third Normal Form (3NF)?`;
+      correctText = `The relation must be in 2NF and have no transitive functional dependencies between non-key attributes`;
+      distractors = [
+        `Every attribute in a table must contain multi-valued repeating groups`,
+        `Every table must possess at least three candidate keys`,
+        `All non-prime attributes must depend only partially on composite primary keys`
+      ];
+      explanation = `3NF strictly eliminates transitive dependencies: non-prime attributes must depend directly and solely on the primary key.`;
+    } else {
+      questionText = `Why are B+ Trees predominantly preferred over standard Binary Search Trees for database indexes?`;
+      correctText = `High fan-out branching minimizes expensive disk block I/O operations by keeping tree depth shallow`;
+      distractors = [
+        `B+ Trees consume zero storage space on the file system`,
+        `Binary Search Trees cannot index numerical data types`,
+        `B+ Trees eliminate the necessity of unique primary keys`
+      ];
+      explanation = `B+ Trees have hundreds of pointers per node, ensuring that searching millions of rows requires only 3 to 4 disk block reads.`;
+    }
+  }
 
-    case 3:
-      questionText = `Compared to unorganized methods, why is using "${concept}" much better?`;
-      correctText = `It saves time, eliminates confusion, and provides a clear, proven structure`;
+  // 4. DATA STRUCTURES & ALGORITHMS
+  else if (sLower.includes("algorithm") || sLower.includes("tree") || sLower.includes("sort") || sLower.includes("search") || sLower.includes("stack") || sLower.includes("queue") || sLower.includes("graph")) {
+    if (patternIndex === 0) {
+      questionText = `What is the worst-case and average-case time complexity of Binary Search on a sorted array of size n?`;
+      correctText = `O(log n) time complexity`;
       distractors = [
-        `It makes the problem take 100 times longer with no benefits`,
-        `It hides all steps and makes finding errors impossible`,
-        `It forces you to start over every time you make a minor adjustment`
+        `O(n) linear time complexity`,
+        `O(n log n) logarithmic-linear complexity`,
+        `O(n²) quadratic time complexity`
       ];
-      explanation = `Using structured concepts like ${concept} gives you a roadmap that simplifies complex questions and saves precious time.`;
-      break;
+      explanation = `Binary Search divides the remaining search interval in half at every step, requiring at most ⌈log₂(n)⌉ comparisons.`;
+    } else if (patternIndex === 1) {
+      questionText = `Which data structure operates on a Last-In, First-Out (LIFO) access discipline?`;
+      correctText = `Stack`;
+      distractors = [
+        `Queue (which operates on FIFO)`,
+        `Circular Array Buffer`,
+        `Min-Heap Priority Queue`
+      ];
+      explanation = `A Stack restricts insertions and deletions to the top element, adhering strictly to Last-In, First-Out (LIFO).`;
+    } else {
+      questionText = `Which sorting algorithm guarantees a worst-case time complexity of O(n log n) by consistently dividing the array into two halves?`;
+      correctText = `Merge Sort`;
+      distractors = [
+        `Quick Sort (which degrades to O(n²) in worst-case pivot selection)`,
+        `Bubble Sort (O(n²) worst-case)`,
+        `Insertion Sort (O(n²) worst-case)`
+      ];
+      explanation = `Merge Sort uses divide-and-conquer to split the array evenly and merge sorted halves, guaranteeing O(n log n) performance in all cases.`;
+    }
+  }
 
-    case 4:
-      questionText = `In real-world applications, where do we see "${concept}" being applied?`;
-      correctText = `In everyday technology, practical problem-solving, and professional industry projects`;
+  // 5. PHYSICS
+  else if (sLower.includes("physic") || sLower.includes("force") || sLower.includes("gravity") || sLower.includes("motion") || sLower.includes("ohm") || sLower.includes("energy")) {
+    if (patternIndex === 0) {
+      questionText = `According to Newton's Second Law of Motion (F = ma), how does acceleration change if the net force applied to a constant mass is doubled?`;
+      correctText = `Acceleration doubles directly in proportion to the net force (a = F / m)`;
       distractors = [
-        `Only in fictional stories with zero real-life value`,
-        `Nowhere, because it has never been used outside of single-page tests`,
-        `Exclusively on computers built over 80 years ago that are no longer operational`
+        `Acceleration remains identical due to inertia`,
+        `Acceleration quadruples according to an inverse-square law`,
+        `Acceleration decreases by half`
       ];
-      explanation = `Real-world engineers, scientists, and researchers actively rely on ${concept} to create apps, devices, and systems we use daily.`;
-      break;
+      explanation = `Newton's Second Law states a = F / m. For a constant mass m, acceleration is directly proportional to applied force F.`;
+    } else if (patternIndex === 1) {
+      questionText = `According to Ohm's Law (V = IR), if an electrical circuit maintains a constant voltage of 12V and resistance is doubled from 4Ω to 8Ω, what happens to the current?`;
+      correctText = `Current is halved from 3A to 1.5A`;
+      distractors = [
+        `Current doubles to 6A`,
+        `Current remains constant at 3A`,
+        `Current quadruples to 12A`
+      ];
+      explanation = `I = V / R. When resistance R is doubled while V remains constant, current I is cut in half.`;
+    } else {
+      questionText = `According to the Universal Law of Gravitation (F = G · m₁m₂ / r²), what happens to the gravitational force between two masses if their separation distance r is doubled?`;
+      correctText = `The force decreases to 1/4th of its original magnitude`;
+      distractors = [
+        `The force decreases by half`,
+        `The force doubles`,
+        `The force remains unchanged`
+      ];
+      explanation = `Gravitational attraction obeys an inverse-square law: doubling r results in (1/2)² = 1/4th the gravitational force.`;
+    }
+  }
 
-    case 5:
-      questionText = `Which statement is TRUE regarding the core idea behind "${concept}"?`;
-      correctText = `Understanding the fundamental idea makes answering tough exam questions much easier`;
+  // 6. CHEMISTRY
+  else if (sLower.includes("chem") || sLower.includes("reaction") || sLower.includes("acid") || sLower.includes("bond") || sLower.includes("atom")) {
+    if (patternIndex === 0) {
+      questionText = `What type of chemical bond is formed when valence electrons are transferred from a metal atom to a non-metal atom?`;
+      correctText = `Ionic Bond (electrostatic attraction between oppositely charged ions)`;
       distractors = [
-        `"${concept}" has no relation to ${topic} or any other academic subject`,
-        `Learning "${concept}" will make you forget basic math and science rules`,
-        `There is no way to verify whether an answer in "${concept}" is correct`
+        `Covalent Bond (sharing of electron pairs)`,
+        `Metallic Bond (delocalized electron sea)`,
+        `Hydrogen Bridge Bond`
       ];
-      explanation = `Once you master the fundamentals of ${concept}, solving both easy and challenging questions becomes natural and fun!`;
-      break;
+      explanation = `Ionic bonds form when metals transfer electrons to non-metals, creating cations and anions held together by strong electrostatic forces.`;
+    } else {
+      questionText = `On the standard aqueous pH scale at 25°C, which range characterizes an acidic solution?`;
+      correctText = `pH values strictly less than 7 (pH < 7)`;
+      distractors = [
+        `pH values strictly greater than 7 (pH > 7, basic/alkaline)`,
+        `pH values exactly equal to 14`,
+        `pH values between 8 and 12`
+      ];
+      explanation = `At 25°C, neutral water has pH = 7. Acidic solutions have higher H⁺ ion concentrations, yielding pH < 7.`;
+    }
+  }
 
-    case 6:
-      questionText = `Which of the following is FALSE about "${concept}" in ${topic}?`;
-      correctText = `"${concept}" can be completely skipped because no questions are ever asked from it`;
+  // 7. MATHEMATICS
+  else if (sLower.includes("math") || sLower.includes("matrix") || sLower.includes("trig") || sLower.includes("calculus") || sLower.includes("equation")) {
+    if (patternIndex === 0) {
+      questionText = `Which fundamental Pythagorean trigonometric identity holds true for all real angles θ?`;
+      correctText = `sin²(θ) + cos²(θ) = 1`;
       distractors = [
-        `"${concept}" helps build a solid foundation for higher studies`,
-        `Practicing standard numerical or conceptual examples improves mastery`,
-        `Reviewing key formulas for "${concept}" helps in quick exam revision`
+        `sin(θ) + cos(θ) = 1`,
+        `tan²(θ) + cot²(θ) = 1`,
+        `sin²(θ) - cos²(θ) = 1`
       ];
-      explanation = `${concept} is a vital part of the syllabus for ${topic}, so understanding it gives you an advantage in tests and assignments.`;
-      break;
+      explanation = `By the Pythagorean theorem in a unit circle (x² + y² = 1 where x = cos θ and y = sin θ), sin²(θ) + cos²(θ) = 1 for all angles θ.`;
+    } else {
+      questionText = `What is the determinant of a 2×2 matrix A = [[a, b], [c, d]]?`;
+      correctText = `det(A) = ad - bc`;
+      distractors = [
+        `det(A) = ab - cd`,
+        `det(A) = ad + bc`,
+        `det(A) = (a + d) / (b + c)`
+      ];
+      explanation = `The determinant of a 2×2 square matrix is computed as the product of the main diagonal minus the product of the anti-diagonal: ad - bc.`;
+    }
+  }
 
-    case 7:
-    default:
-      questionText = `What is the best way to revise and master "${concept}" for your exams?`;
-      correctText = `Understand the real-life analogy, write down key steps, and solve a few practice questions`;
-      distractors = [
-        `Only cram the night before without understanding the definitions`,
-        `Ignore the feedback from practice quizzes and keep repeating errors`,
-        `Rely entirely on luck without looking at the syllabus`
-      ];
-      explanation = `Consistent practice, understanding the intuition, and reviewing key points is the proven secret to mastering ${concept}!`;
-      break;
+  // 8. GENERAL TECHNICAL & ACADEMIC TOPICS
+  else {
+    questionText = `In technical coursework and problem-solving, what is the primary objective of analyzing "${concept}" in ${topic}?`;
+    correctText = `Establishing structured, deterministic principles to analyze system behavior, verify parameters, and ensure accuracy`;
+    distractors = [
+      `Increasing computational latency without providing any functional capability`,
+      `Bypassing standard validation protocols and data integrity checks`,
+      `Eliminating all modular interfaces and hardcoding arbitrary parameters`
+    ];
+    explanation = `Studying ${concept} in ${topic} provides the analytical framework needed to understand system behavior and solve complex problems accurately.`;
   }
 
   // Construct options placing correctText at correctKey
