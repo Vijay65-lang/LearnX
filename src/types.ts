@@ -6,7 +6,9 @@ export type AIModelType =
   | "llama-3.2"
   | "academic-engine"
   | "ollama"
-  | "cloud-gemini";
+  | "cloud-gemini"
+  | "groq-llama3"
+  | "groq-deepseek";
 
 export interface OllamaStatus {
   online: boolean;

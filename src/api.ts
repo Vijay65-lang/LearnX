@@ -1587,6 +1587,144 @@ If you are looking for the name "Newton" in a 1,000-page dictionary:
     };
   }
 
+  // 2.14 OSI 7-Layer Reference Model & Computer Networks
+  if (
+    qLower.includes("osi") ||
+    (qLower.includes("7 layer") || qLower.includes("seven layer") || qLower.includes("network layer") || qLower.includes("transport layer"))
+  ) {
+    return {
+      doubtId: "dbt_osi_" + Date.now(),
+      explanation: `### 🌐 The OSI 7-Layer Reference Model (Made Crystal Clear!)
+*Computer Science & Engineering · Computer Networks*
+
+---
+
+#### 💡 What is the OSI Model in Plain English?
+The **OSI (Open Systems Interconnection) Model** is a 7-layer architectural framework developed by the International Organization for Standardization (ISO) in 1984. It describes how data travels from a software application on your computer (like Google Chrome), down through physical network hardware, across the global internet, and back up into an application on another computer.
+
+---
+
+#### ✉️ The Overseas Parcel Analogy:
+Think of sending a letter to an overseas pen pal:
+1. **Application (Layer 7)**: You write your message on paper.
+2. **Presentation (Layer 6)**: You translate it into a standard language and seal it in a tamper-proof envelope (encryption/compression).
+3. **Session (Layer 5)**: You verify that both you and your pen pal are actively corresponding.
+4. **Transport (Layer 4 - TCP/UDP)**: You write page numbers '1 of 3, 2 of 3, 3 of 3' so no pages get lost (segmentation & tracking).
+5. **Network (Layer 3 - IP)**: You write the destination and return postal addresses so global post offices can route it across countries.
+6. **Data Link (Layer 2 - MAC)**: The local courier puts the letter into a barcoded neighborhood postal sack for the local delivery van.
+7. **Physical (Layer 1 - Bits)**: The delivery truck physically drives over roads and bridges (raw electrical pulses, fiber optics, or radio waves).
+
+---
+
+#### 🪜 The 7 Layers in Exact Order (Layer 7 down to Layer 1):
+1. **Layer 7: Application Layer** (PDU: **Data**)
+   - User-facing network protocols: **HTTP, HTTPS, DNS, FTP, SMTP, SSH, DHCP**.
+2. **Layer 6: Presentation Layer** (PDU: **Data**)
+   - Translation, syntax formatting, **SSL/TLS encryption**, and data compression (**JPEG, ASCII, UTF-8**).
+3. **Layer 5: Session Layer** (PDU: **Data**)
+   - Establishes, maintains, and synchronizes conversational sessions between applications (**NetBIOS, RPC, SOCKS**).
+4. **Layer 4: Transport Layer** (PDU: **Segment** for TCP, **Datagram** for UDP)
+   - End-to-end reliability, flow control, and segmentation. **TCP** (reliable 3-way handshake) vs **UDP** (fast, connectionless).
+5. **Layer 3: Network Layer** (PDU: **Packet**)
+   - Logical addressing (**IPv4/IPv6**) and routing between different subnets. **Routers and Layer-3 Switches** operate here.
+6. **Layer 2: Data Link Layer** (PDU: **Frame**)
+   - Physical hop-to-hop framing, media access control, and hardware **MAC addressing**. **Network Switches & Bridges** operate here.
+7. **Layer 1: Physical Layer** (PDU: **Bits**)
+   - Transmits raw binary bitstreams (0s and 1s) as electrical voltages, fiber-optic light pulses, or Wi-Fi radio frequencies. **Hubs, Repeaters, Cat6 Cables, Modems**.
+
+---
+
+#### 🎓 Easy Memory Tricks & Exam Takeaways:
+- **Top-to-Bottom Mnemonic (7 → 1)**: **A**ll **P**eople **S**eem **T**o **N**eed **D**ata **P**rocessing.
+- **Bottom-to-Top Mnemonic (1 → 7)**: **P**lease **D**o **N**ot **T**hrow **S**ausage **P**izza **A**way.
+- **Protocol Data Units (PDUs)**: Data (L7-5) $\\to$ Segment (L4) $\\to$ Packet (L3) $\\to$ Frame (L2) $\\to$ Bits (L1).
+- **Device Placement**: Hubs = L1; Switches = L2; Routers = L3; Firewalls/Gateways = L4–L7.`,
+      detected_subject: "Computer Networks",
+      detected_topic: "Network Protocol Architectures",
+      detected_concept: "OSI 7-Layer Reference Model",
+      validation_passed: true,
+      is_conversational: false,
+      mcq: {
+        id: "q_osi_" + Date.now(),
+        subject: "Computer Networks",
+        topic: "Network Protocol Architectures",
+        concept: "OSI 7-Layer Reference Model",
+        question_text: "At which layer of the OSI model does logical IP packet routing occur, and what is its Protocol Data Unit (PDU)?",
+        option_a: "Network Layer (Layer 3) with PDU 'Packet'",
+        option_b: "Transport Layer (Layer 4) with PDU 'Segment'",
+        option_c: "Data Link Layer (Layer 2) with PDU 'Frame'",
+        option_d: "Physical Layer (Layer 1) with PDU 'Bit'",
+        correct_option: "A",
+        explanation: "Routers operate at the Network Layer (Layer 3) to route IP packets between distinct subnets based on logical IP addresses.",
+        difficulty: "Medium"
+      }
+    };
+  }
+
+  // 2.15 TCP vs UDP (Transport Layer Protocols)
+  if (
+    qLower.includes("tcp") ||
+    qLower.includes("udp") ||
+    (qLower.includes("three-way handshake") || qLower.includes("3-way handshake"))
+  ) {
+    return {
+      doubtId: "dbt_tcp_udp_" + Date.now(),
+      explanation: `### 🚀 TCP vs UDP (The Two Titans of the Transport Layer!)
+*Computer Science & Engineering · Computer Networks*
+
+---
+
+#### 🎯 What is the Difference in Plain English?
+Both **TCP** and **UDP** live at **Layer 4 (Transport Layer)** of the OSI model. They receive data from applications (like your browser or game) and deliver it across the network:
+- **TCP (Transmission Control Protocol)** is like a **Registered Postal Courier with Signature on Delivery**: Reliable, checks for errors, guarantees every single byte arrives in the exact correct order.
+- **UDP (User Datagram Protocol)** is like a **Live TV Broadcast or Megaphone**: Super fast, no handshake, sends packets without waiting to see if you received them!
+
+---
+
+#### 📊 Quick Comparison Table:
+| Feature | TCP (Transmission Control Protocol) | UDP (User Datagram Protocol) |
+| :--- | :--- | :--- |
+| **Connection** | Connection-Oriented (Requires 3-Way Handshake) | Connectionless (No Handshake) |
+| **Reliability** | 100% Guaranteed Delivery (Retransmits lost packets) | Best-Effort (Packets can be lost with zero retry) |
+| **Ordering** | Guarantees packets arrive in exact sequence | Packets may arrive out of order |
+| **Speed & Overhead** | Slower (Larger 20-byte header, ACK overhead) | Blazing Fast (Tiny 8-byte header, minimal latency) |
+| **Use Cases** | Web pages (HTTP/HTTPS), File downloads, Banking, Email | Live gaming, Zoom/Discord voice calls, Video streaming, DNS |
+
+---
+
+#### 🤝 The Famous TCP 3-Way Handshake:
+Before TCP sends any actual data, it performs a 3-step synchronization:
+1. **SYN**: Client asks: *"Hey, can we talk? (Sequence number X)"*
+2. **SYN-ACK**: Server replies: *"Yes, I hear you! (ACK X+1, Sequence number Y)"*
+3. **ACK**: Client acknowledges: *"Awesome, starting data transfer! (ACK Y+1)"*
+
+---
+
+#### 🎓 Key Exam Takeaways:
+- **Why Live Video uses UDP**: If a frame is dropped during a live soccer match or video call, retransmitting it 500ms later is useless because newer action is already on screen!
+- **Header Sizes**: TCP header is **20 bytes** minimum; UDP header is only **8 bytes**.`,
+      detected_subject: "Computer Networks",
+      detected_topic: "Transport Layer Protocols",
+      detected_concept: "TCP vs UDP & Transport Layer",
+      validation_passed: true,
+      is_conversational: false,
+      mcq: {
+        id: "q_tcp_udp_" + Date.now(),
+        subject: "Computer Networks",
+        topic: "Transport Layer Protocols",
+        concept: "TCP vs UDP",
+        question_text: "Why do real-time multiplayer games and live voice calls prefer UDP over TCP?",
+        option_a: "UDP is connectionless and minimizes latency by avoiding retransmission of dropped packets",
+        option_b: "UDP automatically encrypts all packets with SSL/TLS",
+        option_c: "UDP guarantees packets will always arrive in strict ascending sequence",
+        option_d: "UDP requires an elaborate 4-way handshake that saves bandwidth",
+        correct_option: "A",
+        explanation: "In real-time media and gaming, lowest possible latency is critical. Retransmitting stale packets creates lag.",
+        difficulty: "Easy"
+      }
+    };
+  }
+
   // 3. Dynamic Student-Friendly Explanation for Any Other Subject (Conversational, Step-by-step, engaging)
   const friendlyExplanation = `### 💡 ${concept} (Explained Simply for Students)
 *${subject} · ${topic}*
@@ -1662,6 +1800,9 @@ export async function askStudyDoubt(
   easyMode: boolean = true
 ): Promise<AskResponse> {
   const currentStudent = studentProfile || getActiveStudent();
+  const customApiKey = localStorage.getItem("learnx_custom_api_key") || undefined;
+  const provider = localStorage.getItem("learnx_ai_provider") || undefined;
+
   try {
     const res = await request<AskResponse>("/ai/ask", {
       method: "POST",
@@ -1674,6 +1815,8 @@ export async function askStudyDoubt(
         syllabus_notes: syllabusNotes,
         subject_name: subjectName,
         easy_mode: easyMode,
+        custom_api_key: customApiKey,
+        provider: provider,
       }),
     });
 

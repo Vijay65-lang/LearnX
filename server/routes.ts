@@ -414,7 +414,7 @@ apiRouter.get("/ai/ollama-status", async (req: Request, res: Response) => {
 
 apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const { question, chat_id, model, ollama_endpoint, student_profile, syllabus_notes, subject_name, easy_mode } = req.body;
+    const { question, chat_id, model, ollama_endpoint, student_profile, syllabus_notes, subject_name, easy_mode, custom_api_key, provider } = req.body;
     if (!question || typeof question !== "string" || !question.trim()) {
       return res.status(400).json({ error: "Study question is required." });
     }
@@ -558,7 +558,9 @@ apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) =
       ollama_endpoint,
       effectiveStream,
       effectiveSyllabusNotes,
-      Boolean(easy_mode)
+      Boolean(easy_mode),
+      custom_api_key,
+      provider
     );
 
     // Save doubt to database (Section 8) - Guarded for resilient response
@@ -611,7 +613,9 @@ apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) =
           1,
           [],
           effectiveStream,
-          effectiveSyllabusNotes
+          effectiveSyllabusNotes,
+          custom_api_key,
+          provider
         );
 
         // Save question in questions table so student can attempt it

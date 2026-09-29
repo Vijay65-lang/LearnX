@@ -454,6 +454,55 @@ function resolveSubjectAndTopic(
     };
   }
 
+  // 1.1 DATA STRUCTURES (Stack, Queue, Linked List, Tree, Graph, Heap, Hash Table)
+  if (qLower.includes("stack") && !qLower.includes("full stack")) {
+    return {
+      subject: "Computer Science (Data Structures)",
+      topic: "Linear Data Structures",
+      concept: "Stack Data Structure (LIFO)"
+    };
+  }
+
+  if (qLower.includes("queue") && !qLower.includes("priority queue")) {
+    return {
+      subject: "Computer Science (Data Structures)",
+      topic: "Linear Data Structures",
+      concept: "Queue Data Structure (FIFO)"
+    };
+  }
+
+  if (qLower.includes("linked list") || qLower.includes("singly linked") || qLower.includes("doubly linked")) {
+    return {
+      subject: "Computer Science (Data Structures)",
+      topic: "Linear Data Structures",
+      concept: "Linked List (Singly & Doubly Linked Lists)"
+    };
+  }
+
+  if (qLower.includes("tree") || qLower.includes("bst") || qLower.includes("binary search tree") || qLower.includes("avl") || qLower.includes("heap")) {
+    return {
+      subject: "Computer Science (Data Structures)",
+      topic: "Non-Linear Data Structures",
+      concept: qLower.includes("heap") ? "Heap Data Structure (Min/Max Heap)" : "Binary Search Tree (BST) & Tree Traversals"
+    };
+  }
+
+  if (qLower.includes("sort") || qLower.includes("bubble sort") || qLower.includes("merge sort") || qLower.includes("quick sort")) {
+    return {
+      subject: "Computer Science (Algorithms)",
+      topic: "Sorting Algorithms",
+      concept: qLower.includes("merge sort") ? "Merge Sort ($O(n \\log n)$)" : qLower.includes("quick sort") ? "Quick Sort Algorithm" : "Sorting Algorithms (Merge Sort, Quick Sort, Bubble Sort)"
+    };
+  }
+
+  if (qLower.includes("sql join") || (qLower.includes("join") && (qLower.includes("sql") || qLower.includes("table") || qLower.includes("database")))) {
+    return {
+      subject: "Database Management Systems (DBMS)",
+      topic: "SQL Queries & Relational Joins",
+      concept: "SQL Joins (INNER, LEFT, RIGHT, FULL OUTER)"
+    };
+  }
+
   if (qLower.includes("python") || qLower.includes("print")) {
     if (qLower.includes("print") || qLower.includes("output")) {
       return {
@@ -618,6 +667,25 @@ function resolveSubjectAndTopic(
   const isInter = educationLevel === "Intermediate";
   const isMPC = isInter && (!streamBranch || streamBranch.toUpperCase().includes("MPC"));
 
+  // 2. PHYSICS (Electricity, Mechanics, Optics, Thermodynamics)
+  if (
+    qLower.includes("ohm") ||
+    qLower.includes("circuit") ||
+    qLower.includes("resistor") ||
+    qLower.includes("resistance") ||
+    qLower.includes("voltage") ||
+    qLower.includes("capacitance") ||
+    qLower.includes("capacitor") ||
+    qLower.includes("kirchhoff") ||
+    qLower.includes("electric current")
+  ) {
+    return {
+      subject: isMPC ? "Intermediate Physics (MPC - Electricity)" : "Physics",
+      topic: "Current Electricity & Circuits",
+      concept: qLower.includes("kirchhoff") ? "Kirchhoff's Laws (KCL & KVL)" : qLower.includes("capacitor") ? "Capacitance & Dielectrics" : "Ohm's Law ($V = IR$) & Electrical Resistance"
+    };
+  }
+
   if (
     qLower.includes("projectile") ||
     qLower.includes("motion") ||
@@ -643,7 +711,13 @@ function resolveSubjectAndTopic(
     };
   }
 
+  // 3. MATHEMATICS (Linear Equations, Quadratics, Calculus, Matrices, Trigonometry)
   if (
+    qLower.includes("solve") ||
+    qLower.includes("equation") ||
+    qLower.includes("linear equation") ||
+    qLower.includes("quadratic") ||
+    qLower.includes("roots of") ||
     qLower.includes("matrix") ||
     qLower.includes("matrices") ||
     qLower.includes("determinant") ||
@@ -651,8 +725,22 @@ function resolveSubjectAndTopic(
     qLower.includes("derivative") ||
     qLower.includes("integral") ||
     qLower.includes("trigonometry") ||
-    qLower.includes("quadratic")
+    qLower.includes("sin") && qLower.includes("cos")
   ) {
+    if (qLower.includes("quadratic") || qLower.includes("roots of") || qLower.includes("^2") || qLower.includes("x^2")) {
+      return {
+        subject: isMPC ? "Intermediate Mathematics (Algebra)" : "Mathematics",
+        topic: "Quadratic Equations",
+        concept: "Quadratic Equations & Roots ($ax^2 + bx + c = 0$)"
+      };
+    }
+    if (qLower.includes("solve") || qLower.includes("linear equation") || qLower.includes("=") || qLower.includes("equation")) {
+      return {
+        subject: isMPC ? "Intermediate Mathematics (Algebra)" : "Mathematics",
+        topic: "Linear Equations & Algebra",
+        concept: "Solving Linear Equations"
+      };
+    }
     if (qLower.includes("matrix") || qLower.includes("matrices") || qLower.includes("determinant")) {
       return {
         subject: isMPC ? "Intermediate Mathematics (1A / Matrices)" : "Mathematics",
@@ -667,26 +755,71 @@ function resolveSubjectAndTopic(
         concept: "Rates of Change, Chain Rule & Maxima/Minima"
       };
     }
+    if (qLower.includes("integral") || qLower.includes("integration")) {
+      return {
+        subject: isMPC ? "Intermediate Mathematics (2B / Calculus)" : "Mathematics",
+        topic: "Integral Calculus",
+        concept: "Integration & Antiderivatives"
+      };
+    }
     return {
       subject: isMPC ? "Intermediate Mathematics" : "Mathematics",
-      topic: "Algebra & Analytical Geometry",
-      concept: "Mathematical Problem Solving"
+      topic: "Trigonometry & Identities",
+      concept: "Trigonometric Identities (sin²θ + cos²θ = 1)"
     };
   }
 
+  // 4. CHEMISTRY
+  if (
+    qLower.includes("chem") ||
+    qLower.includes("bond") ||
+    qLower.includes("hybrid") ||
+    qLower.includes("equilibrium") ||
+    qLower.includes("mole") ||
+    qLower.includes("acid") ||
+    qLower.includes("base") ||
+    qLower.includes("ph ") ||
+    qLower.includes("periodic") ||
+    qLower.includes("redox")
+  ) {
+    if (qLower.includes("equilibrium") || qLower.includes("le chatelier")) {
+      return {
+        subject: isMPC ? "Intermediate Chemistry (MPC)" : "Chemistry",
+        topic: "Chemical Equilibrium",
+        concept: "Chemical Equilibrium & Le Chatelier's Principle"
+      };
+    }
+    if (qLower.includes("bond") || qLower.includes("hybrid") || qLower.includes("vsepr")) {
+      return {
+        subject: isMPC ? "Intermediate Chemistry (MPC)" : "Chemistry",
+        topic: "Chemical Bonding & Molecular Structure",
+        concept: "Chemical Bonding & Hybridization (sp, sp², sp³)"
+      };
+    }
+    return {
+      subject: isMPC ? "Intermediate Chemistry (MPC)" : "Chemistry",
+      topic: "Physical & Inorganic Chemistry",
+      concept: "Atomic Structure & Chemical Principles"
+    };
+  }
+
+  // 5. BIOLOGY
   if (
     qLower.includes("photosynthesis") ||
     qLower.includes("chloroplast") ||
     qLower.includes("chlorophyll") ||
-    qLower.includes("cell") && qLower.includes("mitochondria") ||
+    qLower.includes("cell") ||
+    qLower.includes("mitochondria") ||
     qLower.includes("dna") ||
     qLower.includes("rna") ||
-    qLower.includes("respiration")
+    qLower.includes("respiration") ||
+    qLower.includes("mitosis") ||
+    qLower.includes("meiosis")
   ) {
     return {
       subject: "Biology & Life Sciences",
-      topic: "Plant Physiology & Cellular Biology",
-      concept: "Photosynthesis: Light Reactions & Calvin Cycle"
+      topic: qLower.includes("photosynthesis") ? "Plant Physiology & Photosynthesis" : "Cellular Biology & Genetics",
+      concept: qLower.includes("photosynthesis") ? "Photosynthesis: Light Reactions & Calvin Cycle" : "Cell Structure & Organelles"
     };
   }
 

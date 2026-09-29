@@ -48,6 +48,8 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
 }) => {
   const [tempEndpoint, setTempEndpoint] = useState(ollamaEndpoint);
   const [activeTab, setActiveTab] = useState<"models" | "guide" | "features">("models");
+  const [groqKey, setGroqKey] = useState(() => localStorage.getItem("learnx_custom_api_key") || "");
+  const [keySavedStatus, setKeySavedStatus] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -55,6 +57,19 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
     if (tempEndpoint.trim()) {
       onSaveEndpoint(tempEndpoint.trim());
     }
+  };
+
+  const handleSaveGroqKey = () => {
+    if (groqKey.trim()) {
+      localStorage.setItem("learnx_custom_api_key", groqKey.trim());
+      localStorage.setItem("learnx_ai_provider", "groq");
+      setKeySavedStatus("Groq API Key saved successfully! Llama 3.3 70B & DeepSeek R1 are active.");
+    } else {
+      localStorage.removeItem("learnx_custom_api_key");
+      localStorage.removeItem("learnx_ai_provider");
+      setKeySavedStatus("Key cleared. Defaulting to LearnX Built-in Academic Engine.");
+    }
+    setTimeout(() => setKeySavedStatus(null), 4000);
   };
 
   return (
@@ -131,6 +146,89 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
           {/* TAB 1: MODEL SELECTOR */}
           {activeTab === "models" && (
             <div className="space-y-3">
+              {/* Option 0: Groq Cloud - Free, Unlimited & Ultra-Fast (Llama 3.3 70B & DeepSeek R1) */}
+              <div
+                onClick={() => onSelectModel("groq-llama3")}
+                className={`p-4 rounded-xl border transition cursor-pointer ${
+                  selectedModel === "groq-llama3" || selectedModel === "groq-deepseek"
+                    ? "bg-amber-950/40 border-amber-500/70 shadow-sm shadow-amber-500/10"
+                    : "bg-slate-850/60 border-slate-750 hover:bg-slate-800"
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-bold text-white">Groq Cloud (Llama 3.3 70B & DeepSeek R1)</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold">
+                          ⚡ 500 Tokens/sec
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold">
+                          Free API Key
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                        World-record speed with 0 cost. Excellent at ChatGPT-style natural answers, math derivations, and coding. Grab a 100% free API key from Groq with zero credit card required!
+                      </p>
+
+                      {/* API Key Configuration */}
+                      <div
+                        className="mt-3 p-2.5 bg-slate-900/90 rounded-lg border border-slate-800 space-y-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <input
+                            type="password"
+                            value={groqKey}
+                            onChange={(e) => setGroqKey(e.target.value)}
+                            placeholder="Paste your free Groq API key (gsk_...)"
+                            className="flex-1 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-xs text-white font-mono focus:outline-none focus:border-amber-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleSaveGroqKey}
+                            className="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold rounded text-xs transition shrink-0"
+                          >
+                            Save Key
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-400">
+                          <a
+                            href="https://console.groq.com/keys"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-amber-400 hover:underline flex items-center gap-1 font-medium"
+                          >
+                            <span>Get free key at console.groq.com</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                          <span>Free 14,400 requests/day</span>
+                        </div>
+                        {keySavedStatus && (
+                          <div className="text-[11px] text-emerald-400 font-medium">
+                            {keySavedStatus}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="shrink-0 ml-2">
+                    <div
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                        selectedModel === "groq-llama3" || selectedModel === "groq-deepseek"
+                          ? "border-amber-500 bg-amber-500 text-slate-950"
+                          : "border-slate-600"
+                      }`}
+                    >
+                      {(selectedModel === "groq-llama3" || selectedModel === "groq-deepseek") && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Option 1: Academic Knowledge Engine (Permanent & Built-in, 0 Download) */}
               <div
                 onClick={() => onSelectModel("academic-engine")}

@@ -6,9 +6,72 @@ import {
   ConversationContext,
   IntentAnalysisResult
 } from "./intent.js";
+import { solveMathOrNumerical } from "./math_solver.js";
 
 let aiClient: GoogleGenAI | null = null;
 let cloudApiBlockedOrRestricted = false;
+
+// ============================================================================
+// GROQ CLOUD API (FREE, ULTRA-FAST LLAMA 3.3 70B & DEEPSEEK R1)
+// ============================================================================
+
+export async function callGroqAPI(
+  prompt: string,
+  apiKey?: string,
+  modelName: string = "llama-3.3-70b-versatile",
+  systemPrompt?: string
+): Promise<string | null> {
+  const key = (apiKey && apiKey.trim().length > 5 ? apiKey : process.env.GROQ_API_KEY)?.trim();
+  if (!key) return null;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 18000);
+    const chosenModel = modelName.includes("deepseek")
+      ? "deepseek-r1-distill-llama-70b"
+      : modelName.includes("8b")
+      ? "llama-3.1-8b-instant"
+      : "llama-3.3-70b-versatile";
+
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${key}`
+      },
+      body: JSON.stringify({
+        model: chosenModel,
+        messages: [
+          {
+            role: "system",
+            content:
+              systemPrompt ||
+              "You are LearnX AI, a warm, clear, encouraging, and brilliant academic mentor like ChatGPT/Claude. Explain concepts with crystal clarity, vivid real-world analogies, step-by-step logic, worked examples, and key exam takeaways. Never use dry robotic filler."
+          },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.6,
+        max_tokens: 2500
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (content && typeof content === "string" && content.trim().length > 20) {
+        return content.trim();
+      }
+    } else {
+      const errText = await res.text();
+      console.warn("[LearnX AI] Groq API error response:", res.status, errText.slice(0, 150));
+    }
+  } catch (err: any) {
+    console.warn("[LearnX AI] Groq API call failed or timed out:", err?.message || err);
+  }
+  return null;
+}
 
 // ============================================================================
 // OLLAMA & LOCAL MODEL DETECTION
@@ -82,14 +145,32 @@ export async function queryOllama(
   return null;
 }
 
-function getAI(): GoogleGenAI | null {
-  if (!process.env.GEMINI_API_KEY || cloudApiBlockedOrRestricted) {
+function getAI(customApiKey?: string): GoogleGenAI | null {
+  const key = (customApiKey && customApiKey.trim().length > 5 ? customApiKey : process.env.GEMINI_API_KEY)?.trim();
+  if (!key) {
+    return null;
+  }
+  if (customApiKey && customApiKey.trim().length > 5) {
+    try {
+      return new GoogleGenAI({
+        apiKey: customApiKey.trim(),
+        httpOptions: {
+          headers: {
+            "User-Agent": "aistudio-build",
+          },
+        },
+      });
+    } catch {
+      return null;
+    }
+  }
+  if (cloudApiBlockedOrRestricted) {
     return null;
   }
   if (!aiClient) {
     try {
       aiClient = new GoogleGenAI({
-        apiKey: process.env.GEMINI_API_KEY,
+        apiKey: key,
         httpOptions: {
           headers: {
             "User-Agent": "aistudio-build",
@@ -108,9 +189,10 @@ const modelCooldowns = new Map<string, number>();
 
 export async function callGeminiWithFallback(
   prompt: string,
-  timeoutMs: number = 10000
+  timeoutMs: number = 10000,
+  customApiKey?: string
 ): Promise<string | null> {
-  const ai = getAI();
+  const ai = getAI(customApiKey);
   if (!ai) return null;
 
   // Ordered fallback models compliant with platform specifications:
@@ -1017,8 +1099,250 @@ const ACADEMIC_KNOWLEDGE_BASE: ConceptMasteryEntry[] = [
       correct: "A",
       explanation: "The forward reaction has 2 moles of gas while the reactant side has 1 + 3 = 4 moles of gas. Increasing pressure favors the side with fewer moles of gas to relieve the pressure, thus shifting equilibrium forward toward NH3."
     }
+  },
+  {
+    subject: "Physics",
+    topic: "Current Electricity & Circuits",
+    concept: "Ohm's Law ($V = IR$) & Electrical Resistance",
+    keywords: ["ohm's law", "ohm law", "ohms law", "v = ir", "resistance", "electric current", "voltage", "potential difference", "resistors in series", "resistors in parallel"],
+    plainEnglish: "**Ohm's Law** is the most fundamental law in electrical circuits. It states that the electric current ($I$) flowing through a conductor between two points is **directly proportional** to the voltage (potential difference $V$) across the two points, provided physical conditions (like temperature) remain constant.",
+    analogy: "Think of electricity like water flowing through a garden pipe:\n- **Voltage ($V$)** is the water pressure pushing from the pump.\n- **Current ($I$)** is the rate of water actually flowing through the pipe.\n- **Resistance ($R$)** is a valve or narrow section of pipe that resists the water flow.\nIncrease the pressure (voltage) → more water flows (current). Constrict the pipe (more resistance) → less water flows!",
+    howItWorks: [
+      "**1. Mathematical Formula**: $V = I \\times R$, where $V$ is Voltage in Volts (V), $I$ is Current in Amperes (A), and $R$ is Resistance in Ohms ($\\Omega$).",
+      "**2. Calculating Current & Resistance**: $I = \\frac{V}{R}$ and $R = \\frac{V}{I}$.",
+      "**3. Resistors in Series**: Resistances simply add up: $R_{\\text{total}} = R_1 + R_2 + R_3$. Current is identical through every resistor, but voltage divides.",
+      "**4. Resistors in Parallel**: Inverses add up: $\\frac{1}{R_{\\text{total}}} = \\frac{1}{R_1} + \\frac{1}{R_2}$. Voltage is identical across each branch, but current divides.",
+      "**5. Electrical Power Dissipated**: $P = V \\times I = I^2 R = \\frac{V^2}{R}$ (measured in Watts, W)."
+    ],
+    realWorldExample: "If a smartphone charger applies a 5V potential difference across a circuit with total resistance 2.5 Ω, the current supplied is $I = 5 / 2.5 = 2.0\\text{ A}$, and the charging power is $P = 5 \\times 2 = 10\\text{ Watts}$!",
+    keyTakeaways: [
+      "**Ohmic vs Non-Ohmic conductors**: Conductors that obey Ohm's Law have a straight-line (linear) V-I graph passing through the origin (e.g. copper, silver). Diodes, transistors, and electrolytes are non-ohmic (curved V-I graph).",
+      "**SI Units**: Voltage in **Volts (V)**, Current in **Amperes (A)**, Resistance in **Ohms ($\\Omega$)**, Conductance in **Siemens (S)** where $G = 1/R$.",
+      "Resistance depends on geometry: $R = \\rho \\frac{L}{A}$ where $\\rho$ is resistivity, $L$ is wire length, and $A$ is cross-sectional area."
+    ],
+    mcq: {
+      question: "According to Ohm's Law (V = IR), if the voltage applied across a constant 10 Ω resistor is increased from 20 V to 40 V, what happens to the electric current?",
+      a: "The current doubles from 2 A to 4 A (I = V / R)",
+      b: "The current is halved to 1 A",
+      c: "The current quadruples to 8 A",
+      d: "The current remains unchanged at 2 A",
+      correct: "A",
+      explanation: "By Ohm's Law, current I is directly proportional to applied voltage V for a constant resistance (I = V / R). Doubling voltage from 20 V to 40 V with R = 10 Ω doubles the current from 20/10 = 2 A to 40/10 = 4 A."
+    }
+  },
+  {
+    subject: "Computer Science",
+    topic: "Linear Data Structures",
+    concept: "Stack Data Structure (LIFO)",
+    keywords: ["stack", "stacks", "lifo", "push and pop", "stack in data structures", "call stack", "stack overflow"],
+    plainEnglish: "A **Stack** is a linear data structure that follows the strict **Last-In, First-Out (LIFO)** principle. The last item added to the stack is always the very first item to be removed.",
+    analogy: "Think of a stack of cafeteria dinner plates: you place (push) new clean plates onto the **top** of the stack, and when someone takes a plate (pop), they take it from the **top**! You cannot take a plate from the bottom without knocking over the whole stack.",
+    howItWorks: [
+      "**1. push(x)**: Inserts element $x$ onto the top of the stack. Time complexity: $O(1)$.",
+      "**2. pop()**: Removes and returns the top element. Time complexity: $O(1)$. Raises **Stack Underflow** if stack is empty.",
+      "**3. peek() / top()**: Looks at the current top element without removing it. Time complexity: $O(1)$.",
+      "**4. isEmpty()**: Checks if the stack has zero elements ($O(1)$).",
+      "**5. Stack Overflow**: Occurs when trying to push onto a fixed-size stack that is already full (common in infinite recursion)."
+    ],
+    realWorldExample: "Every modern software application uses stacks:\n- **Undo / Redo (Ctrl+Z)**: Text editors push each typed change onto an Undo stack. When you hit Ctrl+Z, it pops the most recent action!\n- **Browser History**: The Back button pops the last visited URL.\n- **Call Stack**: Programming languages (Python, Java, C++) use the internal call stack to track function invocations and local variables.",
+    keyTakeaways: [
+      "Access Discipline: Strictly **LIFO (Last-In First-Out)**.",
+      "Primary Operations: `push`, `pop`, `peek` — all run in **$O(1)$ constant time**.",
+      "Can be implemented easily using either dynamic arrays (`std::vector`, Python `list`) or linked lists (inserting/deleting at head)."
+    ],
+    mcq: {
+      question: "Which data access principle governs the operation of a Stack data structure?",
+      a: "Last-In, First-Out (LIFO)",
+      b: "First-In, First-Out (FIFO)",
+      c: "Random Access Memory (RAM)",
+      d: "Shortest-Job-First (SJF)",
+      correct: "A",
+      explanation: "A Stack restricts all insertions and deletions to one end (the top), ensuring that the most recently pushed element is the first to be popped (LIFO)."
+    }
+  },
+  {
+    subject: "Computer Science",
+    topic: "Linear Data Structures",
+    concept: "Queue Data Structure (FIFO)",
+    keywords: ["queue", "queues", "fifo", "enqueue", "dequeue", "circular queue", "queue in data structures"],
+    plainEnglish: "A **Queue** is a linear data structure that follows the **First-In, First-Out (FIFO)** discipline. Elements are added at the rear (tail) and removed from the front (head).",
+    analogy: "Think of standing in a ticket queue at a cinema hall: the first person who arrives and gets in line is the first person who buys their ticket and exits. It is fair and orderly!",
+    howItWorks: [
+      "**1. enqueue(x)**: Inserts an element at the rear of the queue ($O(1)$).",
+      "**2. dequeue()**: Removes and returns the element at the front of the queue ($O(1)$).",
+      "**3. front() / peek()**: Views the front item without removing it ($O(1)$).",
+      "**4. Circular Queue**: Overcomes space wastage in array-based queues by wrapping the rear pointer around using modulo arithmetic (`rear = (rear + 1) % capacity`)."
+    ],
+    realWorldExample: "Operating system CPU scheduling ready queues, printer job spoolers (first document sent prints first), and web server request handling queues all run on FIFO queues!",
+    keyTakeaways: [
+      "Access Discipline: **FIFO (First-In First-Out)**.",
+      "Insertion occurs at **rear**, deletion occurs at **front**.",
+      "Used as the core auxiliary data structure in **Breadth-First Search (BFS)** graph traversal."
+    ],
+    mcq: {
+      question: "In a standard FIFO Queue, at which end do element insertions (enqueue operations) take place?",
+      a: "At the Rear (Tail) of the queue",
+      b: "At the Front (Head) of the queue",
+      c: "At the midpoint of the queue",
+      d: "At any arbitrary random index",
+      correct: "A",
+      explanation: "In a Queue, new elements are enqueued at the Rear (Tail), while deletions (dequeue) take place from the Front (Head), preserving FIFO order."
+    }
+  },
+  {
+    subject: "Database Management Systems",
+    topic: "SQL Queries & Relational Joins",
+    concept: "SQL Joins (INNER, LEFT, RIGHT, FULL OUTER)",
+    keywords: ["sql join", "sql joins", "inner join", "left join", "right join", "outer join", "cross join", "join in sql"],
+    plainEnglish: "An **SQL JOIN** is an operation used in relational databases to combine rows from two or more tables based on a related column between them (typically a Primary Key and Foreign Key).",
+    analogy: "Imagine having two spreadsheets: Sheet 1 lists `Students(ID, Name)` and Sheet 2 lists `Grades(StudentID, Subject, Score)`. An SQL JOIN merges these two sheets on `Students.ID = Grades.StudentID` so you can view each student's name alongside their grades in one unified table!",
+    howItWorks: [
+      "**1. INNER JOIN**: Returns only records that have matching values in **both** tables.",
+      "**2. LEFT (OUTER) JOIN**: Returns **all** records from the left table, and the matched records from the right table (unmatched right columns return `NULL`).",
+      "**3. RIGHT (OUTER) JOIN**: Returns **all** records from the right table, and matched records from the left table.",
+      "**4. FULL (OUTER) JOIN**: Returns all records when there is a match in either left or right table.",
+      "**5. CROSS JOIN**: Computes the Cartesian product of two tables (combines every row of table 1 with every row of table 2)."
+    ],
+    realWorldExample: "```sql\nSELECT Students.name, Courses.course_name\nFROM Students\nINNER JOIN Enrollments ON Students.student_id = Enrollments.student_id\nINNER JOIN Courses ON Enrollments.course_id = Courses.course_id;\n```\nThis query cleanly pulls which students are enrolled in which university courses without storing redundant names in the enrollment log!",
+    keyTakeaways: [
+      "INNER JOIN filters out unmatched records from both sides.",
+      "LEFT JOIN is ideal when you want to preserve every master record (e.g. all customers, even those who haven't placed an order yet).",
+      "Performance: Ensure joined columns have database indexes (B-Tree indexes on Foreign Keys) to avoid slow full-table scans."
+    ],
+    mcq: {
+      question: "Which type of SQL JOIN returns ALL records from the left table, along with matching rows from the right table (filling in NULL where no match exists)?",
+      a: "LEFT (OUTER) JOIN",
+      b: "INNER JOIN",
+      c: "CROSS JOIN",
+      d: "NATURAL JOIN",
+      correct: "A",
+      explanation: "A LEFT OUTER JOIN preserves every row from the left table regardless of whether a matching record exists in the right table; non-matching columns from the right table are populated with NULL values."
+    }
+  },
+  {
+    subject: "Mathematics",
+    topic: "Linear Equations & Algebra",
+    concept: "Solving Linear Equations",
+    keywords: ["linear equation", "solve equation", "linear equations", "solving linear equations", "isolate x"],
+    plainEnglish: "A **Linear Equation** is an algebraic equation in which the highest exponent of the variable is $1$ (forming a straight line when graphed: $y = mx + b$). Solving a linear equation means finding the exact numerical value of the variable that makes the equation true.",
+    analogy: "Think of an old-fashioned balance scale with two weighing pans: if both pans are currently balanced ($LHS = RHS$), you can add 5 kg to both sides, subtract 3 kg from both sides, or double both sides, and the scale remains perfectly balanced!",
+    howItWorks: [
+      "**1. Standard Form**: $ax + b = c$ where $a \\neq 0$.",
+      "**2. Step 1 (Isolate Variable Term)**: Subtract $b$ from both sides: $ax = c - b$.",
+      "**3. Step 2 (Solve for $x$)**: Divide both sides by the coefficient $a$: $x = \\frac{c - b}{a}$.",
+      "**4. Variables on Both Sides**: If $ax + b = cx + d$, gather variable terms on one side and constants on the other: $(a - c)x = d - b$.",
+      "**5. Verification**: Substitute your calculated answer back into the original equation to verify that $\\text{LHS} = \\text{RHS}$."
+    ],
+    realWorldExample: "If an electric taxi charges a base fare of ₹50 plus ₹10 per kilometer, and your total bill is ₹220, the equation is $10k + 50 = 220 \\implies 10k = 170 \\implies k = 17\\text{ km}$!",
+    keyTakeaways: [
+      "Linear equations in one variable have exactly **one unique solution** (unless $0x = 0$ which has infinitely many solutions, or $0x = 5$ which has no solution).",
+      "Golden Rule: Whatever operation you apply to the Left-Hand Side (LHS), you must apply identically to the Right-Hand Side (RHS).",
+      "Always verify by back-substitution during exams for guaranteed 100% full marks."
+    ],
+    mcq: {
+      question: "What is the solution for x in the linear equation 3x + 7 = 22?",
+      a: "x = 5",
+      b: "x = 7",
+      c: "x = 3",
+      d: "x = 15",
+      correct: "A",
+      explanation: "Subtracting 7 from both sides gives 3x = 22 - 7 = 15. Dividing both sides by 3 yields x = 15 / 3 = 5."
+    }
+  },
+  {
+    subject: "Mathematics",
+    topic: "Quadratic Equations",
+    concept: "Quadratic Equations & Roots ($ax^2 + bx + c = 0$)",
+    keywords: ["quadratic equation", "quadratic equations", "quadratic formula", "discriminant", "roots of quadratic", "b^2 - 4ac"],
+    plainEnglish: "A **Quadratic Equation** is a second-degree polynomial equation of the form $ax^2 + bx + c = 0$ where $a \\neq 0$. When graphed on a coordinate plane, it forms a symmetric U-shaped curve called a **parabola**.",
+    analogy: "When you kick a soccer ball or launch a rocket into the air, gravity pulls it back down along a curved parabolic trajectory. That curved trajectory is mathematically described by a quadratic equation!",
+    howItWorks: [
+      "**1. Standard Form**: $ax^2 + bx + c = 0$.",
+      "**2. Quadratic Formula**: $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$.",
+      "**3. The Discriminant ($\\Delta = b^2 - 4ac$)**: Determines the nature of the roots:",
+      "   - If $\\Delta > 0$: **Two distinct real roots**.",
+      "   - If $\\Delta = 0$: **One real repeated root** (the parabola touches the x-axis at its vertex).",
+      "   - If $\\Delta < 0$: **Two complex conjugate roots** (the parabola does not cross the x-axis).",
+      "**4. Vieta's Formulas**: Sum of roots $= -b/a$, Product of roots $= c/a$."
+    ],
+    realWorldExample: "For $x^2 - 5x + 6 = 0$:\n- Factorization: $(x - 2)(x - 3) = 0 \\implies x = 2$ and $x = 3$.\n- Using formula: $\\Delta = (-5)^2 - 4(1)(6) = 25 - 24 = 1$. Roots $x = \\frac{5 \\pm 1}{2} = 3, 2$ ✨",
+    keyTakeaways: [
+      "A quadratic equation always has exactly **2 roots** (real or complex).",
+      "The vertex of the parabola $y = ax^2 + bx + c$ is located at $x = -\\frac{b}{2a}$.",
+      "If $a > 0$, the parabola opens upward (minimum at vertex); if $a < 0$, it opens downward."
+    ],
+    mcq: {
+      question: "For a quadratic equation ax² + bx + c = 0, what does a discriminant value of Δ = b² - 4ac > 0 signify?",
+      a: "The equation possesses two distinct real roots",
+      b: "The equation possesses two complex conjugate roots with non-zero imaginary parts",
+      c: "The equation possesses exactly one real repeated root",
+      d: "The equation has zero mathematical solutions"
+    ,
+      correct: "A",
+      explanation: "When the discriminant Δ = b² - 4ac is strictly positive, the square root √Δ produces a real non-zero number, yielding two distinct real solutions via (-b ± √Δ) / 2a."
+    }
+  },
+  {
+    subject: "Mathematics",
+    topic: "Trigonometry & Identities",
+    concept: "Trigonometric Identities (sin²θ + cos²θ = 1)",
+    keywords: ["trigonometry", "trigonometric identities", "sin cos tan", "sin^2", "cos^2", "pythagorean identity"],
+    plainEnglish: "Trigonometric identities are mathematical equations involving trigonometric functions (sine, cosine, tangent) that hold true for **every single valid angle $\\theta$**.",
+    analogy: "Think of a right-angled triangle inscribed in a circle of radius 1 (the Unit Circle): the horizontal leg is $\\cos\\theta$ and the vertical leg is $\\sin\\theta$. By the Pythagorean Theorem ($a^2 + b^2 = c^2$), the sum of squares $(\\cos\\theta)^2 + (\\sin\\theta)^2$ must always equal the hypotenuse squared: $1^2 = 1$!",
+    howItWorks: [
+      "**1. Primary Pythagorean Identity**: $\\sin^2\\theta + \\cos^2\\theta = 1$.",
+      "**2. Tangent & Secant Identity**: Dividing by $\\cos^2\\theta$ gives: $1 + \\tan^2\\theta = \\sec^2\\theta$.",
+      "**3. Cotangent & Cosecant Identity**: Dividing by $\\sin^2\\theta$ gives: $1 + \\cot^2\\theta = \\csc^2\\theta$.",
+      "**4. Double Angle Formulas**: $\\sin(2\\theta) = 2\\sin\\theta\\cos\\theta$, $\\cos(2\\theta) = \\cos^2\\theta - \\sin^2\\theta = 2\\cos^2\\theta - 1 = 1 - 2\\sin^2\\theta$."
+    ],
+    realWorldExample: "GPS satellite triangulation, audio signal frequency decomposition (Fourier Transform), computer graphics 3D rotation matrices, and game physics engines all rely directly on these trigonometric identities!",
+    keyTakeaways: [
+      "$\\sin^2\\theta + \\cos^2\\theta = 1$ for all real numbers $\\theta$.",
+      "$\\tan\\theta = \\frac{\\sin\\theta}{\\cos\\theta}$, $\\cot\\theta = \\frac{\\cos\\theta}{\\sin\\theta}$, $\\sec\\theta = \\frac{1}{\\cos\\theta}$, $\\csc\\theta = \\frac{1}{\\sin\\theta}$.",
+      "Always look for opportunities to substitute $1 - \\sin^2\\theta$ with $\\cos^2\\theta$ to simplify proofs."
+    ],
+    mcq: {
+      question: "Which of the following trigonometric identities is mathematically valid for all real angles θ?",
+      a: "1 + tan²(θ) = sec²(θ)",
+      b: "sin²(θ) - cos²(θ) = 1",
+      c: "1 + cot²(θ) = tan²(θ)",
+      d: "sin(θ) + cos(θ) = 1",
+      correct: "A",
+      explanation: "Dividing the fundamental Pythagorean identity sin²(θ) + cos²(θ) = 1 by cos²(θ) yields (sin²θ/cos²θ) + (cos²θ/cos²θ) = (1/cos²θ), which simplifies to tan²(θ) + 1 = sec²(θ)."
+    }
+  },
+  {
+    subject: "Biology & Life Sciences",
+    topic: "Cell Biology & Cytology",
+    concept: "Cell Structure & Mitochondria",
+    keywords: ["cell structure", "mitochondria", "organelles", "nucleus", "ribosome", "chloroplast", "plant cell", "animal cell"],
+    plainEnglish: "The **Cell** is the fundamental structural and functional unit of all living organisms. Within each eukaryotic cell, specialized membrane-bound structures called **organelles** perform distinct biochemical tasks to sustain life.",
+    analogy: "Think of a eukaryotic cell like a bustling, modern manufacturing factory:\n- **Nucleus**: The executive headquarters storing the master blueprints (DNA).\n- **Mitochondria**: The powerhouse generating electrical energy (ATP).\n- **Ribosomes**: Assembly line workers manufacturing proteins.\n- **Endoplasmic Reticulum & Golgi Apparatus**: Packaging and postal shipping department.\n- **Cell Membrane**: Factory security gate controlling incoming and outgoing traffic.",
+    howItWorks: [
+      "**1. Mitochondria (The Powerhouse of the Cell)**: Double-membraned organelle responsible for **cellular respiration** and synthesizing **ATP (Adenosine Triphosphate)**, the cellular energy currency.",
+      "**2. Inner Mitochondrial Membrane & Cristae**: Highly folded into cristae to maximize surface area for the Electron Transport Chain (ETC) and ATP synthase enzyme complexes.",
+      "**3. Endosymbiotic Theory**: Mitochondria contain their own circular DNA and 70S ribosomes, indicating they evolved from ancient free-living aerobic bacteria engulfed by ancestral eukaryotic cells.",
+      "**4. Plant vs Animal Cells**: Plant cells possess rigid cellulose cell walls, large central vacuoles, and chloroplasts for photosynthesis; animal cells do not."
+    ],
+    realWorldExample: "Human muscle cells and cardiac (heart) cells require immense amounts of energy to continuously contract, so a single heart muscle cell contains up to 5,000 mitochondria!",
+    keyTakeaways: [
+      "Mitochondria generate energy through aerobic respiration: $C_6H_{12}O_6 + 6O_2 \\to 6CO_2 + 6H_2O + 36\\text{-}38\\text{ ATP}$.",
+      "Mitochondria exhibit **maternal inheritance** (passed down exclusively from mother to offspring via egg cytoplasm).",
+      "Primary exam topic in Intermediate Biology (NEET, AP/TS Board, CBSE Class 11)."
+    ],
+    mcq: {
+      question: "Why are mitochondria universally referred to as the 'powerhouse of the cell'?",
+      a: "They synthesize ATP (cellular energy currency) via aerobic respiration",
+      b: "They contain the genetic code for the entire organism",
+      c: "They perform photosynthesis to create glucose",
+      d: "They digest cellular waste using hydrolytic enzymes",
+      correct: "A",
+      explanation: "Mitochondria carry out the Krebs cycle and oxidative phosphorylation (Electron Transport Chain) to generate ATP (Adenosine Triphosphate), the primary chemical energy carrier of living cells."
+    }
   }
 ];
+
+export { ACADEMIC_KNOWLEDGE_BASE };
 
 function findKnowledgeBaseEntry(
   query: string,
@@ -1041,6 +1365,7 @@ function findKnowledgeBaseEntry(
     q.includes("layer") ||
     q.includes("database") ||
     q.includes("sql") ||
+    q.includes("join") ||
     q.includes("normalization") ||
     q.includes("deadlock") ||
     q.includes("round robin") ||
@@ -1057,7 +1382,13 @@ function findKnowledgeBaseEntry(
     q.includes("c++") ||
     q.includes("java") ||
     q.includes("oop") ||
-    q.includes("recursion");
+    q.includes("recursion") ||
+    q.includes("stack") ||
+    q.includes("queue") ||
+    q.includes("linked list") ||
+    q.includes("sort") ||
+    q.includes("tree") ||
+    q.includes("heap");
 
   for (const entry of ACADEMIC_KNOWLEDGE_BASE) {
     const conceptLower = entry.concept.toLowerCase();
@@ -1251,14 +1582,14 @@ Want to see how to do this in JavaScript, C++, or Java too? Just let me know!`;
   const isDegree = educationLevel === "Degree" || subject.includes("Degree") || subject.includes("Commerce");
 
   // Tailor intuitive analogy and intuition based on detected domain and student level
-  let plainEnglish = `**${cleanConcept}** is a foundational idea in **${subject}** (${topic}). At its core, it gives us a clear, reliable way to understand how systems behave, solve problems, and make decisions without guessing.`;
-  let analogy = `Think of it like learning the rules of chess: once you know how the pieces move and interact, complex strategies start making total sense. **${cleanConcept}** provides that exact rulebook in **${topic}**!`;
+  let plainEnglish = `**${cleanConcept}** is a core concept in **${subject}** (${topic}). It establishes the fundamental principles, governing formulas, and systematic steps needed to analyze systems, solve problems, and make verified decisions.`;
+  let analogy = `Think of **${cleanConcept}** like an engineer's master blueprint: before assembling complex machines or writing production software, having this clear structural guideline ensures every component interacts smoothly, reliably, and without unexpected bugs!`;
   let mechanics = [
-    `**Core Goal**: Solves a specific challenge in ${subject} by establishing clear, predictable rules.`,
-    `**Step-by-step logic**: Takes input information, applies the governing principles of ${topic}, and produces an accurate, verifiable result.`,
-    `**Practical Trade-off**: Balances simplicity, efficiency, and real-world constraints.`
+    `**Core Goal**: Solves a specific analytical or computational challenge in ${subject} by establishing clear, predictable rules.`,
+    `**Step-by-step logic**: Takes input parameters, applies the governing principles of ${topic}, and produces an accurate, verifiable result.`,
+    `**Practical Trade-off**: Balances simplicity, efficiency, and real-world implementation constraints.`
   ];
-  let realWorld = `In modern science and engineering, **${cleanConcept}** is used to build reliable systems, model nature, or solve analytical problems in coursework and industry.`;
+  let realWorld = `In modern science and engineering, **${cleanConcept}** is applied directly to design resilient systems, model real-world phenomena, and pass competitive examinations.`;
   let takeaways = [
     `Always start with the core definition before diving into complex equations or edge cases.`,
     `Focus on *why* this concept was created—it almost always solves an efficiency, accuracy, or organization problem!`,
@@ -1376,6 +1707,44 @@ Want to see how to do this in JavaScript, C++, or Java too? Just let me know!`;
       `State the Best, Average, and Worst-case Time Complexity in Big-O notation.`,
       `State the Space Complexity (memory required).`,
       `Identify edge cases (e.g. empty inputs, duplicates, already-sorted data).`
+    ];
+  } else if (
+    qLower.includes("osi") ||
+    qLower.includes("network") ||
+    subject.includes("Network") ||
+    topic.includes("Network") ||
+    topic.includes("Protocol") ||
+    qLower.includes("tcp") ||
+    qLower.includes("udp") ||
+    qLower.includes("ip") ||
+    qLower.includes("routing") ||
+    qLower.includes("switch") ||
+    qLower.includes("packet")
+  ) {
+    plainEnglish = `The **OSI (Open Systems Interconnection) Model** is a 7-layer architectural framework created by the International Organization for Standardization (ISO) in 1984. It describes the complete journey of data from a software application on your device (like a web browser), down through network adapters and cables, across global internet routers, and back up to an application on a destination server.`;
+    analogy = `Think of sending an international courier parcel with 7 stages:
+1. **Application (Layer 7)**: You write your letter in your application.
+2. **Presentation (Layer 6)**: You translate it and seal it in an encrypted envelope.
+3. **Session (Layer 5)**: You verify that you and the recipient have an active connection.
+4. **Transport (Layer 4 - TCP/UDP)**: You chop big letters into numbered segments with tracking numbers so nothing gets lost.
+5. **Network (Layer 3 - IP)**: You write the destination and sender IP addresses on the box so postal routers can steer it across global networks.
+6. **Data Link (Layer 2 - MAC)**: The local delivery depot puts the box into a local delivery vehicle with hardware barcodes.
+7. **Physical (Layer 1 - Bits)**: The truck physically drives on the highway, transmitting raw 1s and 0s as electrical, radio, or light pulses.`;
+    mechanics = [
+      `**Layer 7 - Application**: User interface for network services. Protocols: HTTP, HTTPS, DNS, FTP, SMTP, SSH. PDU: **Data**.`,
+      `**Layer 6 - Presentation**: Translation, syntax formatting, SSL/TLS encryption, and data compression. PDU: **Data**.`,
+      `**Layer 5 - Session**: Establishes, manages, and terminates connections between applications (e.g. NetBIOS, RPC). PDU: **Data**.`,
+      `**Layer 4 - Transport**: End-to-end reliable transmission, error recovery, and segmentation (TCP / UDP). PDU: **Segment**.`,
+      `**Layer 3 - Network**: Logical IP addressing and routing between distinct subnets (Routers operate here). PDU: **Packet**.`,
+      `**Layer 2 - Data Link**: Hop-to-hop physical delivery and MAC addressing within local networks (Switches operate here). PDU: **Frame**.`,
+      `**Layer 1 - Physical**: Raw binary bitstream transmission over electrical cables, fiber optics, or Wi-Fi radio waves (Hubs, Cables). PDU: **Bits**.`
+    ];
+    realWorld = `Every time you search Google, load an Instagram post, or stream a Netflix movie, data flows down all 7 layers (Encapsulation) on the sender and climbs back up all 7 layers (Decapsulation) on the receiver!`;
+    takeaways = [
+      `**Top-to-Bottom Mnemonic (7 → 1)**: **A**ll **P**eople **S**eem **T**o **N**eed **D**ata **P**rocessing (**A**pplication, **P**resentation, **S**ession, **T**ransport, **N**etwork, **D**ata Link, **P**hysical).`,
+      `**Bottom-to-Top Mnemonic (1 → 7)**: **P**lease **D**o **N**ot **T**hrow **S**ausage **P**izza **A**way.`,
+      `**PDU Summary**: Layers 7-5 = **Data** | Layer 4 = **Segment** | Layer 3 = **Packet** | Layer 2 = **Frame** | Layer 1 = **Bits**.`,
+      `**Hardware Mapping**: Hubs = Layer 1; Switches = Layer 2; Routers = Layer 3; Gateways/Firewalls = Layers 4-7.`
     ];
   }
 
@@ -1701,7 +2070,9 @@ export async function generateValidatedExplanation(
   ollamaEndpoint?: string,
   streamBranch?: string,
   syllabusNotes?: string,
-  easyMode: boolean = true
+  easyMode: boolean = true,
+  customApiKey?: string,
+  provider?: string
 ): Promise<ExplanationResult> {
   // 1. If it is a friendly greeting or conversational inquiry
   if (analysis.is_conversational || isGreetingOrChitchat(question)) {
@@ -1718,7 +2089,7 @@ export async function generateValidatedExplanation(
 
   // 1.3. Dedicated Code Generation Handler (Bypasses academic lecturing)
   if (analysis.intent === "CODE_GENERATION" || analysis.is_code_generation) {
-    const ai = getAI();
+    const ai = getAI(customApiKey);
     if (ai) {
       try {
         const codePrompt = `You are LearnX AI, a friendly, modern coding mentor and world-class software engineer (with the conversational warmth and precision of ChatGPT/Claude).
@@ -1731,7 +2102,7 @@ INSTRUCTIONS:
 4. List the key features and mechanics included.
 5. Keep it simple, clean, and immediately usable.`;
 
-        const codeText = await callGeminiWithFallback(codePrompt, 12000);
+        const codeText = await callGeminiWithFallback(codePrompt, 12000, customApiKey);
         if (codeText && codeText.trim().length > 60) {
           return {
             explanation: codeText,
@@ -1805,9 +2176,62 @@ INSTRUCTIONS:
     }
   }
 
+  // 1.8. Check Groq API if requested or key provided (Ultra-fast Llama 3.3 70B & DeepSeek R1)
+  if (
+    provider === "groq" ||
+    preferredModel?.includes("groq") ||
+    (customApiKey && customApiKey.startsWith("gsk_")) ||
+    (!preferredModel && process.env.GROQ_API_KEY)
+  ) {
+    const groqKey = (customApiKey && customApiKey.startsWith("gsk_")) ? customApiKey : process.env.GROQ_API_KEY;
+    if (groqKey) {
+      try {
+        const groqModel = (preferredModel?.includes("deepseek") || provider?.includes("deepseek"))
+          ? "deepseek-r1-distill-llama-70b"
+          : "llama-3.3-70b-versatile";
+        const syllabusContextPrompt = syllabusNotes && syllabusNotes.trim().length > 0
+          ? `\nSTUDENT'S VERIFIED SYLLABUS & CURRICULUM NOTES:\n"""\n${syllabusNotes.slice(0, 4000)}\n"""\nGround your explanation in these notes.\n`
+          : "";
+        const prompt = `You are LearnX AI, a warm, crystal-clear, and mathematically rigorous academic mentor.
+STUDENT CONTEXT:
+- Academic Level: "${educationLevel || "Intermediate"}" (${streamBranch || "MPC"})
+- Subject: "${analysis.detected_subject}"
+- Topic: "${analysis.detected_topic}"
+- Concept: "${analysis.detected_concept}"${syllabusContextPrompt}
+
+Student Question: "${question}"
+
+STUDENT-FRIENDLY EASY LEARNING INSTRUCTIONS:
+- Explain clearly with zero confusing academic jargon.
+- Tone: Friendly, encouraging, approachable (like ChatGPT/Claude for students).
+- Ensure 100% scientific, mathematical, and conceptual correctness.
+- Structure:
+  1. 🎯 Direct Answer in Plain English: Explain what this is in 1-2 simple sentences right away.
+  2. 💡 Everyday Real-World Analogy: Use an intuitive, memorable real-world analogy.
+  3. ⚙️ Step-by-Step Breakdown: 3 to 4 clear points explaining how it works.
+  4. 📝 Practical Example with Numbers or Code.
+  5. 🎓 Easy Memory Trick / Key Exam Takeaway.`;
+
+        const groqResp = await callGroqAPI(prompt, groqKey, groqModel);
+        if (groqResp && groqResp.trim().length > 50) {
+          return {
+            explanation: groqResp,
+            detected_subject: analysis.detected_subject,
+            detected_topic: analysis.detected_topic,
+            detected_concept: analysis.detected_concept,
+            validation_passed: true,
+            validation_notes: `Powered by Groq Cloud (${groqModel})`
+          };
+        }
+      } catch (groqErr) {
+        console.warn("Groq API fallback:", groqErr);
+      }
+    }
+  }
+
   // 2. Try cloud Gemini API if accessible (Primary intelligent AI tutor with easy student mode)
-  if (preferredModel !== "ollama") {
-    const ai = getAI();
+  if (preferredModel !== "ollama" && preferredModel !== "academic-engine") {
+    const ai = getAI(customApiKey);
     if (ai) {
       try {
         const syllabusContextPrompt = syllabusNotes && syllabusNotes.trim().length > 0
@@ -1836,7 +2260,7 @@ STUDENT-FRIENDLY EASY LEARNING INSTRUCTIONS:
   4. 📝 Simple Example with Numbers or Code: A quick, realistic example walking through how to apply it.
   5. 🎓 Easy Memory Trick / Key Exam Takeaway: A quick, memorable tip for tests and exams.`;
 
-        const explanationText = await callGeminiWithFallback(prompt, 12000);
+        const explanationText = await callGeminiWithFallback(prompt, 12000, customApiKey);
         if (explanationText && explanationText.trim().length > 50) {
           return {
             explanation: explanationText,
@@ -1848,7 +2272,7 @@ STUDENT-FRIENDLY EASY LEARNING INSTRUCTIONS:
         }
       } catch (err: any) {
         if (err?.message?.includes("PERMISSION_DENIED") || err?.status === 403 || err?.code === 403) {
-          cloudApiBlockedOrRestricted = true;
+          if (!customApiKey) cloudApiBlockedOrRestricted = true;
         }
       }
     }
@@ -2294,7 +2718,9 @@ export async function generateValidatedMCQ(
   questionIndex: number = 1,
   previousQuestions: string[] = [],
   streamBranch?: string,
-  syllabusNotes?: string
+  syllabusNotes?: string,
+  customApiKey?: string,
+  provider?: string
 ): Promise<GeneratedMCQ> {
   const qNum = Math.max(1, questionIndex);
   const computedDifficulty: "Easy" | "Medium" | "Hard" =
@@ -2329,6 +2755,77 @@ export async function generateValidatedMCQ(
     }
   }
 
+  // Common prompt definition for LLM MCQ generators
+  const prevQText = previousQuestions.slice(-3).map((q) => `"${q}"`).join(", ");
+  const syllabusSnippet = syllabusNotes ? `\nSTUDENT'S UPLOADED SUBJECT SYLLABUS & NOTES:\n"""${syllabusNotes.slice(0, 1500)}"""\nBase the question directly on concepts or problems outlined in these uploaded notes to test the student on their exact academic curriculum.\n` : "";
+  const mcqPrompt = `Generate a 100% mathematically and scientifically accurate multiple-choice question (#${qNum}) testing "${concept}" in ${subject} (${topic}).
+Academic Level: ${educationLevel}${streamBranch ? ` (${streamBranch})` : ""}.
+Difficulty level: ${computedDifficulty}.${syllabusSnippet}
+${prevQText ? `Do NOT repeat or closely rephrase any of these previous questions: ${prevQText}.` : ""}
+CRITICAL ACCURACY REQUIREMENT:
+- The question must be factually and conceptually correct.
+- Exactly ONE option must be strictly correct. The other 3 must be plausible but definitively incorrect.
+- The explanation must clearly show the derivation or reasoning confirming the correct choice.
+Create 4 realistic, distinct options (A, B, C, D).
+
+Return ONLY a raw JSON object with no markdown fences, matching this schema:
+{
+  "question_text": "The question here",
+  "option_a": "Option A text",
+  "option_b": "Option B text",
+  "option_c": "Option C text",
+  "option_d": "Option D text",
+  "correct_option": "A",
+  "explanation": "Detailed explanation why the correct option is right"
+}`;
+
+  // 1.5. Try Groq Cloud if active
+  if (
+    provider === "groq" ||
+    preferredModel?.includes("groq") ||
+    (customApiKey && customApiKey.startsWith("gsk_")) ||
+    (!preferredModel && process.env.GROQ_API_KEY)
+  ) {
+    const groqKey = (customApiKey && customApiKey.startsWith("gsk_")) ? customApiKey : process.env.GROQ_API_KEY;
+    if (groqKey) {
+      try {
+        const groqResp = await callGroqAPI(
+          mcqPrompt,
+          groqKey,
+          "llama-3.3-70b-versatile",
+          "You are an academic exam generator. Return ONLY valid JSON."
+        );
+        if (groqResp) {
+          const jsonMatch = groqResp.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            const opt = ["A", "B", "C", "D"].includes(parsed.correct_option?.toUpperCase())
+              ? (parsed.correct_option.toUpperCase() as "A" | "B" | "C" | "D")
+              : "A";
+            if (parsed.question_text && parsed.option_a && parsed.option_b) {
+              return {
+                question_text: parsed.question_text,
+                option_a: parsed.option_a,
+                option_b: parsed.option_b,
+                option_c: parsed.option_c || "Option C",
+                option_d: parsed.option_d || "Option D",
+                correct_option: opt,
+                explanation: parsed.explanation || `Option ${opt} is correct for ${concept}.`,
+                difficulty: computedDifficulty,
+                subject,
+                topic,
+                concept,
+                validation_passed: true
+              };
+            }
+          }
+        }
+      } catch (err) {
+        // Fallback gracefully
+      }
+    }
+  }
+
   // 2. If local Ollama is active
   if (
     preferredModel === "ollama" ||
@@ -2349,26 +2846,10 @@ export async function generateValidatedMCQ(
         targetModel =
           ollamaStatus.models.find((m) => m.toLowerCase().includes("qwen")) || "qwen2.5:1.5b";
       }
-      const syllabusPromptSnippet = syllabusNotes ? `\nSTUDENT'S UPLOADED SUBJECT SYLLABUS & NOTES:\n"""${syllabusNotes.slice(0, 1500)}"""\nBase the question directly on concepts or problems outlined in these uploaded notes to test the student on their exact academic curriculum.\n` : "";
-      const prompt = `Generate a 100% mathematically and factually accurate multiple-choice question #${qNum} testing "${concept}" in ${subject} (${topic}).
-Academic Level: ${educationLevel}${streamBranch ? ` (${streamBranch})` : ""}.
-Difficulty: ${computedDifficulty}.${syllabusPromptSnippet}
-Previous questions to NOT repeat: ${previousQuestions.slice(-3).join(" | ")}.
-CRITICAL: The question, options, and explanation must be scientifically and factually correct.
-Return ONLY a raw JSON object with:
-{
-  "question_text": "Question testing ${concept}",
-  "option_a": "Option A",
-  "option_b": "Option B",
-  "option_c": "Option C",
-  "option_d": "Option D",
-  "correct_option": "A",
-  "explanation": "Why correct option is right"
-}`;
       const resp = await queryOllama(
         ollamaEndpoint || "http://localhost:11434",
-        ollamaStatus.recommendedModel,
-        prompt,
+        targetModel,
+        mcqPrompt,
         "You are an academic exam generator. Output only valid JSON."
       );
       if (resp) {
@@ -2403,34 +2884,10 @@ Return ONLY a raw JSON object with:
 
   // 3. Try Cloud Gemini API for infinite dynamic questions if available
   if (preferredModel !== "academic-engine") {
-    const ai = getAI();
+    const ai = getAI(customApiKey);
     if (ai) {
       try {
-        const prevQText = previousQuestions.slice(-3).map((q) => `"${q}"`).join(", ");
-        const syllabusSnippet = syllabusNotes ? `\nSTUDENT'S UPLOADED SUBJECT SYLLABUS & NOTES:\n"""${syllabusNotes.slice(0, 1500)}"""\nBase the question directly on concepts or problems outlined in these uploaded notes to test the student on their exact academic curriculum.\n` : "";
-        const prompt = `Generate a 100% mathematically and scientifically accurate multiple-choice question (#${qNum}) testing "${concept}" in ${subject} (${topic}).
-Academic Level: ${educationLevel}${streamBranch ? ` (${streamBranch})` : ""}.
-Difficulty level: ${computedDifficulty}.${syllabusSnippet}
-${prevQText ? `Do NOT repeat or closely rephrase any of these previous questions: ${prevQText}.` : ""}
-CRITICAL ACCURACY REQUIREMENT:
-- The question must be factually and conceptually correct.
-- Verify every formula, value, equation, and unit.
-- Exactly ONE option must be strictly correct. The other 3 must be plausible but definitively incorrect.
-- The explanation must clearly show the derivation or reasoning confirming the correct choice.
-Create 4 realistic, distinct options (A, B, C, D).
-
-Return ONLY a raw JSON object with no markdown fences, matching this schema:
-{
-  "question_text": "The question here",
-  "option_a": "Option A text",
-  "option_b": "Option B text",
-  "option_c": "Option C text",
-  "option_d": "Option D text",
-  "correct_option": "A",
-  "explanation": "Detailed explanation why the correct option is right"
-}`;
-
-        const respText = await callGeminiWithFallback(prompt, 9000);
+        const respText = await callGeminiWithFallback(mcqPrompt, 9000, customApiKey);
         if (respText) {
           const jsonMatch = respText.match(/\{[\s\S]*\}/);
           if (jsonMatch) {

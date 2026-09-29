@@ -653,6 +653,16 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
                   <span className="font-semibold text-emerald-300 sm:hidden">Qwen</span>
                 </>
               )}
+              {(selectedModel === "groq-llama3" || selectedModel === "groq-deepseek") && (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="font-semibold text-amber-300 hidden sm:inline">
+                    {selectedModel === "groq-deepseek" ? "Groq DeepSeek R1" : "Groq Llama 3.3 70B"}
+                  </span>
+                  <span className="font-semibold text-amber-300 sm:hidden">Groq</span>
+                </>
+              )}
               {selectedModel === "deepseek-r1" && (
                 <>
                   <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse shrink-0"></span>
@@ -1215,9 +1225,11 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
           <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-1 scrollbar-none text-[11px]">
             <span className="text-slate-500 shrink-0 font-medium flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-indigo-400" />
-              Easy topics:
+              Quick topics:
             </span>
             {[
+              "Explain the OSI 7-Layer Model",
+              "Difference between TCP and UDP",
               "Explain Newton's 3 Laws with simple examples",
               "How Photosynthesis works step-by-step",
               "What is Ohm's Law (V = IR)?",
