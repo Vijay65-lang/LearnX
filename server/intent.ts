@@ -70,9 +70,96 @@ const CASUAL_CHITCHAT_REGEX =
 const LEADING_GREETING_PREFIX_REGEX =
   /^(?:hi+|hello+|hey+|hii+|heyy+|good\s*(?:morning|afternoon|evening)|bro+|bhai|yo+|sup|namaste)\b[\s,:;—\-]*((?:can\s*(?:u|you)\s*(?:please\s*)?(?:explain|tell\s*me|show\s*me|give\s*me)?|pls\s*explain|please\s*explain|tell\s*me\s*about|explain\s*(?:me\s*about\s*the\s*topic\s*of|to\s*me\s*about|about)?|what\s*is|what\s*are)?[\s,:;—\-]*)/i;
 
-// 6. Conversational request wrappers to normalize
+// 6. Common request wrapper prefixes to clean conversational phrasing
 const REQUEST_WRAPPER_PREFIX_REGEX =
-  /^(?:can\s*(?:u|you)\s*(?:please\s*)?(?:explain|tell\s*me\s*about|show\s*me|teach\s*me|give\s*me)|please\s*(?:explain|tell\s*me\s*about|teach\s*me)|pls\s*(?:explain|tell\s*me)|tell\s*me\s*(?:about|everything\s*about)|i\s*want\s*to\s*(?:know|learn|understand)(?:\s*about)?|explain\s*(?:me\s*about\s*the\s*topic\s*of|to\s*me\s*about|about)?|what\s*do\s*you\s*mean\s*by|what\s*is\s*meant\s*by|give\s*me\s*an\s*overview\s*of)\s+/i;
+  /^(?:can\s*(?:you|u)\s*(?:please\s*)?(?:explain|tell\s*me(?:\s*about)?|help\s*me\s*with|show\s*me|solve|teach\s*me)|please\s*(?:explain|tell\s*me(?:\s*about)?|help\s*me\s*with|show\s*me|solve|teach\s*me)|could\s*(?:you|u)\s*(?:please\s*)?(?:explain|tell\s*me|show\s*me)|i\s*want\s*to\s*(?:know|learn|understand)(?:\s*about)?|tell\s*me\s*about|explain\s*(?:to\s*me\s*about|me\s*about)?|what\s*(?:is|are)\s*(?:the\s*concept\s*of|the\s*meaning\s*of)?)\b\s*/i;
+
+// 7. Universal Confusion, Follow-Up & Re-explanation Detector
+export function isConfusionOrReexplanationQuery(q: string): boolean {
+  const s = (q || "").toLowerCase().trim();
+  if (!s) return false;
+  return (
+    /^(?:i\s*)?(?:didn't|did\s*not|didnt|don't|do\s*not|dont|couldn't|could\s*not|unable\s*to|can't|cant)\s*(?:understand|understanded|understood|get|got|follow)\b/i.test(s) ||
+    /^(?:i\s*am\s*|im\s*|i'm\s*)?(?:confused|lost|not\s*getting\s*it|still\s*confused|not\s*clear|having\s*trouble)\b/i.test(s) ||
+    /^(?:explain\s*(?:it\s*)?(?:again|more\s*simply|simply|in\s*simple\s*words|in\s*simple\s*terms|once\s*more)|can\s*you\s*(?:explain\s*again|simplify|make\s*it\s*simpler|make\s*it\s*easier|repeat)|simplify\s*(?:this|it)?|make\s*it\s*simpler|make\s*it\s*easy|eli5)\b/i.test(s) ||
+    /^(?:what\s*do\s*you\s*mean|what\s*does\s*that\s*mean|what\s*do\s*u\s*mean|i\s*don't\s*get\s*it|i\s*didnt\s*get\s*it|didn't\s*get\s*it|didnt\s*get\s*it)\b/i.test(s) ||
+    /^(?:too\s*(?:hard|difficult|complicated|complex)|can\s*you\s*break\s*it\s*down(?:\s*more)?|break\s*it\s*down|repeat|say\s*again|once\s*again|one\s*more\s*time)\b/i.test(s) ||
+    s.includes("didn't understand") ||
+    s.includes("didnt understand") ||
+    s.includes("don't understand") ||
+    s.includes("dont understand") ||
+    s.includes("understanded") ||
+    s.includes("not clear") ||
+    s.includes("still confused") ||
+    s.includes("not getting it") ||
+    s === "explain again" ||
+    s === "make it simple" ||
+    s === "more simply" ||
+    s === "once more" ||
+    s === "say again" ||
+    s === "repeat"
+  );
+}
+
+// Helper to determine if a concept string is a genuine academic concept vs a placeholder/confusion phrase
+export function isGenuineAcademicConcept(c?: string): boolean {
+  if (!c || typeof c !== "string") return false;
+  const lower = c.toLowerCase().trim();
+  if (lower.length < 2) return false;
+  if (
+    lower === "learnx assistant" ||
+    lower === "topic clarification" ||
+    lower === "general topic" ||
+    lower === "greeting" ||
+    lower === "academic studies" ||
+    lower === "core concept" ||
+    lower === "study clarification" ||
+    lower === "engineering core fundamentals" ||
+    lower === "general core syllabus" ||
+    lower === "study guidance & doubts" ||
+    lower === "study guidance" ||
+    isConfusionOrReexplanationQuery(lower) ||
+    lower.includes("understand") ||
+    lower.includes("confused") ||
+    lower.includes("didn't") ||
+    lower.includes("didnt") ||
+    lower.includes("clarification")
+  ) {
+    return false;
+  }
+  return true;
+}
+
+// Helper to resolve the most recent genuine academic concept from conversation context or message history
+export function resolveContextualConcept(
+  context?: ConversationContext,
+  educationLevel?: string,
+  streamBranch?: string
+): { concept?: string; subject?: string; topic?: string } {
+  if (context?.last_concept && isGenuineAcademicConcept(context.last_concept)) {
+    return {
+      concept: context.last_concept,
+      subject: context.last_subject,
+      topic: context.last_topic
+    };
+  }
+  if (context?.recent_messages && context.recent_messages.length > 0) {
+    for (let i = context.recent_messages.length - 1; i >= 0; i--) {
+      const msg = context.recent_messages[i];
+      if (msg.sender === "user" && !isConfusionOrReexplanationQuery(msg.text)) {
+        const prevAnalysis = analyzeStudentIntent(msg.text, educationLevel, streamBranch);
+        if (isGenuineAcademicConcept(prevAnalysis.detected_concept)) {
+          return {
+            concept: prevAnalysis.detected_concept,
+            subject: prevAnalysis.detected_subject,
+            topic: prevAnalysis.detected_topic
+          };
+        }
+      }
+    }
+  }
+  return {};
+}
 
 /**
  * Detects student intent and normalizes the input query
@@ -163,10 +250,7 @@ export function analyzeStudentIntent(
   const coreLower = coreQuery.toLowerCase();
 
   // D. FOLLOW-UP & REEXPLANATION INTENT DETECTION (Multi-turn Context)
-  const isReexplanation =
-    /^(?:i\s*(?:didn't|did\s*not|don't|do\s*not)\s*understand|explain\s*(?:it\s*)?(?:again|simply|more\s*simply|in\s*simple\s*words)|can\s*you\s*simplify|make\s*it\s*easier|pls\s*explain\s*simply|confused|still\s*not\s*clear|eli5|simple\s*words\s*please)\b/i.test(
-      coreLower
-    );
+  const isConfusion = isConfusionOrReexplanationQuery(coreLower) || isConfusionOrReexplanationQuery(trimmed);
 
   const isExampleFollowUp =
     /^(?:give\s*me\s*an?\s*example|example\??|show\s*an?\s*example|can\s*you\s*give\s*an?\s*example|one\s*more\s*example|practical\s*example)\b/i.test(
@@ -183,20 +267,54 @@ export function analyzeStudentIntent(
       coreLower
     );
 
-  if ((isReexplanation || isExampleFollowUp || isWhyFollowUp || isPracticeRequest) && context?.last_concept) {
+  // If the student expresses confusion or asks for re-explanation:
+  if (isConfusion) {
+    const ctxMatch = resolveContextualConcept(context, educationLevel, streamBranch);
+    if (ctxMatch.concept) {
+      return {
+        raw_input: trimmed,
+        cleaned_query: coreQuery,
+        intent: "REEXPLANATION",
+        is_conversational: true,
+        is_pure_greeting: false,
+        detected_subject: ctxMatch.subject || context?.last_subject || "Academic Studies",
+        detected_topic: ctxMatch.topic || context?.last_topic || "Core Topic",
+        detected_concept: ctxMatch.concept,
+        requires_context: true,
+        context_applied: true
+      };
+    } else {
+      // First turn or no prior concept to re-explain -> ask the student which topic they'd like help with
+      return {
+        raw_input: trimmed,
+        cleaned_query: coreQuery,
+        intent: "CLARIFICATION",
+        is_conversational: true,
+        is_pure_greeting: false,
+        detected_subject: "LearnX Academic Assistant",
+        detected_topic: "Study Guidance & Doubts",
+        detected_concept: "Topic Clarification",
+        requires_context: true,
+        context_applied: false
+      };
+    }
+  }
+
+  // Other contextual follow-ups (examples, why, practice)
+  const ctxMatch = resolveContextualConcept(context, educationLevel, streamBranch);
+  if ((isExampleFollowUp || isWhyFollowUp || isPracticeRequest) && ctxMatch.concept) {
     let specificIntent: StudentIntent = "FOLLOW_UP";
-    if (isReexplanation) specificIntent = "REEXPLANATION";
-    else if (isPracticeRequest) specificIntent = "PRACTICE_REQUEST";
+    if (isPracticeRequest) specificIntent = "PRACTICE_REQUEST";
 
     return {
       raw_input: trimmed,
       cleaned_query: coreQuery,
       intent: specificIntent,
-      is_conversational: false,
+      is_conversational: true,
       is_pure_greeting: false,
-      detected_subject: context.last_subject || "Academic Studies",
-      detected_topic: context.last_topic || "Core Topic",
-      detected_concept: context.last_concept,
+      detected_subject: ctxMatch.subject || "Academic Studies",
+      detected_topic: ctxMatch.topic || "Core Topic",
+      detected_concept: ctxMatch.concept,
       requires_context: true,
       context_applied: true
     };
@@ -823,6 +941,15 @@ function resolveSubjectAndTopic(
     };
   }
 
+  // Safety check: Never turn conversational follow-up / confusion words into a concept!
+  if (!isGenuineAcademicConcept(originalCleaned) || isConfusionOrReexplanationQuery(originalCleaned)) {
+    return {
+      subject: "LearnX Academic Assistant",
+      topic: "Study Guidance & Doubts",
+      concept: "Topic Clarification"
+    };
+  }
+
   // Fallback: Use capitalized title from student input
   const cleanTitle = originalCleaned.replace(/[?!.]+$/, "").trim();
   const titleCap = cleanTitle.length > 0 ? cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1) : "Core Concept";
@@ -844,6 +971,19 @@ export function formatTailoredExplanation(
   streamBranch: string = "MPC"
 ): string {
   const { intent, detected_subject, detected_topic, detected_concept, cleaned_query } = intentResult;
+
+  // 0. CLARIFICATION & STUDY GUIDANCE
+  if (intent === "CLARIFICATION") {
+    return `Hey! No worries at all 😊 It is completely normal to find some topics tricky at first—that is how real learning happens!
+
+I'm your personal study buddy, and my whole job is to make tough concepts feel simple and intuitive.
+
+**Tell me:**
+1. What specific concept, formula, or code were you studying?
+2. Which part felt confusing or unclear?
+
+Just type the topic (for example: *"Explain Photosynthesis in simple words"* or *"How does Binary Search work?"*) and I'll break it down with simple real-world stories and zero confusing jargon!`;
+  }
 
   // A. PURE GREETING
   if (intent === "GREETING") {
@@ -1030,6 +1170,52 @@ Instead of complex textbook definitions, think of it like this:
 3. **The Result**: You get a predictable, correct result every time.
 
 Does that click better? Let me know if you want an everyday example or a practice question!`;
+  }
+
+  // E.2 FOLLOW-UP / EXAMPLE REQUEST
+  if (intent === "FOLLOW_UP") {
+    return `### 🔍 Practical Real-World Example: ${detected_concept}
+*Subject: ${detected_subject} · Topic: ${detected_topic}*
+
+---
+
+#### 💡 The Everyday Scenario
+Let's see how **${detected_concept}** works in real life with a concrete, hands-on situation:
+
+Imagine you are using your smartphone or laptop:
+- **Starting Point**: The device receives raw signals or user input.
+- **Application of ${detected_concept}**: Instead of processing chaos, the system applies **${detected_concept}** to filter noise, organize data packets, and ensure zero lag.
+- **Why It Matters**: Without this principle, your screen would freeze or show garbled output!
+
+---
+
+#### ⚙️ Concrete Step-by-Step Breakdown:
+1. **Input**: A real-world input is provided with standard parameters.
+2. **Execution**: The governing law or algorithm of **${detected_topic}** runs cleanly.
+3. **Verified Output**: Produces the exact, verified result you can rely on.
+
+Would you like to try solving a quick practice problem on this, or see code for it?`;
+  }
+
+  // E.3 PRACTICE REQUEST
+  if (intent === "PRACTICE_REQUEST") {
+    return `### 📝 Practice Challenge: ${detected_concept}
+*Subject: ${detected_subject} · Topic: ${detected_topic}*
+
+---
+
+#### 🎯 Test Your Understanding:
+Here is a high-yield concept check to test your retention:
+
+**Question**: When applying **${detected_concept}** in ${detected_subject}, what is the single most important rule to keep in mind to avoid errors?
+- **A**: Always check your units, boundary conditions, and the core governing law before calculating.
+- **B**: Memorize the final answer number without understanding the steps.
+- **C**: Ignore the given values and guess randomly.
+- **D**: Skip verification.
+
+*(Hint: The answer is **A**!)*
+
+Ready for another question or would you like to explore another chapter?`;
   }
 
   // F. DEFINITION INTENT

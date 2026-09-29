@@ -3,6 +3,8 @@ import {
   analyzeStudentIntent,
   formatTailoredExplanation,
   isConversationalQuery,
+  isConfusionOrReexplanationQuery,
+  isGenuineAcademicConcept,
   ConversationContext,
   IntentAnalysisResult
 } from "./intent.js";
@@ -19,7 +21,8 @@ export async function callGroqAPI(
   prompt: string,
   apiKey?: string,
   modelName: string = "llama-3.3-70b-versatile",
-  systemPrompt?: string
+  systemPrompt?: string,
+  history?: Array<{ sender: "user" | "assistant"; text: string }>
 ): Promise<string | null> {
   const key = (apiKey && apiKey.trim().length > 5 ? apiKey : process.env.GROQ_API_KEY)?.trim();
   if (!key) return null;
@@ -33,6 +36,28 @@ export async function callGroqAPI(
       ? "llama-3.1-8b-instant"
       : "llama-3.3-70b-versatile";
 
+    const messagesPayload: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+      {
+        role: "system",
+        content:
+          systemPrompt ||
+          "You are LearnX AI, a warm, clear, encouraging, and brilliant academic mentor and conversational tutor like ChatGPT/Claude. Remember previous conversation context, respond empathetically when students are confused or ask for simpler explanations, explain concepts with crystal clarity, vivid real-world analogies, step-by-step logic, and key exam takeaways. Never repeat boilerplate or use dry robotic filler."
+      }
+    ];
+
+    if (history && history.length > 0) {
+      for (const m of history.slice(-8)) {
+        if (m.text && m.text.trim()) {
+          messagesPayload.push({
+            role: m.sender === "user" ? "user" : "assistant",
+            content: m.text.slice(0, 1000)
+          });
+        }
+      }
+    }
+
+    messagesPayload.push({ role: "user", content: prompt });
+
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -41,15 +66,7 @@ export async function callGroqAPI(
       },
       body: JSON.stringify({
         model: chosenModel,
-        messages: [
-          {
-            role: "system",
-            content:
-              systemPrompt ||
-              "You are LearnX AI, a warm, clear, encouraging, and brilliant academic mentor like ChatGPT/Claude. Explain concepts with crystal clarity, vivid real-world analogies, step-by-step logic, worked examples, and key exam takeaways. Never use dry robotic filler."
-          },
-          { role: "user", content: prompt }
-        ],
+        messages: messagesPayload,
         temperature: 0.6,
         max_tokens: 2500
       }),
@@ -1470,6 +1487,60 @@ export function synthesizeFriendlyExplanation(
     };
   }
 
+  // 0.1. Confusion or Re-explanation Handling in Fallback Engine
+  if (isConfusionOrReexplanationQuery(question) || isConfusionOrReexplanationQuery(concept) || concept === "Topic Clarification") {
+    const isRealConcept = isGenuineAcademicConcept(concept);
+    const targetTopic = isRealConcept ? concept : (topic && isGenuineAcademicConcept(topic) ? topic : null);
+
+    if (targetTopic) {
+      return {
+        explanation: `No worries at all! 😊 It is 100% normal to find concepts tricky on the first read—that is actually how real learning happens!
+
+Let's hit the reset button on **${targetTopic}** and explain it in the simplest possible way, using a fun real-world picture:
+
+---
+
+### 💡 The Big Picture Analogy (Zero Jargon!)
+Imagine you are explaining this to a younger friend over pizza:
+Everything in **${targetTopic}** works just like building with LEGO bricks. If you have the right foundation piece, all the other blocks snap into place effortlessly!
+
+---
+
+### 🪜 3 Super Simple Things to Remember:
+1. **Why It Exists**: It was created to solve a real practical problem so we don't have to do things the hard, messy way.
+2. **How It Works**: It takes simple starting information, follows one clear golden rule, and gives you a predictable, reliable result.
+3. **Exam & Test Tip**: You don't need to memorize dense textbook paragraphs—just remember the main rule and what each symbol or term stands for!
+
+---
+
+Would you like me to walk you through a quick, 2-line practical example with numbers or code? Let me know!`,
+        detected_subject: subject || "Academic Studies",
+        detected_topic: topic || "Core Syllabus",
+        detected_concept: targetTopic,
+        validation_passed: true,
+        validation_notes: "Simplified intuitive re-explanation."
+      };
+    } else {
+      return {
+        explanation: `Hey! No worries at all 😊 It is completely okay to not understand something—that is exactly why I'm here!
+
+I'm your personal study buddy, and my job is to make tough concepts feel super simple, friendly, and intuitive.
+
+**Tell me:**
+1. What specific concept, formula, or coding problem are you studying?
+2. Which part felt confusing or unclear?
+
+Just type the topic and I'll break it down with simple real-world stories and zero confusing jargon!`,
+        detected_subject: "LearnX Academic Assistant",
+        detected_topic: "Study Guidance",
+        detected_concept: "Topic Clarification",
+        validation_passed: true,
+        is_conversational: true,
+        validation_notes: "Clarification guidance prompt."
+      };
+    }
+  }
+
   // 1. Specialized friendly handling for Study Skills & Productivity
   if (qLower.includes("study") && (qLower.includes("how") || qLower.includes("tip") || qLower.includes("stress") || qLower.includes("procrastinat") || qLower.includes("focus"))) {
     const tipsMarkdown = `Hey! Studying effectively isn't about sitting at a desk for 10 hours—it's about studying **smartly** so concepts stick in your long-term memory. Here is a friendly, proven framework used by top students:
@@ -1575,6 +1646,28 @@ Want to see how to do this in JavaScript, C++, or Java too? Just let me know!`;
 
   // 3. Dynamic Friendly Conceptual Explanation for any Academic Topic
   const cleanConcept = concept.replace(/[?!.]+$/, "").trim();
+
+  // Safety guard: Never synthesize breakdown for conversational confusion or non-academic concepts!
+  if (!isGenuineAcademicConcept(cleanConcept) || isConfusionOrReexplanationQuery(cleanConcept)) {
+    return {
+      explanation: `Hey! No worries at all 😊 It is completely normal to find some topics tricky at first—that is how real learning happens!
+
+I'm your personal study buddy, and my job is to make tough concepts feel super simple, friendly, and intuitive.
+
+**Tell me:**
+1. What specific concept, formula, or coding problem are you studying?
+2. Which part felt confusing or unclear?
+
+Just type the topic and I'll break it down with simple real-world stories and zero confusing jargon!`,
+      detected_subject: "LearnX Academic Assistant",
+      detected_topic: "Study Guidance",
+      detected_concept: "Topic Clarification",
+      validation_passed: true,
+      is_conversational: true,
+      validation_notes: "Clarification guidance prompt."
+    };
+  }
+
   const isInter = educationLevel === "Intermediate" || subject.includes("Intermediate");
   const isMPC = isInter && (!streamBranch || streamBranch.toUpperCase().includes("MPC"));
   const isBiPC = isInter && (streamBranch && streamBranch.toUpperCase().includes("BIPC"));
@@ -1865,6 +1958,21 @@ export async function analyzeQuestion(
     };
   }
 
+  // Check Math & Numerical Problem Solver (Linear/quadratic equations, Ohm's law, mechanics, etc.)
+  const mathMatch = solveMathOrNumerical(clean) || solveMathOrNumerical(intentResult.cleaned_query);
+  if (mathMatch) {
+    return {
+      is_unclear: false,
+      detected_subject: mathMatch.subject,
+      detected_topic: mathMatch.topic,
+      detected_concept: mathMatch.concept,
+      technical_terms: [mathMatch.concept, mathMatch.topic],
+      intent: intentResult.intent || "EXPLANATION",
+      cleaned_query: intentResult.cleaned_query,
+      raw_input: clean
+    };
+  }
+
   const qLower = clean.toLowerCase();
 
   // Clean concept name
@@ -1875,6 +1983,21 @@ export async function analyzeQuestion(
 
   if (concept.length > 0) {
     concept = concept.charAt(0).toUpperCase() + concept.slice(1);
+  }
+
+  // Safety guard: Never turn confusion, follow-ups, or unverified phrases into an academic concept!
+  if (!isGenuineAcademicConcept(concept) || isConfusionOrReexplanationQuery(clean) || isConfusionOrReexplanationQuery(concept)) {
+    return {
+      is_unclear: false,
+      is_conversational: true,
+      detected_subject: intentResult.detected_subject || "LearnX Academic Assistant",
+      detected_topic: intentResult.detected_topic || "Study Guidance & Doubts",
+      detected_concept: intentResult.detected_concept || "Topic Clarification",
+      technical_terms: [],
+      intent: intentResult.intent || "CLARIFICATION",
+      cleaned_query: intentResult.cleaned_query,
+      raw_input: clean
+    };
   }
 
   // ==========================================================================
@@ -2072,10 +2195,19 @@ export async function generateValidatedExplanation(
   syllabusNotes?: string,
   easyMode: boolean = true,
   customApiKey?: string,
-  provider?: string
+  provider?: string,
+  context?: ConversationContext
 ): Promise<ExplanationResult> {
-  // 1. If it is a friendly greeting or conversational inquiry
-  if (analysis.is_conversational || isGreetingOrChitchat(question)) {
+  // 1. If it is a pure greeting, chitchat, or clarification without an academic concept
+  const isPureConversational =
+    analysis.intent === "GREETING" ||
+    analysis.intent === "CAPABILITY_INQUIRY" ||
+    analysis.intent === "MODEL_IDENTITY" ||
+    analysis.intent === "CASUAL_CONVERSATION" ||
+    (analysis.intent === "CLARIFICATION" && !isGenuineAcademicConcept(analysis.detected_concept)) ||
+    (isGreetingOrChitchat(question) && !isGenuineAcademicConcept(analysis.detected_concept));
+
+  if (isPureConversational) {
     return {
       explanation: handleConversationalResponse(question, educationLevel, streamBranch),
       detected_subject: analysis.detected_subject || "LearnX Academic Assistant",
@@ -2084,6 +2216,19 @@ export async function generateValidatedExplanation(
       validation_passed: true,
       is_conversational: true,
       validation_notes: "Friendly conversational response."
+    };
+  }
+
+  // 1.1. Dedicated Academic Mathematical & Numerical Problem Solver
+  const mathResult = solveMathOrNumerical(question) || (analysis.cleaned_query ? solveMathOrNumerical(analysis.cleaned_query) : null);
+  if (mathResult) {
+    return {
+      explanation: mathResult.solutionMarkdown,
+      detected_subject: mathResult.subject,
+      detected_topic: mathResult.topic,
+      detected_concept: mathResult.concept,
+      validation_passed: true,
+      validation_notes: "Step-by-step mathematical proof and verified numerical solution engine."
     };
   }
 
@@ -2137,11 +2282,14 @@ INSTRUCTIONS:
     };
   }
 
-  // 1.5. Specialized Intent Tailoring (Code questions, comparisons, re-explanations)
+  // 1.5. If student explicitly selected built-in Academic Engine, provide instant verified tailored explanation
   if (
-    analysis.intent === "REEXPLANATION" ||
-    (analysis.intent === "CODE_QUESTION" && question.toLowerCase().includes("hello world")) ||
-    analysis.intent === "COMPARISON"
+    preferredModel === "academic-engine" &&
+    (analysis.intent === "REEXPLANATION" ||
+      analysis.intent === "FOLLOW_UP" ||
+      analysis.intent === "PRACTICE_REQUEST" ||
+      (analysis.intent === "CODE_QUESTION" && question.toLowerCase().includes("hello world")) ||
+      analysis.intent === "COMPARISON")
   ) {
     const tailored = formatTailoredExplanation(
       {
@@ -2171,7 +2319,7 @@ INSTRUCTIONS:
         detected_topic: analysis.detected_topic,
         detected_concept: analysis.detected_concept,
         validation_passed: true,
-        validation_notes: `Tailored ${analysis.intent} format.`
+        validation_notes: `Academic Engine: Tailored ${analysis.intent} format.`
       };
     }
   }
@@ -2192,27 +2340,21 @@ INSTRUCTIONS:
         const syllabusContextPrompt = syllabusNotes && syllabusNotes.trim().length > 0
           ? `\nSTUDENT'S VERIFIED SYLLABUS & CURRICULUM NOTES:\n"""\n${syllabusNotes.slice(0, 4000)}\n"""\nGround your explanation in these notes.\n`
           : "";
-        const prompt = `You are LearnX AI, a warm, crystal-clear, and mathematically rigorous academic mentor.
+        const isReexplanation = analysis.intent === "REEXPLANATION" || isConfusionOrReexplanationQuery(question);
+        const prompt = `You are LearnX AI, a warm, crystal-clear, and mathematically rigorous academic mentor and chatbot.
 STUDENT CONTEXT:
 - Academic Level: "${educationLevel || "Intermediate"}" (${streamBranch || "MPC"})
 - Subject: "${analysis.detected_subject}"
 - Topic: "${analysis.detected_topic}"
 - Concept: "${analysis.detected_concept}"${syllabusContextPrompt}
 
-Student Question: "${question}"
+Student Message: "${question}"
 
-STUDENT-FRIENDLY EASY LEARNING INSTRUCTIONS:
-- Explain clearly with zero confusing academic jargon.
-- Tone: Friendly, encouraging, approachable (like ChatGPT/Claude for students).
-- Ensure 100% scientific, mathematical, and conceptual correctness.
-- Structure:
-  1. 🎯 Direct Answer in Plain English: Explain what this is in 1-2 simple sentences right away.
-  2. 💡 Everyday Real-World Analogy: Use an intuitive, memorable real-world analogy.
-  3. ⚙️ Step-by-Step Breakdown: 3 to 4 clear points explaining how it works.
-  4. 📝 Practical Example with Numbers or Code.
-  5. 🎓 Easy Memory Trick / Key Exam Takeaway.`;
+INSTRUCTIONS:
+${isReexplanation ? `- The student is confused or didn't understand the previous explanation! Acknowledge this with warmth ("No worries at all! Let's hit the reset button..."), then re-explain "${analysis.detected_concept}" using a completely fresh, vivid everyday analogy and 3 crystal-clear steps without jargon. Never call "I didn't understanded" a concept!` : `- Explain clearly with zero confusing academic jargon.
+- Structure: Direct answer in plain English, everyday analogy, 3-4 clear step breakdown, practical example, and key exam takeaway.`}`;
 
-        const groqResp = await callGroqAPI(prompt, groqKey, groqModel);
+        const groqResp = await callGroqAPI(prompt, groqKey, groqModel, undefined, context?.recent_messages);
         if (groqResp && groqResp.trim().length > 50) {
           return {
             explanation: groqResp,
@@ -2238,27 +2380,39 @@ STUDENT-FRIENDLY EASY LEARNING INSTRUCTIONS:
           ? `\nSTUDENT'S VERIFIED SYLLABUS & CURRICULUM NOTES:\n"""\n${syllabusNotes.slice(0, 4000)}\n"""\nIMPORTANT: Use the student's uploaded syllabus notes above as your primary academic reference ground truth. Ensure all terminology, derivations, formulas, and units match this curriculum exactly.`
           : "";
 
-        const prompt = `You are LearnX AI, a warm, enthusiastic, crystal-clear, and mathematically rigorous academic mentor.
+        let historyPrompt = "";
+        if (context?.recent_messages && context.recent_messages.length > 0) {
+          historyPrompt = `\nONGOING CONVERSATION HISTORY (Previous turns):\n` +
+            context.recent_messages.slice(-8).map(m => `${m.sender === "user" ? "Student" : "LearnX AI"}: "${m.text.slice(0, 400)}"`).join("\n") +
+            `\n(END OF CONVERSATION HISTORY)\n`;
+        }
+
+        const isReexplanation = analysis.intent === "REEXPLANATION" || isConfusionOrReexplanationQuery(question);
+
+        const prompt = `You are LearnX AI, a warm, enthusiastic, crystal-clear, and mathematically rigorous academic mentor and chatbot (like ChatGPT/Claude).
 STUDENT CONTEXT:
 - Academic Level: "${educationLevel || "Intermediate"}"
 - Stream / Branch: "${streamBranch || "MPC"}"
 - Subject: "${analysis.detected_subject}"
 - Topic: "${analysis.detected_topic}"
-- Concept: "${analysis.detected_concept}"${syllabusContextPrompt}
+- Concept: "${analysis.detected_concept}"${syllabusContextPrompt}${historyPrompt}
 
-Student Question: "${question}"
+Student Message: "${question}"
 
-STUDENT-FRIENDLY EASY LEARNING INSTRUCTIONS:
-- The student needs a simple, crystal-clear, easy-to-understand explanation! Avoid dense, dry, confusing academic jargon.
+CONVERSATIONAL CHATBOT INSTRUCTIONS:
+- You have memory of the conversation.
+${isReexplanation ? `- THE STUDENT DID NOT UNDERSTAND THE PREVIOUS EXPLANATION!
+  Do NOT repeat the previous text and NEVER treat their words (like "I didn't understanded") as a concept name!
+  Acknowledge their confusion warmly (e.g. "No worries at all! It's completely normal to find this tricky. Let's hit the reset button and look at it in a super simple, fun way...").
+  Re-explain the concept "${analysis.detected_concept}" from scratch using a completely fresh, vivid everyday analogy (e.g. pizza, smartphones, cars, cooking) and 3 crystal-clear steps without jargon.` : `- The student needs a simple, crystal-clear, easy-to-understand explanation! Avoid dense, dry, confusing academic jargon.
 - Tone: Friendly, encouraging, approachable (like an awesome tutor who makes tough concepts feel simple).
-- Ensure 100% scientific, mathematical, and conceptual correctness. Triple-check all formulas, equations, values, and units.
-- If solving a numerical problem, write each step simply and clearly with the final answer boxed or bolded.
+- Ensure 100% scientific, mathematical, and conceptual correctness.
 - Structure:
-  1. 🎯 Direct Answer in Plain English: Explain what this is in 1 to 2 simple sentences right away.
-  2. 💡 Everyday Real-World Analogy: Use a fun, simple analogy (cars, sports, daily life, food, machines) that makes the concept click instantly.
-  3. ⚙️ Step-by-Step Breakdown: 3 to 4 clear points explaining how it works. If there is a formula, explain what every symbol means in plain words (e.g. F = Force in Newtons, m = Mass in kg, a = Acceleration in m/s²).
-  4. 📝 Simple Example with Numbers or Code: A quick, realistic example walking through how to apply it.
-  5. 🎓 Easy Memory Trick / Key Exam Takeaway: A quick, memorable tip for tests and exams.`;
+  1. 🎯 Direct Answer in Plain English: 1 to 2 simple sentences right away.
+  2. 💡 Everyday Real-World Analogy: A fun, memorable analogy that makes the concept click instantly.
+  3. ⚙️ Step-by-Step Breakdown: 3 to 4 clear points explaining how it works.
+  4. 📝 Simple Example with Numbers or Code.
+  5. 🎓 Easy Memory Trick / Key Exam Takeaway.`}`;
 
         const explanationText = await callGeminiWithFallback(prompt, 12000, customApiKey);
         if (explanationText && explanationText.trim().length > 50) {
@@ -2313,7 +2467,13 @@ CRITICAL RULES:
 2. Make it EASY and SIMPLE for the student to understand with clear everyday analogies and step-by-step logic.
 3. Tone: Friendly, conversational, encouraging, and clear.`;
 
-      const prompt = `Student Question: "${question}"\nSubject: ${analysis.detected_subject}\nTopic: ${analysis.detected_topic}\nConcept: ${analysis.detected_concept}`;
+      let prompt = `Student Question: "${question}"\nSubject: ${analysis.detected_subject}\nTopic: ${analysis.detected_topic}\nConcept: ${analysis.detected_concept}`;
+      if (context?.recent_messages && context.recent_messages.length > 0) {
+        prompt = `Recent Conversation:\n` +
+          context.recent_messages.slice(-6).map(m => `${m.sender === "user" ? "Student" : "Tutor"}: ${m.text.slice(0, 300)}`).join("\n") +
+          `\n\nCurrent Student Question: "${question}"\nSubject: ${analysis.detected_subject}\nConcept: ${analysis.detected_concept}`;
+      }
+
       const ollamaResponse = await queryOllama(
         ollamaEndpoint || "http://localhost:11434",
         targetModel,
@@ -2753,6 +2913,15 @@ export async function generateValidatedMCQ(
         validation_passed: true
       };
     }
+  }
+
+  // 1.1. Check Math & Numerical Problem Solver for exact concept MCQ
+  const mathMcqMatch =
+    solveMathOrNumerical(concept) ||
+    solveMathOrNumerical(topic) ||
+    (explanationGiven ? solveMathOrNumerical(explanationGiven) : null);
+  if (mathMcqMatch && mathMcqMatch.mcq) {
+    return mathMcqMatch.mcq;
   }
 
   // Common prompt definition for LLM MCQ generators

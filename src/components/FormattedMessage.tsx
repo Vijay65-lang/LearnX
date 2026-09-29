@@ -5,9 +5,45 @@ interface FormattedMessageProps {
   content: string;
 }
 
+export function formatLatex(latex: string): string {
+  return latex
+    .replace(/\\mathbf\{([^}]+)\}/g, "$1")
+    .replace(/\\text\{([^}]+)\}/g, "$1")
+    .replace(/\\mathrm\{([^}]+)\}/g, "$1")
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "($1) / ($2)")
+    .replace(/\\sqrt\{([^}]+)\}/g, "√($1)")
+    .replace(/\\sqrt\[(\d+)\]\{([^}]+)\}/g, "$1√($2)")
+    .replace(/\\times/g, "×")
+    .replace(/\\cdot/g, "·")
+    .replace(/\\div/g, "÷")
+    .replace(/\\pm/g, "±")
+    .replace(/\\mp/g, "∓")
+    .replace(/\\le/g, "≤")
+    .replace(/\\ge/g, "≥")
+    .replace(/\\neq/g, "≠")
+    .replace(/\\approx/g, "≈")
+    .replace(/\\infty/g, "∞")
+    .replace(/\\implies/g, "⟹")
+    .replace(/\\iff/g, "⟺")
+    .replace(/\\Delta/g, "Δ")
+    .replace(/\\theta/g, "θ")
+    .replace(/\\pi/g, "π")
+    .replace(/\\Omega/g, "Ω")
+    .replace(/\\alpha/g, "α")
+    .replace(/\\beta/g, "β")
+    .replace(/\\gamma/g, "γ")
+    .replace(/\\lambda/g, "λ")
+    .replace(/\\mu/g, "μ")
+    .replace(/\\sigma/g, "σ")
+    .replace(/\\quad/g, "   ")
+    .replace(/\\qquad/g, "      ")
+    .replace(/\\\\/g, "\n")
+    .replace(/\\/g, "");
+}
+
 export const FormattedMessage: React.FC<FormattedMessageProps> = ({ content }) => {
-  // Split content by code blocks first
-  const parts = content.split(/(```[\s\S]*?```)/g);
+  // Split content by code blocks and math display blocks
+  const parts = content.split(/(```[\s\S]*?```|\$\$[\s\S]*?\$\$)/g);
 
   return (
     <div className="space-y-3.5 text-xs sm:text-sm leading-relaxed text-slate-100">
@@ -15,8 +51,54 @@ export const FormattedMessage: React.FC<FormattedMessageProps> = ({ content }) =
         if (part.startsWith("```") && part.endsWith("```")) {
           return <CodeBlock key={index} raw={part} />;
         }
+        if (part.startsWith("$$") && part.endsWith("$$")) {
+          return <MathDisplayBlock key={index} raw={part} />;
+        }
         return <TextBlock key={index} text={part} />;
       })}
+    </div>
+  );
+};
+
+const MathDisplayBlock: React.FC<{ raw: string }> = ({ raw }) => {
+  const [copied, setCopied] = useState(false);
+  const mathFormula = raw.replace(/^\$\$\s*/, "").replace(/\s*\$\$$/, "").trim();
+  const readableFormula = formatLatex(mathFormula);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(readableFormula);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="my-3 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/40 via-slate-900/60 to-purple-950/30 p-3.5 shadow-sm text-slate-100 font-mono">
+      <div className="flex items-center justify-between pb-2 mb-2 border-b border-indigo-500/20 text-xs text-indigo-300">
+        <span className="flex items-center gap-1.5 font-sans font-medium text-[11px] uppercase tracking-wider text-indigo-400">
+          <span className="text-amber-400 font-bold">∑</span> Equation / Formula
+        </span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white transition-colors py-0.5 px-2 rounded hover:bg-indigo-900/40"
+          title="Copy formula"
+        >
+          {copied ? (
+            <>
+              <Check className="w-3 h-3 text-emerald-400" />
+              <span className="text-emerald-400">Copied</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3 h-3" />
+              <span>Copy</span>
+            </>
+          )}
+        </button>
+      </div>
+      <div className="overflow-x-auto py-1 text-center sm:text-left text-sm sm:text-base font-semibold text-indigo-100 whitespace-pre-wrap selection:bg-indigo-900">
+        {readableFormula}
+      </div>
     </div>
   );
 };
@@ -119,7 +201,6 @@ const CodeBlock: React.FC<{ raw: string }> = ({ raw }) => {
 };
 
 const TextBlock: React.FC<{ text: string }> = ({ text }) => {
-  // Split into paragraphs / lines
   const lines = text.split("\n");
 
   const elements: React.ReactNode[] = [];
@@ -244,10 +325,9 @@ const TextBlock: React.FC<{ text: string }> = ({ text }) => {
   return <>{elements}</>;
 };
 
-// Formats inline bold (**text**), inline code (`code`), and italics (*text*)
+// Formats inline bold (**text**), inline math ($formula$), inline code (`code`), and italics (*text*)
 function renderInline(text: string): React.ReactNode {
-  // Regex to match code tokens, bold tokens, italic tokens
-  const tokenRegex = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  const tokenRegex = /(`[^`]+`|\$[^$\n]+\$|\*\*[^*]+\*\*|\*[^*]+\*)/g;
   const parts = text.split(tokenRegex);
 
   return parts.map((part, index) => {
@@ -259,6 +339,17 @@ function renderInline(text: string): React.ReactNode {
         >
           {part.slice(1, -1)}
         </code>
+      );
+    }
+    if (part.startsWith("$") && part.endsWith("$") && part.length > 2) {
+      const mathContent = formatLatex(part.slice(1, -1));
+      return (
+        <span
+          key={index}
+          className="inline-block px-1.5 py-0.2 mx-0.5 rounded bg-indigo-950/60 text-indigo-200 font-mono text-[11px] sm:text-xs border border-indigo-800/60 font-semibold"
+        >
+          {mathContent}
+        </span>
       );
     }
     if (part.startsWith("**") && part.endsWith("**")) {

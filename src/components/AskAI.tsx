@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Send,
   Sparkles,
@@ -254,6 +255,16 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
     }
   };
 
+  const handleQuickPrompt = (promptText: string) => {
+    setInputQuestion(promptText);
+    setTimeout(() => {
+      const form = document.getElementById("ask-ai-form") as HTMLFormElement | null;
+      if (form) {
+        form.requestSubmit();
+      }
+    }, 40);
+  };
+
   const handleAskQuestion = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputQuestion.trim() || loading) return;
@@ -306,7 +317,8 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
         student,
         undefined,
         undefined,
-        easyMode
+        easyMode,
+        messages
       );
 
       if (res.is_unclear) {
@@ -351,7 +363,7 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
     } catch (err: any) {
       console.warn("AI Ask encountered error, deploying resilient student response:", err);
       try {
-        const fallbackRes = generateResilientStudentResponse(questionText, student);
+        const fallbackRes = generateResilientStudentResponse(questionText, student, messages);
         const fallbackMsg: ChatMessage = {
           id: "msg_fallback_" + Date.now(),
           chat_id: activeChatId,
@@ -831,47 +843,53 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
               </div>
             </div>
           ) : (
-            messages.map((msg, index) => {
-              const isUser = msg.sender === "user";
+            <AnimatePresence initial={false}>
+              {messages.map((msg, index) => {
+                const isUser = msg.sender === "user";
 
-              return (
-                <div
-                  key={msg.id || index}
-                  id={`msg-${msg.id}`}
-                  className={`flex flex-col ${isUser ? "items-end" : "items-start"} space-y-2`}
-                >
-                  {/* Sender & Timestamp */}
-                  <div className="flex items-center gap-2 text-[10px] text-slate-500 px-1 font-mono">
-                    <span>{isUser ? student.name : "LearnX AI"}</span>
-                    <span>·</span>
-                    <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  </div>
-
-                  {/* Message Bubble */}
-                  <div
-                    className={`max-w-[92%] sm:max-w-[85%] rounded-2xl p-4 sm:p-5 shadow-md ${
-                      isUser
-                        ? "bg-indigo-600 text-white rounded-br-xs"
-                        : "bg-slate-900 border border-slate-800 text-slate-100 rounded-bl-xs"
-                    }`}
+                return (
+                  <motion.div
+                    key={msg.id || index}
+                    id={`msg-${msg.id}`}
+                    initial={{ opacity: 0, y: 14, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    className={`flex flex-col ${isUser ? "items-end" : "items-start"} space-y-2`}
                   >
-                    {/* Curriculum Badge (Only for academic concepts) */}
-                    {!isUser && msg.detected_subject && msg.detected_subject !== "General" && msg.detected_subject !== "Conversational" && (
-                      <div className="mb-3.5 flex flex-wrap items-center gap-1.5 p-2 bg-slate-950/80 rounded-xl border border-slate-800 text-[11px]">
-                        <span className="font-semibold text-indigo-400">Curriculum:</span>
-                        <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-medium">
-                          {msg.detected_subject}
-                        </span>
-                        <ChevronRight className="w-3 h-3 text-slate-600" />
-                        <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-medium">
-                          {msg.detected_topic}
-                        </span>
-                        <ChevronRight className="w-3 h-3 text-slate-600" />
-                        <span className="px-2 py-0.5 rounded-md bg-indigo-950 text-indigo-300 font-semibold border border-indigo-800/50">
-                          {msg.detected_concept}
-                        </span>
-                      </div>
-                    )}
+                    {/* Sender & Timestamp */}
+                    <div className="flex items-center gap-2 text-[10px] text-slate-500 px-1 font-mono">
+                      <span>{isUser ? student.name : "LearnX AI"}</span>
+                      <span>·</span>
+                      <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+
+                    {/* Message Bubble */}
+                    <div
+                      className={`max-w-[92%] sm:max-w-[85%] rounded-2xl p-4 sm:p-5 shadow-md ${
+                        isUser
+                          ? "bg-indigo-600 text-white rounded-br-xs"
+                          : "bg-slate-900 border border-slate-800 text-slate-100 rounded-bl-xs"
+                      }`}
+                    >
+                      {/* Curriculum Metadata (Clean typography, zero pill enclosures) */}
+                      {!isUser &&
+                        msg.detected_subject &&
+                        msg.detected_subject !== "General" &&
+                        msg.detected_subject !== "Conversational" &&
+                        msg.detected_subject !== "LearnX Academic Assistant" &&
+                        msg.detected_concept !== "Topic Clarification" &&
+                        msg.detected_concept !== "LearnX Assistant" &&
+                        msg.detected_concept !== "I didn't understanded" &&
+                        !msg.detected_concept?.toLowerCase().includes("understand") &&
+                        !msg.detected_concept?.toLowerCase().includes("confused") && (
+                        <div className="mb-3 flex items-center flex-wrap gap-1.5 text-[11px] text-slate-400 font-medium">
+                          <span className="text-indigo-400 font-semibold">{msg.detected_subject}</span>
+                          <span aria-hidden="true" className="text-slate-600">·</span>
+                          <span>{msg.detected_topic}</span>
+                          <span aria-hidden="true" className="text-slate-600">·</span>
+                          <span className="text-indigo-300 font-semibold">{msg.detected_concept}</span>
+                        </div>
+                      )}
 
                     {/* Message Body */}
                     {isUser ? (
@@ -881,6 +899,49 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
                     ) : (
                       <FormattedMessage content={msg.message_text} />
                     )}
+
+                    {/* Interactive Follow-up Action Chips (ChatGPT-Style Study Buddy) */}
+                    {!isUser &&
+                      !msg.mcq &&
+                      msg.detected_concept &&
+                      !msg.detected_concept.toLowerCase().includes("clarification") &&
+                      !msg.detected_concept.toLowerCase().includes("assistant") &&
+                      !msg.detected_concept.toLowerCase().includes("understand") && (
+                        <div className="mt-3.5 pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-xs">
+                          <span className="text-[11px] text-slate-500 mr-1 flex items-center gap-1 font-medium">
+                            <Sparkles className="w-3 h-3 text-indigo-400" />
+                            Next step:
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleQuickPrompt(`I didn't understand, can you explain ${msg.detected_concept} more simply with an easy analogy?`)}
+                            className="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-950/80 hover:text-indigo-300 hover:border-indigo-700/60 border border-slate-700/70 text-slate-300 transition-all text-[11px] active:scale-95 shadow-xs"
+                          >
+                            💡 Simplify this
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleQuickPrompt(`Can you give an everyday real-world example of ${msg.detected_concept}?`)}
+                            className="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-950/80 hover:text-indigo-300 hover:border-indigo-700/60 border border-slate-700/70 text-slate-300 transition-all text-[11px] active:scale-95 shadow-xs"
+                          >
+                            🔍 Give an example
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleQuickPrompt(`Why is ${msg.detected_concept} used and what problem does it solve?`)}
+                            className="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-950/80 hover:text-indigo-300 hover:border-indigo-700/60 border border-slate-700/70 text-slate-300 transition-all text-[11px] active:scale-95 shadow-xs"
+                          >
+                            ❓ Why use it?
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleQuickPrompt(`Can you test me with a practice question on ${msg.detected_concept}?`)}
+                            className="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-950/80 hover:text-indigo-300 hover:border-indigo-700/60 border border-slate-700/70 text-slate-300 transition-all text-[11px] active:scale-95 shadow-xs"
+                          >
+                            📝 Quiz me
+                          </button>
+                        </div>
+                      )}
 
                     {/* Automatic & Infinite MCQ Engine After Doubt (Sections 11 & 12) */}
                     {!isUser && msg.mcq && (() => {
@@ -1183,22 +1244,43 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
                       );
                     })()}
                   </div>
-                </div>
+                </motion.div>
               );
-            })
+            })}
+            </AnimatePresence>
           )}
 
-          {/* AI Generating Indicator */}
+          {/* Animated AI Thinking / Reasoning Indicator */}
           {loading && (
-            <div className="flex items-start gap-2.5">
-              <div className="w-7 h-7 rounded-xl bg-indigo-600 flex items-center justify-center text-white shrink-0">
-                <Sparkles className="w-3.5 h-3.5 animate-spin" />
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.2 }}
+              className="flex flex-col items-start space-y-1.5"
+            >
+              <div className="flex items-center gap-2 text-[10px] text-slate-500 px-1 font-mono">
+                <span>LearnX AI</span>
+                <span>·</span>
+                <span className="text-indigo-400 font-semibold animate-pulse">
+                  {selectedModel === "groq-llama3" ? "Groq Llama 3.3 Active" :
+                   selectedModel === "groq-deepseek" ? "Groq DeepSeek R1 Active" :
+                   selectedModel === "qwen-2.5" ? "Qwen 2.5 Offline Active" :
+                   selectedModel === "academic-engine" ? "Academic Engine Active" :
+                   "Gemini Flash Active"}
+                </span>
               </div>
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-slate-300 flex items-center gap-2">
-                <div className="w-3.5 h-3.5 border-2 border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" />
-                <span>Reading complete question &rarr; Validating concept &rarr; Generating explanation...</span>
+              <div className="p-3.5 sm:p-4 rounded-2xl rounded-bl-xs bg-slate-900/95 border border-indigo-500/30 text-xs text-indigo-200 shadow-lg flex items-center gap-3 animate-pulse-glow">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 typing-dot-1"></span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 typing-dot-2"></span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 typing-dot-3"></span>
+                </div>
+                <span className="font-medium shimmer-text">
+                  Analyzing question &amp; recalling conversation memory...
+                </span>
               </div>
-            </div>
+            </motion.div>
           )}
           <div ref={messagesEndRef} />
         </div>
@@ -1248,7 +1330,7 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
             ))}
           </div>
 
-          <form onSubmit={handleAskQuestion} className="flex items-center gap-2">
+          <form id="ask-ai-form" onSubmit={handleAskQuestion} className="flex items-center gap-2">
             <input
               id="ask-question-input"
               type="text"

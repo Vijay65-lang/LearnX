@@ -38,6 +38,26 @@ export function solveMathOrNumerical(query: string): MathSolverResult | null {
   const ohmsLawResult = trySolveOhmsLawNumerical(clean, lower);
   if (ohmsLawResult) return ohmsLawResult;
 
+  // 5. NEWTON'S SECOND LAW NUMERICALS: e.g. "mass = 10 kg, acceleration = 3 m/s^2, find force"
+  const newtonResult = trySolveNewtonSecondLaw(clean, lower);
+  if (newtonResult) return newtonResult;
+
+  // 6. KINETIC ENERGY NUMERICALS: e.g. "mass = 4 kg, velocity = 5 m/s, find kinetic energy"
+  const keResult = trySolveKineticEnergy(clean, lower);
+  if (keResult) return keResult;
+
+  // 7. PYTHAGOREAN THEOREM: e.g. "hypotenuse if sides are 3 and 4", "a = 6, b = 8 find hypotenuse"
+  const pythagorasResult = trySolvePythagoras(clean, lower);
+  if (pythagorasResult) return pythagorasResult;
+
+  // 8. SPEED, DISTANCE, TIME: e.g. "speed if distance is 120 km and time is 2 hours"
+  const sdtResult = trySolveSpeedDistanceTime(clean, lower);
+  if (sdtResult) return sdtResult;
+
+  // 9. SIMPLE INTEREST: e.g. "simple interest for P = 5000, R = 5%, T = 3 years"
+  const siResult = trySolveSimpleInterest(clean, lower);
+  if (siResult) return siResult;
+
   return null;
 }
 
@@ -50,21 +70,24 @@ export function solveMathOrNumerical(query: string): MathSolverResult | null {
  */
 function trySolveLinearEquation(raw: string, lower: string): MathSolverResult | null {
   // Check if query is asking to solve an equation or contains '='
-  if (!raw.includes("=") && !lower.includes("solve") && !lower.includes("find x")) {
+  if (!raw.includes("=") && !lower.includes("solve") && !lower.includes("find x") && !lower.includes("value of x")) {
     return null;
   }
 
-  // Extract the equation part
-  const eqMatch = raw.match(/([0-9a-zA-Z\s+\-*\/^.]+=[0-9a-zA-Z\s+\-*\/^.]+)/);
-  const eqString = eqMatch ? eqMatch[1].replace(/\s+/g, "") : raw.replace(/^(?:solve|find\s+[a-z]|calculate)\s+/i, "").replace(/\s+/g, "");
+  // Strip prefixes like "solve", "find x in", "calculate"
+  const stripped = raw
+    .replace(/^(?:solve(?:\s+the\s+equation)?|find\s+(?:the\s+value\s+of\s+)?[a-zA-Z](?:\s+in)?|calculate)\s+/i, "")
+    .trim();
 
-  if (!eqString.includes("=")) return null;
+  if (!stripped.includes("=")) return null;
 
-  const [lhs, rhs] = eqString.split("=");
-  if (!lhs || !rhs) return null;
+  const [rawLhs, rawRhs] = stripped.split("=");
+  if (!rawLhs || !rawRhs) return null;
 
-  // Pattern: ax + b = c  or  ax - b = c  or  ax = c
-  // Handles variable name: x, y, z, a, b, n, t
+  const lhs = rawLhs.replace(/\s+/g, "");
+  const rhs = rawRhs.replace(/\s+/g, "");
+
+  // Pattern A: ax + b = c (single variable on LHS, constant on RHS)
   const simpleLinearRegex = /^([+-]?\d*(?:\.\d+)?)([a-zA-Z])([+-]\d+(?:\.\d+)?)?$/;
   const lhsMatch = lhs.match(simpleLinearRegex);
   const rhsNum = parseFloat(rhs);
@@ -82,10 +105,6 @@ function trySolveLinearEquation(raw: string, lower: string): MathSolverResult | 
     const b = rawB ? parseFloat(rawB) : 0;
 
     if (a !== 0) {
-      // Step-by-step:
-      // ax + b = rhsNum
-      // ax = rhsNum - b
-      // x = (rhsNum - b) / a
       const numerator = rhsNum - b;
       const solution = numerator / a;
       const formattedSolution = Number.isInteger(solution) ? solution.toString() : solution.toFixed(2);
@@ -136,10 +155,9 @@ $$\n\\mathbf{${variable} = ${formattedSolution}}\n$$
 ---
 
 #### 🎓 Key Takeaway & Exam Tip:
-- **Golden Rule of Algebra**: Whatever operation (addition, subtraction, multiplication, division) you perform on one side of the equals sign, you must perform equally on the other side to keep balance!
-- Always substitute your answer back into the original equation during tests to guarantee 100% full marks!`;
+- **Golden Rule of Algebra**: Whatever operation you perform on one side of the equals sign, you must perform equally on the other side to keep balance!
+- Always substitute your answer back into the original equation during exams to guarantee full marks!`;
 
-      // Build realistic distractors
       const dist1 = Number.isInteger(solution) ? (solution + 2).toString() : (solution + 1.5).toFixed(2);
       const dist2 = Number.isInteger(solution) ? (solution - 2).toString() : (solution - 1.5).toFixed(2);
       const dist3 = Number.isInteger(solution) ? (solution * 2).toString() : (solution * 2).toFixed(2);
@@ -170,6 +188,100 @@ $$\n\\mathbf{${variable} = ${formattedSolution}}\n$$
     }
   }
 
+  // Pattern B: ax + b = cx + d (variables on both LHS and RHS)
+  const rhsMatch = rhs.match(simpleLinearRegex);
+  if (lhsMatch && rhsMatch && lhsMatch[2].toLowerCase() === rhsMatch[2].toLowerCase()) {
+    const variable = lhsMatch[2];
+
+    const parseCoeff = (c: string) => {
+      if (c === "" || c === "+") return 1;
+      if (c === "-") return -1;
+      return parseFloat(c);
+    };
+
+    const a1 = parseCoeff(lhsMatch[1]);
+    const b1 = lhsMatch[3] ? parseFloat(lhsMatch[3]) : 0;
+    const a2 = parseCoeff(rhsMatch[1]);
+    const b2 = rhsMatch[3] ? parseFloat(rhsMatch[3]) : 0;
+
+    const netA = a1 - a2;
+    const netB = b2 - b1;
+
+    if (netA !== 0) {
+      const solution = netB / netA;
+      const formattedSolution = Number.isInteger(solution) ? solution.toString() : solution.toFixed(2);
+
+      const signB1 = b1 >= 0 ? `+ ${b1}` : `- ${Math.abs(b1)}`;
+      const signB2 = b2 >= 0 ? `+ ${b2}` : `- ${Math.abs(b2)}`;
+
+      const solutionMarkdown = `### 📐 Step-by-Step Solution: Linear Equation with Variables on Both Sides
+*Mathematics · Algebra & Linear Equations*
+
+---
+
+#### 🎯 Problem Statement:
+Solve for **$${variable}$** in the equation:
+$$\n${a1 !== 1 ? a1 : ""}${variable} ${b1 !== 0 ? signB1 : ""} = ${a2 !== 1 ? a2 : ""}${variable} ${b2 !== 0 ? signB2 : ""}\n$$
+
+---
+
+#### 🪜 Step-by-Step Walkthrough:
+
+1. **Given Equation:**
+   $$\n   ${a1 !== 1 ? a1 : ""}${variable} ${b1 !== 0 ? signB1 : ""} = ${a2 !== 1 ? a2 : ""}${variable} ${b2 !== 0 ? signB2 : ""}\n   $$
+
+2. **Collect variable terms on the left side:**
+   Subtract $${a2 !== 1 ? a2 : ""}${variable}$ from both sides:
+   $$\n   (${a1} - ${a2})${variable} ${b1 !== 0 ? signB1 : ""} = ${b2}\n   $$
+   $$\n   ${netA !== 1 ? netA : ""}${variable} ${b1 !== 0 ? signB1 : ""} = ${b2}\n   $$
+
+3. **Isolate variable term:**
+   ${b1 !== 0 ? `Subtract ${b1} from both sides:\n   $$\n   ${netA !== 1 ? netA : ""}${variable} = ${b2} - (${b1}) = ${netB}\n   $$` : `Variable term is already isolated: ${netA}${variable} = ${netB}`}
+
+4. **Solve for $${variable}$:**
+   Divide both sides by ${netA}:
+   $$\n   ${variable} = \\frac{${netB}}{${netA}} = \\mathbf{${formattedSolution}}\n   $$
+
+5. **✅ Check Answer:**
+   - LHS = $${a1}(${formattedSolution}) ${b1 !== 0 ? signB1 : ""} = ${(a1 * solution + b1).toFixed(2).replace(/\.00$/, "")}$
+   - RHS = $${a2}(${formattedSolution}) ${b2 !== 0 ? signB2 : ""} = ${(a2 * solution + b2).toFixed(2).replace(/\.00$/, "")}$
+   - LHS = RHS! Verified correct.
+
+---
+
+#### 💡 Final Answer:
+$$\n\\mathbf{${variable} = ${formattedSolution}}\n$$`;
+
+      const dist1 = Number.isInteger(solution) ? (solution + 1).toString() : (solution + 1.2).toFixed(2);
+      const dist2 = Number.isInteger(solution) ? (solution - 1).toString() : (solution - 1.2).toFixed(2);
+      const dist3 = Number.isInteger(solution) ? (-solution).toString() : (-solution).toFixed(2);
+
+      const mcq: GeneratedMCQ = {
+        question_text: `What is the value of ${variable} satisfying ${a1 !== 1 ? a1 : ""}${variable} ${b1 !== 0 ? signB1 : ""} = ${a2 !== 1 ? a2 : ""}${variable} ${b2 !== 0 ? signB2 : ""}?`,
+        option_a: `${variable} = ${formattedSolution}`,
+        option_b: `${variable} = ${dist1}`,
+        option_c: `${variable} = ${dist2}`,
+        option_d: `${variable} = ${dist3}`,
+        correct_option: "A",
+        explanation: `Collecting like terms gives (${a1} - ${a2})${variable} = ${b2} - ${b1}, which simplifies to ${netA}${variable} = ${netB}, giving ${variable} = ${formattedSolution}.`,
+        difficulty: "Medium",
+        subject: "Mathematics",
+        topic: "Linear Equations & Algebra",
+        concept: "Solving Linear Equations with Variables on Both Sides",
+        validation_passed: true,
+      };
+
+      return {
+        isSolved: true,
+        subject: "Mathematics",
+        topic: "Linear Equations & Algebra",
+        concept: "Solving Linear Equations with Variables on Both Sides",
+        solutionMarkdown,
+        mcq,
+      };
+    }
+  }
+
   return null;
 }
 
@@ -181,8 +293,11 @@ function trySolveQuadraticEquation(raw: string, lower: string): MathSolverResult
     return null;
   }
 
-  // Common quadratic patterns like x^2 - 5x + 6 = 0 or 2x^2 + 5x - 3 = 0
-  const quadMatch = raw.replace(/\s+/g, "").match(/([+-]?\d*(?:\.\d+)?)[a-zA-Z]\^?2([+-]\d*(?:\.\d+)?)[a-zA-Z]([+-]\d+(?:\.\d+)?)?=0/i);
+  const cleanEq = raw
+    .replace(/^(?:solve(?:\s+the\s+equation)?|find\s+roots\s+of|roots\s+of|calculate)\s+/i, "")
+    .replace(/\s+/g, "");
+
+  const quadMatch = cleanEq.match(/([+-]?\d*(?:\.\d+)?)[a-zA-Z]\^?2([+-]\d*(?:\.\d+)?)[a-zA-Z]([+-]\d+(?:\.\d+)?)?=0/i);
   if (!quadMatch) return null;
 
   const rawA = quadMatch[1];
@@ -203,7 +318,6 @@ function trySolveQuadraticEquation(raw: string, lower: string): MathSolverResult
 
   if (isNaN(a) || isNaN(b) || isNaN(c) || a === 0) return null;
 
-  // Discriminant D = b^2 - 4ac
   const D = b * b - 4 * a * c;
 
   let rootsText = "";
@@ -363,10 +477,9 @@ function trySolveOhmsLawNumerical(raw: string, lower: string): MathSolverResult 
     return null;
   }
 
-  // Look for values: V = 10, R = 5 or I = 2A, R = 4 ohm
-  const vMatch = lower.match(/(?:v\s*=|voltage\s*=|potential\s*difference\s*(?:of|=))\s*(\d+(?:\.\d+)?)\s*(?:v|volts)?/i);
-  const rMatch = lower.match(/(?:r\s*=|resistance\s*=|resistor\s*(?:of|=))\s*(\d+(?:\.\d+)?)\s*(?:ohm|ohms|ω)?/i);
-  const iMatch = lower.match(/(?:i\s*=|current\s*(?:of|=))\s*(\d+(?:\.\d+)?)\s*(?:a|amps|amperes)?/i);
+  const vMatch = lower.match(/(?:v\s*=|voltage\s*(?:of|=|is)?|potential\s*difference\s*(?:of|=|is)?)\s*(\d+(?:\.\d+)?)\s*(?:v|volts)?/i);
+  const rMatch = lower.match(/(?:r\s*=|resistance\s*(?:of|=|is)?|resistor\s*(?:of|=|is)?)\s*(\d+(?:\.\d+)?)\s*(?:ohm|ohms|ω)?/i);
+  const iMatch = lower.match(/(?:i\s*=|current\s*(?:of|=|is)?)\s*(\d+(?:\.\d+)?)\s*(?:a|amps|amperes)?/i);
 
   const V = vMatch ? parseFloat(vMatch[1]) : null;
   const R = rMatch ? parseFloat(rMatch[1]) : null;
@@ -495,4 +608,427 @@ $$\n\\mathbf{V = ${voltageStr}\\text{ Volts (V)}}\n$$`;
   }
 
   return null;
+}
+
+/**
+ * Solves Newton's Second Law numericals: F = ma, a = F/m, m = F/a
+ */
+function trySolveNewtonSecondLaw(raw: string, lower: string): MathSolverResult | null {
+  if (!lower.includes("newton") && !lower.includes("force") && !lower.includes("acceleration") && !lower.includes("mass")) {
+    return null;
+  }
+
+  const mMatch = lower.match(/(?:mass\s*(?:of|=|is)?|m\s*=)\s*(\d+(?:\.\d+)?)\s*(?:kg|kilograms|g)?/i);
+  const aMatch = lower.match(/(?:acceleration\s*(?:of|=|is)?|a\s*=)\s*(\d+(?:\.\d+)?)\s*(?:m\/s\^?2|ms-2)?/i);
+  const fMatch = lower.match(/(?:force\s*(?:of|=|is)?|f\s*=)\s*(\d+(?:\.\d+)?)\s*(?:n|newtons)?/i);
+
+  const m = mMatch ? parseFloat(mMatch[1]) : null;
+  const a = aMatch ? parseFloat(aMatch[1]) : null;
+  const f = fMatch ? parseFloat(fMatch[1]) : null;
+
+  // Case 1: Given m and a, find F
+  if (m !== null && a !== null && f === null) {
+    const force = m * a;
+    const forceStr = Number.isInteger(force) ? force.toString() : force.toFixed(2);
+
+    const solutionMarkdown = `### 🚀 Step-by-Step Solution: Newton's Second Law of Motion
+*Physics · Classical Mechanics & Dynamics*
+
+---
+
+#### 🎯 Given Data:
+- **Mass ($m$)** = $${m}\\text{ kg}$
+- **Acceleration ($a$)** = $${a}\\text{ m/s}^2$
+
+---
+
+#### 🪜 Step-by-Step Calculation:
+
+1. **State the Governing Law:**
+   According to Newton's Second Law of Motion:
+   $$\n   F = m \\times a\n   $$
+
+2. **Substitute Given Values:**
+   $$\n   F = ${m}\\text{ kg} \\times ${a}\\text{ m/s}^2 = \\mathbf{${forceStr}\\text{ Newtons (N)}}\n   $$
+
+---
+
+#### 💡 Final Answer:
+$$\n\\mathbf{F = ${forceStr}\\text{ N}}\n$$`;
+
+    const mcq: GeneratedMCQ = {
+      question_text: `What net force is required to impart an acceleration of ${a} m/s² to an object of mass ${m} kg?`,
+      option_a: `${forceStr} N (using F = m * a = ${m} * ${a})`,
+      option_b: `${(force * 1.5).toFixed(1)} N`,
+      option_c: `${(force * 0.5).toFixed(1)} N`,
+      option_d: `${(m + a).toFixed(1)} N`,
+      correct_option: "A",
+      explanation: `By Newton's second law, net force is the product of mass and acceleration: F = ma = ${m} * ${a} = ${forceStr} N.`,
+      difficulty: "Easy",
+      subject: "Physics",
+      topic: "Laws of Motion & Mechanics",
+      concept: "Newton's Second Law ($F = ma$)",
+      validation_passed: true,
+    };
+
+    return {
+      isSolved: true,
+      subject: "Physics",
+      topic: "Laws of Motion & Mechanics",
+      concept: "Newton's Second Law ($F = ma$)",
+      solutionMarkdown,
+      mcq,
+    };
+  }
+
+  // Case 2: Given F and m, find a
+  if (f !== null && m !== null && m > 0 && a === null) {
+    const acc = f / m;
+    const accStr = Number.isInteger(acc) ? acc.toString() : acc.toFixed(2);
+
+    const solutionMarkdown = `### 🚀 Step-by-Step Solution: Newton's Second Law of Motion
+*Physics · Classical Mechanics & Dynamics*
+
+---
+
+#### 🎯 Given Data:
+- **Force ($F$)** = $${f}\\text{ N}$
+- **Mass ($m$)** = $${m}\\text{ kg}$
+
+---
+
+#### 🪜 Step-by-Step Calculation:
+
+1. **State Newton's Second Law:**
+   $$\n   F = m \\times a \\implies a = \\frac{F}{m}\n   $$
+
+2. **Substitute the Values:**
+   $$\n   a = \\frac{${f}\\text{ N}}{${m}\\text{ kg}} = \\mathbf{${accStr}\\text{ m/s}^2}\n   $$
+
+---
+
+#### 💡 Final Answer:
+$$\n\\mathbf{a = ${accStr}\\text{ m/s}^2}\n$$`;
+
+    const mcq: GeneratedMCQ = {
+      question_text: `What is the acceleration produced when a force of ${f} N acts on a body of mass ${m} kg?`,
+      option_a: `${accStr} m/s²`,
+      option_b: `${(acc * 2).toFixed(1)} m/s²`,
+      option_c: `${(acc * 0.5).toFixed(1)} m/s²`,
+      option_d: `${(f * m).toFixed(1)} m/s²`,
+      correct_option: "A",
+      explanation: `Rearranging Newton's Second Law (F = ma) gives a = F / m = ${f} / ${m} = ${accStr} m/s².`,
+      difficulty: "Easy",
+      subject: "Physics",
+      topic: "Laws of Motion & Mechanics",
+      concept: "Newton's Second Law ($F = ma$)",
+      validation_passed: true,
+    };
+
+    return {
+      isSolved: true,
+      subject: "Physics",
+      topic: "Laws of Motion & Mechanics",
+      concept: "Newton's Second Law ($F = ma$)",
+      solutionMarkdown,
+      mcq,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Solves Kinetic Energy numericals: KE = 1/2 m v^2
+ */
+function trySolveKineticEnergy(raw: string, lower: string): MathSolverResult | null {
+  if (!lower.includes("kinetic") && !lower.includes("ke") && !(lower.includes("energy") && (lower.includes("velocity") || lower.includes("speed")))) {
+    return null;
+  }
+
+  const mMatch = lower.match(/(?:mass\s*(?:of|=|is)?|m\s*=)\s*(\d+(?:\.\d+)?)\s*(?:kg)?/i);
+  const vMatch = lower.match(/(?:velocity\s*(?:of|=|is)?|speed\s*(?:of|=|is)?|v\s*=)\s*(\d+(?:\.\d+)?)\s*(?:m\/s)?/i);
+
+  if (!mMatch || !vMatch) return null;
+
+  const m = parseFloat(mMatch[1]);
+  const v = parseFloat(vMatch[1]);
+
+  if (isNaN(m) || isNaN(v) || m <= 0) return null;
+
+  const ke = 0.5 * m * v * v;
+  const keStr = Number.isInteger(ke) ? ke.toString() : ke.toFixed(2);
+
+  const solutionMarkdown = `### ⚡ Step-by-Step Solution: Kinetic Energy
+*Physics · Work, Energy & Power*
+
+---
+
+#### 🎯 Given Data:
+- **Mass ($m$)** = $${m}\\text{ kg}$
+- **Velocity ($v$)** = $${v}\\text{ m/s}$
+
+---
+
+#### 🪜 Step-by-Step Calculation:
+
+1. **State the Kinetic Energy Formula:**
+   $$\n   KE = \\frac{1}{2} m v^2\n   $$
+
+2. **Substitute Given Values:**
+   $$\n   KE = \\frac{1}{2} \\times ${m} \\times (${v})^2\n   $$
+   $$\n   KE = 0.5 \\times ${m} \\times ${v * v} = \\mathbf{${keStr}\\text{ Joules (J)}}\n   $$
+
+---
+
+#### 💡 Final Answer:
+$$\n\\mathbf{KE = ${keStr}\\text{ J}}\n$$`;
+
+  const mcq: GeneratedMCQ = {
+    question_text: `What is the kinetic energy of an object of mass ${m} kg moving at a velocity of ${v} m/s?`,
+    option_a: `${keStr} Joules`,
+    option_b: `${(ke * 2).toFixed(1)} Joules`,
+    option_c: `${(m * v).toFixed(1)} Joules`,
+    option_d: `${(ke * 0.5).toFixed(1)} Joules`,
+    correct_option: "A",
+    explanation: `Kinetic energy is calculated via KE = 1/2 m v² = 0.5 * ${m} * (${v})² = ${keStr} J.`,
+    difficulty: "Easy",
+    subject: "Physics",
+    topic: "Work, Energy & Power",
+    concept: "Kinetic Energy ($KE = \\frac{1}{2}mv^2$)",
+    validation_passed: true,
+  };
+
+  return {
+    isSolved: true,
+    subject: "Physics",
+    topic: "Work, Energy & Power",
+    concept: "Kinetic Energy ($KE = \\frac{1}{2}mv^2$)",
+    solutionMarkdown,
+    mcq,
+  };
+}
+
+/**
+ * Solves Pythagorean theorem: a^2 + b^2 = c^2
+ */
+function trySolvePythagoras(raw: string, lower: string): MathSolverResult | null {
+  if (!lower.includes("pythagor") && !lower.includes("hypotenuse") && !lower.includes("right triangle") && !lower.includes("right-angled")) {
+    return null;
+  }
+
+  // Match sides/legs e.g. "sides are 3 and 4", "legs are 3 and 4", "a = 3, b = 4"
+  const sidesMatch = lower.match(/(?:(?:sides?|legs?)\s*(?:are|=|of)?\s*|a\s*=\s*)(\d+(?:\.\d+)?)\s*(?:and|,|\s+b\s*=\s*)\s*(\d+(?:\.\d+)?)/i);
+  if (!sidesMatch) return null;
+
+  const a = parseFloat(sidesMatch[1]);
+  const b = parseFloat(sidesMatch[2]);
+
+  if (isNaN(a) || isNaN(b) || a <= 0 || b <= 0) return null;
+
+  const cSq = a * a + b * b;
+  const c = Math.sqrt(cSq);
+  const cStr = Number.isInteger(c) ? c.toString() : c.toFixed(2);
+
+  const solutionMarkdown = `### 📐 Step-by-Step Solution: Pythagorean Theorem
+*Mathematics · Geometry & Trigonometry*
+
+---
+
+#### 🎯 Problem Statement:
+Find the hypotenuse ($c$) of a right-angled triangle with legs **$a = ${a}$** and **$b = ${b}$**.
+
+---
+
+#### 🪜 Step-by-Step Calculation:
+
+1. **State the Pythagorean Theorem:**
+   $$\n   a^2 + b^2 = c^2 \\implies c = \\sqrt{a^2 + b^2}\n   $$
+
+2. **Substitute Given Leg Lengths:**
+   $$\n   c = \\sqrt{(${a})^2 + (${b})^2} = \\sqrt{${a * a} + ${b * b}} = \\sqrt{${cSq}}\n   $$
+
+3. **Calculate the Square Root:**
+   $$\n   c = \\mathbf{${cStr}}\n   $$
+
+---
+
+#### 💡 Final Answer:
+$$\n\\mathbf{c = ${cStr}}\n$$`;
+
+  const mcq: GeneratedMCQ = {
+    question_text: `In a right triangle with legs of length ${a} and ${b}, what is the length of the hypotenuse?`,
+    option_a: `${cStr}`,
+    option_b: `${(a + b).toFixed(1)}`,
+    option_c: `${(c * 1.5).toFixed(1)}`,
+    option_d: `${(cSq).toFixed(0)}`,
+    correct_option: "A",
+    explanation: `By the Pythagorean theorem, c = √(a² + b²) = √(${a * a} + ${b * b}) = √(${cSq}) = ${cStr}.`,
+    difficulty: "Easy",
+    subject: "Mathematics",
+    topic: "Geometry & Trigonometry",
+    concept: "Pythagorean Theorem",
+    validation_passed: true,
+  };
+
+  return {
+    isSolved: true,
+    subject: "Mathematics",
+    topic: "Geometry & Trigonometry",
+    concept: "Pythagorean Theorem",
+    solutionMarkdown,
+    mcq,
+  };
+}
+
+/**
+ * Solves Speed, Distance, Time: d = s * t, s = d/t, t = d/s
+ */
+function trySolveSpeedDistanceTime(raw: string, lower: string): MathSolverResult | null {
+  if (!lower.includes("speed") && !lower.includes("distance") && !lower.includes("velocity")) {
+    return null;
+  }
+
+  const dMatch = lower.match(/(?:distance\s*(?:of|=|is)?|d\s*=)\s*(\d+(?:\.\d+)?)\s*(?:km|m|miles)?/i);
+  const tMatch = lower.match(/(?:time\s*(?:of|=|is)?|t\s*=)\s*(\d+(?:\.\d+)?)\s*(?:hours|hrs|hr|seconds|sec|s)?/i);
+  const sMatch = lower.match(/(?:speed\s*(?:of|=|is)?|s\s*=)\s*(\d+(?:\.\d+)?)\s*(?:km\/h|m\/s)?/i);
+
+  const d = dMatch ? parseFloat(dMatch[1]) : null;
+  const t = tMatch ? parseFloat(tMatch[1]) : null;
+  const s = sMatch ? parseFloat(sMatch[1]) : null;
+
+  // Case 1: Given d and t, find s
+  if (d !== null && t !== null && t > 0 && s === null) {
+    const speed = d / t;
+    const speedStr = Number.isInteger(speed) ? speed.toString() : speed.toFixed(2);
+
+    const solutionMarkdown = `### 🏎️ Step-by-Step Solution: Speed, Distance & Time
+*Physics & Mathematics · Kinematics*
+
+---
+
+#### 🎯 Given Data:
+- **Distance ($d$)** = $${d}$
+- **Time ($t$)** = $${t}$
+
+---
+
+#### 🪜 Step-by-Step Calculation:
+
+1. **State the Speed Formula:**
+   $$\n   \\text{Speed} = \\frac{\\text{Distance}}{\\text{Time}}\n   $$
+
+2. **Substitute Values:**
+   $$\n   s = \\frac{${d}}{${t}} = \\mathbf{${speedStr}}\n   $$
+
+---
+
+#### 💡 Final Answer:
+$$\n\\mathbf{\\text{Speed} = ${speedStr}}\n$$`;
+
+    const mcq: GeneratedMCQ = {
+      question_text: `If an object travels a distance of ${d} units in ${t} units of time, what is its average speed?`,
+      option_a: `${speedStr} units`,
+      option_b: `${(speed * 1.5).toFixed(1)} units`,
+      option_c: `${(speed * 0.5).toFixed(1)} units`,
+      option_d: `${(d * t).toFixed(1)} units`,
+      correct_option: "A",
+      explanation: `Speed is defined as distance divided by time: s = d / t = ${d} / ${t} = ${speedStr}.`,
+      difficulty: "Easy",
+      subject: "Physics",
+      topic: "Kinematics & Motion",
+      concept: "Speed, Distance and Time",
+      validation_passed: true,
+    };
+
+    return {
+      isSolved: true,
+      subject: "Physics",
+      topic: "Kinematics & Motion",
+      concept: "Speed, Distance and Time",
+      solutionMarkdown,
+      mcq,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Solves Simple Interest: SI = (P * R * T) / 100
+ */
+function trySolveSimpleInterest(raw: string, lower: string): MathSolverResult | null {
+  if (!lower.includes("interest") && !lower.includes("principal")) {
+    return null;
+  }
+
+  const pMatch = lower.match(/(?:principal\s*(?:of|=|is)?|p\s*=)\s*(\d+(?:\.\d+)?)/i);
+  const rMatch = lower.match(/(?:rate\s*(?:of|=|is)?|r\s*=)\s*(\d+(?:\.\d+)?)\s*%?/i);
+  const tMatch = lower.match(/(?:time\s*(?:of|=|is)?|t\s*=)\s*(\d+(?:\.\d+)?)\s*(?:years|yrs)?/i);
+
+  if (!pMatch || !rMatch || !tMatch) return null;
+
+  const P = parseFloat(pMatch[1]);
+  const R = parseFloat(rMatch[1]);
+  const T = parseFloat(tMatch[1]);
+
+  if (isNaN(P) || isNaN(R) || isNaN(T)) return null;
+
+  const SI = (P * R * T) / 100;
+  const siStr = Number.isInteger(SI) ? SI.toString() : SI.toFixed(2);
+  const totalAmount = P + SI;
+  const amountStr = Number.isInteger(totalAmount) ? totalAmount.toString() : totalAmount.toFixed(2);
+
+  const solutionMarkdown = `### 💰 Step-by-Step Solution: Simple Interest
+*Mathematics · Commercial Arithmetic & Financial Math*
+
+---
+
+#### 🎯 Given Data:
+- **Principal ($P$)** = $${P}$
+- **Rate ($R$)** = $${R}\\%$ per annum
+- **Time ($T$)** = $${T}$ years
+
+---
+
+#### 🪜 Step-by-Step Calculation:
+
+1. **State the Simple Interest Formula:**
+   $$\n   SI = \\frac{P \\times R \\times T}{100}\n   $$
+
+2. **Substitute Given Values:**
+   $$\n   SI = \\frac{${P} \\times ${R} \\times ${T}}{100} = \\frac{${P * R * T}}{100} = \\mathbf{${siStr}}\n   $$
+
+3. **Total Amount ($A = P + SI$):**
+   $$\n   A = ${P} + ${siStr} = \\mathbf{${amountStr}}\n   $$
+
+---
+
+#### 💡 Final Answer:
+- **Simple Interest ($SI$)** = $\\mathbf{${siStr}}$
+- **Total Maturity Amount ($A$)** = $\\mathbf{${amountStr}}$`;
+
+  const mcq: GeneratedMCQ = {
+    question_text: `What is the simple interest on a principal of ${P} at ${R}% per annum for ${T} years?`,
+    option_a: `${siStr}`,
+    option_b: `${(SI * 1.2).toFixed(1)}`,
+    option_c: `${(SI * 0.8).toFixed(1)}`,
+    option_d: `${(P * R).toFixed(1)}`,
+    correct_option: "A",
+    explanation: `Using the formula SI = (P * R * T) / 100 = (${P} * ${R} * ${T}) / 100 = ${siStr}.`,
+    difficulty: "Easy",
+    subject: "Mathematics",
+    topic: "Commercial Arithmetic",
+    concept: "Simple Interest",
+    validation_passed: true,
+  };
+
+  return {
+    isSolved: true,
+    subject: "Mathematics",
+    topic: "Commercial Arithmetic",
+    concept: "Simple Interest",
+    solutionMarkdown,
+    mcq,
+  };
 }

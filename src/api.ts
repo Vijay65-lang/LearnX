@@ -537,13 +537,100 @@ export function getStudentStorageKey(suffix: string): string {
 
 export function generateResilientStudentResponse(
   question: string,
-  student?: Partial<StudentProfile> | null
+  student?: Partial<StudentProfile> | null,
+  contextMessages?: ChatMessage[]
 ): AskResponse {
   const clean = question.trim();
   const qLower = clean.toLowerCase();
   const activeSt = student || getActiveStudent();
   const isInter = activeSt?.education_level === "Intermediate";
   const isMPC = isInter && (!activeSt?.inter_stream || activeSt?.inter_stream.toUpperCase().includes("MPC"));
+
+  // Multi-turn conversational confusion / re-explanation check FIRST (never treat "I didn't understanded" as a concept!)
+  const isConfusion =
+    /^(?:i\s*)?(?:didn't|did\s*not|didnt|don't|do\s*not|dont|couldn't|could\s*not|unable\s*to|can't|cant)\s*(?:understand|understanded|understood|get|got|follow)\b/i.test(qLower) ||
+    /^(?:i\s*am\s*|im\s*|i'm\s*)?(?:confused|lost|not\s*getting\s*it|still\s*confused|not\s*clear|having\s*trouble)\b/i.test(qLower) ||
+    /^(?:explain\s*(?:it\s*)?(?:again|more\s*simply|simply|in\s*simple\s*words|in\s*simple\s*terms|once\s*more)|can\s*you\s*(?:explain\s*again|simplify|make\s*it\s*simpler|make\s*it\s*easier|repeat)|simplify\s*(?:this|it)?|make\s*it\s*simpler|make\s*it\s*easy|eli5)\b/i.test(qLower) ||
+    qLower.includes("understanded") ||
+    qLower.includes("didn't understand") ||
+    qLower.includes("didnt understand") ||
+    qLower.includes("don't understand") ||
+    qLower.includes("dont understand") ||
+    qLower.includes("not clear") ||
+    qLower.includes("still confused") ||
+    qLower === "explain again";
+
+  if (isConfusion) {
+    let priorConcept: string | undefined = undefined;
+    let priorSubject = isMPC ? "Intermediate MPC" : "Academic Studies";
+    let priorTopic = "Core Syllabus";
+
+    if (contextMessages && contextMessages.length > 0) {
+      for (let i = contextMessages.length - 1; i >= 0; i--) {
+        const m = contextMessages[i];
+        if (
+          m.detected_concept &&
+          !m.detected_concept.toLowerCase().includes("understand") &&
+          !m.detected_concept.toLowerCase().includes("clarification") &&
+          !m.detected_concept.toLowerCase().includes("assistant")
+        ) {
+          priorConcept = m.detected_concept;
+          priorSubject = m.detected_subject || priorSubject;
+          priorTopic = m.detected_topic || priorTopic;
+          break;
+        }
+      }
+    }
+
+    if (priorConcept) {
+      return {
+        doubtId: "dbt_reexp_" + Date.now(),
+        explanation: `### 💡 Let's Make This Super Simple: **${priorConcept}**
+*No jargon, no stress!*
+
+---
+
+#### 🌟 The Big Picture in Plain English
+Imagine you are explaining **${priorConcept}** to a friend over lunch:
+Instead of dense textbook formulas, think of it like this:
+
+> **Analogy**: Imagine a traffic light at a busy four-way intersection. Without it, all four cars rush forward and crash into each other. With the light, each car gets a turn safely. 
+> **${priorConcept}** does the exact same job in **${priorTopic}**—it keeps everything running smoothly and predictably without collisions!
+
+---
+
+#### 🪜 3 Super Simple Things to Remember:
+1. **The Purpose**: It exists to prevent errors and solve messy calculations simply.
+2. **How It Works**: It takes simple starting information, applies one clear golden rule, and gives you a verified result.
+3. **Exam Tip**: You don't need to memorize walls of text—just focus on what the main formula or rule is doing!
+
+Would you like me to walk you through a quick, 2-line practical example with numbers or code? Just let me know!`,
+        detected_subject: priorSubject,
+        detected_topic: priorTopic,
+        detected_concept: priorConcept,
+        validation_passed: true,
+        is_conversational: true,
+      };
+    } else {
+      return {
+        doubtId: "dbt_clarify_" + Date.now(),
+        explanation: `Hey! No worries at all 😊 It is completely normal to find some topics tricky at first—that is how real learning happens!
+
+I'm your personal study buddy, and my whole job is to make tough concepts feel simple and intuitive.
+
+**Tell me:**
+1. What specific concept, formula, or coding problem are you studying?
+2. Which part felt confusing or unclear?
+
+Just type the topic (for example: *"Explain Newton's Second Law"* or *"How does Binary Search work?"*) and I'll break it down with simple real-world stories and zero confusing jargon!`,
+        detected_subject: "LearnX Academic Assistant",
+        detected_topic: "Study Guidance & Doubts",
+        detected_concept: "Topic Clarification",
+        validation_passed: true,
+        is_conversational: true,
+      };
+    }
+  }
 
   // Check code generation intent FIRST
   const isCodeGenCommand =
@@ -1797,11 +1884,21 @@ export async function askStudyDoubt(
   studentProfile?: Partial<StudentProfile>,
   syllabusNotes?: string,
   subjectName?: string,
-  easyMode: boolean = true
+  easyMode: boolean = true,
+  messages?: ChatMessage[]
 ): Promise<AskResponse> {
   const currentStudent = studentProfile || getActiveStudent();
   const customApiKey = localStorage.getItem("learnx_custom_api_key") || undefined;
   const provider = localStorage.getItem("learnx_ai_provider") || undefined;
+
+  // Format client conversation history (last 10 turns) to give models true ChatGPT memory
+  const historyPayload = (messages || []).slice(-10).map((m) => ({
+    sender: m.sender,
+    message_text: m.message_text,
+    detected_concept: m.detected_concept,
+    detected_subject: m.detected_subject,
+    detected_topic: m.detected_topic
+  }));
 
   try {
     const res = await request<AskResponse>("/ai/ask", {
@@ -1817,6 +1914,7 @@ export async function askStudyDoubt(
         easy_mode: easyMode,
         custom_api_key: customApiKey,
         provider: provider,
+        messages: historyPayload,
       }),
     });
 
@@ -1851,7 +1949,7 @@ export async function askStudyDoubt(
     return res;
   } catch (err: any) {
     console.warn("Server AI request offline or dropped, using resilient responder:", err);
-    const fallback = generateResilientStudentResponse(question, currentStudent);
+    const fallback = generateResilientStudentResponse(question, currentStudent, messages);
 
     if (chatId) {
       try {

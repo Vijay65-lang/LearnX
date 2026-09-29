@@ -10,6 +10,12 @@ import {
   synthesizeFriendlyExplanation
 } from "./ai";
 import {
+  isGenuineAcademicConcept,
+  ConversationContext,
+  analyzeStudentIntent,
+  isConfusionOrReexplanationQuery
+} from "./intent";
+import {
   recordAttemptAndUpdateMastery,
   getStudentAnalytics,
   generateStudentRecommendations
@@ -414,7 +420,7 @@ apiRouter.get("/ai/ollama-status", async (req: Request, res: Response) => {
 
 apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const { question, chat_id, model, ollama_endpoint, student_profile, syllabus_notes, subject_name, easy_mode, custom_api_key, provider } = req.body;
+    const { question, chat_id, model, ollama_endpoint, student_profile, syllabus_notes, subject_name, easy_mode, custom_api_key, provider, messages: clientMessages } = req.body;
     if (!question || typeof question !== "string" || !question.trim()) {
       return res.status(400).json({ error: "Study question is required." });
     }
@@ -504,31 +510,75 @@ apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) =
 
     const cleanQuestion = question.trim();
 
-    // Multi-turn context resolution: If in a chat session, retrieve recent turns
-    let conversationCtx: any = undefined;
-    if (chat_id) {
+    // Multi-turn context resolution: combine client messages and DB messages
+    let conversationCtx: ConversationContext | undefined = undefined;
+    let combinedRecentTurns: Array<{ sender: "user" | "assistant"; text: string; detected_concept?: string; detected_subject?: string; detected_topic?: string }> = [];
+
+    if (Array.isArray(clientMessages) && clientMessages.length > 0) {
+      combinedRecentTurns = clientMessages.slice(-10).map((m: any) => ({
+        sender: m.sender || "user",
+        text: m.message_text || m.text || "",
+        detected_concept: m.detected_concept,
+        detected_subject: m.detected_subject,
+        detected_topic: m.detected_topic
+      }));
+    } else if (chat_id) {
       try {
-        const recentMsgs = query(
+        const dbMsgs = query(
           `SELECT sender, message_text, detected_subject, detected_topic, detected_concept
            FROM chat_messages
            WHERE chat_id = ?
            ORDER BY timestamp DESC
-           LIMIT 5`,
+           LIMIT 10`,
           [chat_id]
         );
-        if (recentMsgs && recentMsgs.length > 0) {
-          const lastAssistant = recentMsgs.find((m: any) => m.sender === "assistant");
-          conversationCtx = {
-            last_subject: lastAssistant?.detected_subject,
-            last_topic: lastAssistant?.detected_topic,
-            last_concept: lastAssistant?.detected_concept,
-            last_assistant_snippet: lastAssistant?.message_text?.slice(0, 300),
-            recent_messages: recentMsgs.map((m: any) => ({ sender: m.sender, text: m.message_text }))
-          };
+        if (dbMsgs && dbMsgs.length > 0) {
+          combinedRecentTurns = [...dbMsgs].reverse().map((m: any) => ({
+            sender: m.sender,
+            text: m.message_text,
+            detected_concept: m.detected_concept,
+            detected_subject: m.detected_subject,
+            detected_topic: m.detected_topic
+          }));
         }
       } catch (ctxErr) {
         // Continue gracefully
       }
+    }
+
+    if (combinedRecentTurns.length > 0) {
+      // Find the last genuine academic concept (skipping placeholders and confusion phrases)
+      let lastTurnWithConcept = [...combinedRecentTurns]
+        .reverse()
+        .find((m) => isGenuineAcademicConcept(m.detected_concept));
+
+      if (!lastTurnWithConcept) {
+        // Look backwards through previous user turns to extract the underlying topic
+        for (let i = combinedRecentTurns.length - 1; i >= 0; i--) {
+          const t = combinedRecentTurns[i];
+          if (t.sender === "user" && !isConfusionOrReexplanationQuery(t.text)) {
+            const prevIntent = analyzeStudentIntent(t.text, effectiveEducationLevel, effectiveStream);
+            if (isGenuineAcademicConcept(prevIntent.detected_concept)) {
+              lastTurnWithConcept = {
+                sender: "user",
+                text: t.text,
+                detected_concept: prevIntent.detected_concept,
+                detected_subject: prevIntent.detected_subject,
+                detected_topic: prevIntent.detected_topic
+              };
+              break;
+            }
+          }
+        }
+      }
+
+      conversationCtx = {
+        last_subject: lastTurnWithConcept?.detected_subject,
+        last_topic: lastTurnWithConcept?.detected_topic,
+        last_concept: lastTurnWithConcept?.detected_concept,
+        last_assistant_snippet: combinedRecentTurns.filter(m => m.sender === "assistant").pop()?.text?.slice(0, 400),
+        recent_messages: combinedRecentTurns.map(m => ({ sender: m.sender, text: m.text }))
+      };
     }
 
     // Step 1 - 5: Strict Question Understanding (independent classification with context!)
@@ -560,7 +610,8 @@ apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) =
       effectiveSyllabusNotes,
       Boolean(easy_mode),
       custom_api_key,
-      provider
+      provider,
+      conversationCtx
     );
 
     // Save doubt to database (Section 8) - Guarded for resilient response
@@ -599,14 +650,16 @@ apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) =
     // Step 11 & 12: Automatic MCQ generation testing that SAME concept (only for academic concept questions, NOT code generation)
     let mcqData: any = undefined;
     const isCodeGen = explanationResult.is_code_generation || analysis.intent === "CODE_GENERATION";
-    if (!explanationResult.is_conversational && !isCodeGen) {
+    const isConversational = explanationResult.is_conversational || analysis.intent === "CLARIFICATION" || analysis.intent === "GREETING" || analysis.intent === "CASUAL_CONVERSATION" || analysis.intent === "REEXPLANATION";
+
+    if (!isConversational && !isCodeGen && isGenuineAcademicConcept(explanationResult.detected_concept)) {
       try {
         const mcq = await generateValidatedMCQ(
           explanationResult.detected_subject,
           explanationResult.detected_topic,
           explanationResult.detected_concept,
           effectiveEducationLevel,
-          "Medium",
+          analysis.intent === "REEXPLANATION" ? "Easy" : "Medium",
           explanationResult.explanation,
           model,
           ollama_endpoint,
