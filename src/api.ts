@@ -16,6 +16,7 @@ import {
   MasteryState,
   MasteryRecord,
   EducationLevel,
+  ThoughtProcess,
 } from "./types";
 import { getCodeTemplate } from "./data/codeTemplates";
 
@@ -518,6 +519,7 @@ export interface AskResponse {
   is_code_generation?: boolean;
   clarification_question?: string;
   explanation?: string;
+  thought_process?: ThoughtProcess | string;
   detected_subject: string;
   detected_topic: string;
   detected_concept: string;
@@ -693,6 +695,168 @@ Just type the topic (for example: *"Explain Newton's Second Law"* or *"How does 
       is_conversational: false,
       is_code_generation: true,
       mcq: undefined,
+    };
+  }
+
+  // Conversational Intent Checks in Resilient Fallback Engine
+  const isPureGreeting = /^(?:hi+|hello+|hey+|hii+|heyy+|heya|good\s*(?:morning|afternoon|evening|day)|namaste|namaskar|vanakkam|yo+|sup|hola|greetings)(?:\s+learnx|\s+there|\s+sir|\s+bro|\s+bhai|\s+ai|\s+buddy)?[\s!.,?]*$/i.test(qLower) || /^(?:hi|hello|hey|yo|sup)[\s,!.]/i.test(qLower);
+  const isWellbeing = /\b(?:i(?:'m|\s*am)?\s*(?:so\s*|very\s*|really\s*)?(?:tired|sleepy|bored|exhausted|stressed|anxious|nervous|scared|overwhelmed|depressed|sad|lazy|unmotivated|burnt\s*out|giving\s*up)|don't\s*feel\s*like\s*studying|dont\s*feel\s*like\s*studying|can't\s*focus|cant\s*focus|can't\s*concentrate|cant\s*concentrate|hate\s*(?:studying|exams|school)|give\s*me\s*motivation|motivate\s*me|i\s*need\s*motivation|inspire\s*me|cheer\s*me\s*up|cheer\s*up|so\s*tired|too\s*sleepy)\b/i.test(qLower);
+  const isStudyStrategy = /\b(?:how\s*(?:to|should\s*i|can\s*i)\s*(?:study|prepare|revise|memorize|remember|focus|score|get\s*good\s*marks|pass)|study\s*(?:tips|advice|techniques|strategy|timetable|plan|routine)|how\s*to\s*stop\s*procrastinat|pomodoro\s*technique|feynman\s*technique|active\s*recall)\b/i.test(qLower);
+  const isJoke = /\b(?:tell\s*me\s*(?:a\s*)?(?:joke|riddle|funny\s*story|fun\s*fact)|say\s*something\s*funny|make\s*me\s*laugh|do\s*you\s*know\s*any\s*jokes?|tell\s*(?:me\s*)?another\s*joke)\b/i.test(qLower);
+  const isAcknowledgment = /^(?:ok+|okay+|alright+|k+|cool+|got\s*it|i\s*got\s*it|understood|i\s*understand\s*now|nice|awesome|super|great|perfect|done|thank\s*(?:you|u)|thanks(?:\s*a\s*lot|\s*so\s*much)?|thx|ty|thanku|good\s*job|well\s*done|bye+|goodbye+|see\s*(?:you|ya|u)|good\s*night|gn)[\s!.,?]*$/i.test(qLower);
+  const isCapabilitiesOrIdentity = /^(?:what\s*(?:can|do|will)\s*(?:you|u)\s*(?:do|help)|what\s*are\s*(?:your|ur)\s*(?:capabilities|features)|how\s*can\s*(?:you|u)\s*help|who\s*(?:are\s*(?:you|u)|created\s*(?:you|u)|made\s*(?:you|u))|what\s*is\s*(?:your|ur)\s*name|what\s*model\s*(?:are\s*(?:you|u)|do\s*(?:you|u)\s*use))[\s!.,?]*$/i.test(qLower);
+  const isChitchat = /^(?:how\s*(?:are|r)\s*(?:you|u)|how's\s*it\s*going|whats\s*up|what's\s*up|can\s*(?:we|you)\s*(?:talk|chat|be\s*friends?)|are\s*you\s*(?:real|human)|i\s*love\s*(?:you|this\s*app))/i.test(qLower);
+
+  if (isPureGreeting) {
+    return {
+      doubtId: "dbt_greet_" + Date.now(),
+      explanation: `Hey there! 👋 Welcome to **LearnX**!
+
+I'm your personal AI study buddy, built with the natural conversation style of assistants like ChatGPT and Claude, but fine-tuned specifically for your academic curriculum.
+
+You can ask me anything—from clarifying tricky math, physics, or chemistry problems, to writing code, breaking down engineering concepts, or getting effective exam preparation tips.
+
+What would you like to explore today? Just ask away!`,
+      thought_process: {
+        understanding: "User greeted the assistant warmly.",
+        intent_category: "Casual Social Greeting",
+        strategy: "Acknowledge greeting with positive energy and invite study questions without scientific lecturing.",
+        steps: ["Classified greeting intent", "Delivered warm conversational response"]
+      },
+      detected_subject: "LearnX Academic Assistant",
+      detected_topic: "Conversational & Assistance",
+      detected_concept: "LearnX Assistant",
+      validation_passed: true,
+      is_conversational: true,
+    };
+  }
+
+  if (isWellbeing) {
+    return {
+      doubtId: "dbt_wellbeing_" + Date.now(),
+      explanation: `Hey! First of all, take a deep breath. 🌿 
+
+Feeling tired or sleepy is your body's completely normal signal that your brain needs a quick recharge. Real learning requires a fresh mind, and pushing through extreme exhaustion usually leads to frustration.
+
+Here is a super effective 10-minute reset plan:
+1. **Hydrate**: Drink a full glass of cold water right now—mild dehydration is the #1 hidden cause of fatigue during study sessions.
+2. **Move & Stretch**: Step away from your desk, stretch your shoulders and neck, and wash your face with cool water.
+3. **Power Nap or Fresh Air**: If it's been a long day, a 15-minute power nap (set an alarm!) or a 5-minute walk outside will completely restore your mental alertness.
+
+When you're ready, we can tackle just **one small, easy topic** together—no rush, no stress! How are you feeling now?`,
+      thought_process: {
+        understanding: "Student expressed fatigue, tiredness, or study stress.",
+        intent_category: "Student Well-Being & Support",
+        strategy: "Provide compassionate empathy and practical mental/physical reset steps without academic lecture.",
+        steps: ["Detected student well-being inquiry", "Delivered compassionate rejuvenation advice"]
+      },
+      detected_subject: "Student Life & Well-Being",
+      detected_topic: "Motivation, Focus & Emotional Reset",
+      detected_concept: "Student Well-Being",
+      validation_passed: true,
+      is_conversational: true,
+    };
+  }
+
+  if (isStudyStrategy) {
+    return {
+      doubtId: "dbt_strat_" + Date.now(),
+      explanation: `### 🎯 High-Performance Study Framework (Used by Top Rankers)
+
+Studying for 8 hours of passive reading is much less effective than **2 hours of active learning**. Here are the 4 scientifically backed study strategies:
+
+---
+
+#### 🧠 1. The Feynman Technique (True Understanding)
+- Explain the concept out loud in plain words as if teaching a 10-year-old.
+- Wherever you use complex jargon or get stuck, that's your exact knowledge gap. Go back and review only that specific gap!
+
+#### 🔄 2. Active Recall & The Testing Effect
+- Don't just re-read textbook highlights.
+- Close the book and ask yourself: *"What were the 3 main takeaways from that page?"*
+- Write down formulas, derivations, or diagrams completely from memory.
+
+#### ⏳ 3. The 25/5 Pomodoro Cadence
+- Study with zero phone notifications for **25 minutes**.
+- Take a strict **5-minute break** (stand up, drink water, look outside).
+- After 4 cycles, reward yourself with a 20-minute rest!
+
+#### 📅 4. Spaced Repetition Schedule
+- Review material after: **1 Day → 3 Days → 7 Days → 21 Days**.
+- This moves concepts from fragile short-term memory into permanent long-term memory.
+
+---
+
+Would you like to try practicing a specific chapter right now using Active Recall? Tell me the topic!`,
+      thought_process: {
+        understanding: "Student requested high-efficiency study methodologies.",
+        intent_category: "Study Strategy & Metacognition",
+        strategy: "Present proven cognitive learning frameworks (Feynman, Active Recall, Pomodoro) with actionable structure.",
+        steps: ["Classified study strategy request", "Formulated 4-step framework"]
+      },
+      detected_subject: "Study Skills & Productivity",
+      detected_topic: "Effective Learning Strategies",
+      detected_concept: "High-Efficiency Study Framework",
+      validation_passed: true,
+      is_conversational: true,
+    };
+  }
+
+  if (isJoke) {
+    return {
+      doubtId: "dbt_joke_" + Date.now(),
+      explanation: `😄 **Here's a good one for you:**\n\nWhy can't you trust atoms?\n\n*Because they make up everything!* ⚛️\n\nHope that brought a smile to your face! Ready to conquer some concepts, or want another fun fact?`,
+      thought_process: {
+        understanding: "User asked for a joke or humorous break.",
+        intent_category: "Educational Humor & Fun",
+        strategy: "Share a witty STEM joke to lighten cognitive load.",
+        steps: ["Detected humor request", "Delivered clean student joke"]
+      },
+      detected_subject: "LearnX Academic Assistant",
+      detected_topic: "Study Humor & Fun",
+      detected_concept: "Science & Math Humor",
+      validation_passed: true,
+      is_conversational: true,
+    };
+  }
+
+  if (isAcknowledgment) {
+    return {
+      doubtId: "dbt_ack_" + Date.now(),
+      explanation: `You're very welcome! 😊 I'm always happy to help. You're doing great—keep up that momentum! What shall we tackle next?`,
+      thought_process: {
+        understanding: "User acknowledged or thanked the assistant.",
+        intent_category: "Conversational Acknowledgment",
+        strategy: "Acknowledge warmly and keep momentum open for next question.",
+        steps: ["Detected acknowledgment", "Formulated warm closure"]
+      },
+      detected_subject: "LearnX Academic Assistant",
+      detected_topic: "Conversational",
+      detected_concept: "LearnX Assistant",
+      validation_passed: true,
+      is_conversational: true,
+    };
+  }
+
+  if (isCapabilitiesOrIdentity || isChitchat) {
+    return {
+      doubtId: "dbt_chat_" + Date.now(),
+      explanation: `I'm **LearnX AI**, your personal study companion and academic mentor! 🚀
+
+I'm doing great, and I'm here to make learning intuitive, clear, and stress-free. Whether you want to break down tricky formulas, write code, practice MCQs, or just discuss how your studies are going, I'm right here with you.
+
+How can I help you with your studies right now?`,
+      thought_process: {
+        understanding: "User engaged in casual chitchat or asked about the assistant.",
+        intent_category: "Casual Social Conversation",
+        strategy: "Respond with natural conversational warmth and outline helpful capabilities.",
+        steps: ["Classified conversational inquiry", "Provided friendly introduction"]
+      },
+      detected_subject: "LearnX Academic Assistant",
+      detected_topic: "Conversational Friendship",
+      detected_concept: "LearnX Assistant",
+      validation_passed: true,
+      is_conversational: true,
     };
   }
 
@@ -1941,6 +2105,7 @@ export async function askStudyDoubt(
           detected_topic: res.detected_topic,
           detected_concept: res.detected_concept,
           timestamp: new Date().toISOString(),
+          thought_process: res.thought_process,
         };
         saveLocalChatMessages(chatId, [...msgs, userMsg, aiMsg]);
       } catch {}
@@ -1973,6 +2138,7 @@ export async function askStudyDoubt(
           detected_topic: fallback.detected_topic,
           detected_concept: fallback.detected_concept,
           timestamp: new Date().toISOString(),
+          thought_process: fallback.thought_process,
         };
         saveLocalChatMessages(chatId, [...msgs, userMsg, aiMsg]);
       } catch {}

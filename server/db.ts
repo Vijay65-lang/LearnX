@@ -220,6 +220,7 @@ export async function initDatabase() {
       detected_subject TEXT,
       detected_topic TEXT,
       detected_concept TEXT,
+      thought_process TEXT,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (chat_id) REFERENCES chat_sessions(id) ON DELETE CASCADE,
       FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
@@ -371,6 +372,12 @@ export async function initDatabase() {
 
   try {
     db.run("ALTER TABLE students ADD COLUMN privacy_enabled INTEGER DEFAULT 0;");
+  } catch {
+    // Column already exists or fallback runner handles it
+  }
+
+  try {
+    db.run("ALTER TABLE chat_messages ADD COLUMN thought_process TEXT;");
   } catch {
     // Column already exists or fallback runner handles it
   }

@@ -50,11 +50,21 @@ export interface ChatSession {
   message_count?: number;
 }
 
+export interface ThoughtProcess {
+  understanding: string;
+  intent_category: string;
+  complexity?: "Simple" | "Moderate" | "Deep Reasoning";
+  strategy: string;
+  reflection?: string;
+  steps?: string[];
+}
+
 export interface ChatMessage {
   id: string;
   chat_id: string;
   sender: "user" | "assistant";
   message_text: string;
+  thought_process?: ThoughtProcess | string;
   detected_subject?: string;
   detected_topic?: string;
   detected_concept?: string;

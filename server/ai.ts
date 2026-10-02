@@ -281,8 +281,18 @@ export interface QuestionAnalysis {
   code_generation_template?: string;
 }
 
+export interface ThoughtProcess {
+  understanding: string;
+  intent_category: string;
+  complexity?: "Simple" | "Moderate" | "Deep Reasoning";
+  strategy: string;
+  reflection?: string;
+  steps?: string[];
+}
+
 export interface ExplanationResult {
   explanation: string;
+  thought_process?: ThoughtProcess | string;
   detected_subject: string;
   detected_topic: string;
   detected_concept: string;
@@ -1463,6 +1473,188 @@ function handleConversationalResponse(
   return formatTailoredExplanation(intent, educationLevel, streamBranch);
 }
 
+export function generateThoughtProcess(
+  question: string,
+  analysis: {
+    intent?: string;
+    is_conversational?: boolean;
+    is_code_generation?: boolean;
+    is_unclear?: boolean;
+    detected_subject?: string;
+    detected_topic?: string;
+    detected_concept?: string;
+  },
+  educationLevel: string = "Intermediate",
+  streamBranch: string = "MPC",
+  context?: ConversationContext
+): ThoughtProcess {
+  const qClean = (question || "").trim();
+  const intent = analysis.intent;
+  const concept = analysis.detected_concept || "Core Topic";
+  const subject = analysis.detected_subject || "General Academic Studies";
+  const topic = analysis.detected_topic || "Core Principles";
+
+  // 1. Casual chitchat & Greetings
+  if (intent === "GREETING" || intent === "CASUAL_CONVERSATION" || intent === "ACKNOWLEDGMENT") {
+    return {
+      understanding: `Understood user intent: Warm, conversational social greeting / check-in ("${qClean.slice(0, 50)}${qClean.length > 50 ? "..." : ""}").`,
+      intent_category: "Casual Social Conversation",
+      complexity: "Simple",
+      strategy: "Respond with natural conversational fluency, friendliness, and human warmth (like ChatGPT). Zero scientific jargon or unsolicited textbook formulas.",
+      reflection: "Ensure the user feels respected, welcomed, and supported as a fellow human and learner, keeping the door open for any study doubts whenever ready.",
+      steps: [
+        "Classified natural conversational greeting / check-in",
+        "Bypassed textbook academic lecture templates to avoid robotic disconnect",
+        "Formulated engaging, friendly, human-like response"
+      ]
+    };
+  }
+
+  // 2. Emotional Well-being & Stress / Fatigue / Motivation
+  if (intent === "STUDENT_WELLBEING") {
+    return {
+      understanding: `Understood student intent: Emotional fatigue, stress, or seeking study motivation ("${qClean.slice(0, 50)}${qClean.length > 50 ? "..." : ""}").`,
+      intent_category: "Student Well-Being & Emotional Reset",
+      complexity: "Simple",
+      strategy: "Deliver compassionate validation, practical physical/mental recovery steps (hydration, 10-min walk, 5-minute rule), and positive reinforcement.",
+      reflection: "Never treat emotional fatigue as an academic formula or scientific topic. Prioritize student comfort and low-pressure support.",
+      steps: [
+        "Detected emotional state and fatigue signals in student message",
+        "Disabled textbook lecture mode to provide compassionate empathy",
+        "Delivered actionable mental rejuvenation framework"
+      ]
+    };
+  }
+
+  // 3. Study Strategy & Productivity
+  if (intent === "STUDY_STRATEGY") {
+    return {
+      understanding: `Understood student intent: Seeking high-efficiency study methodologies, revision techniques, or time management advice.`,
+      intent_category: "Study Strategy & Metacognition",
+      complexity: "Moderate",
+      strategy: `Provide high-efficiency cognitive study frameworks (Feynman Technique, Active Recall, 25/5 Pomodoro, Spaced Repetition) tailored for ${educationLevel} (${streamBranch}).`,
+      reflection: "Keep recommendations concrete, practical, and immediately actionable for their current study session.",
+      steps: [
+        "Classified study productivity inquiry",
+        "Synthesized evidence-based active recall and spaced repetition principles",
+        "Structured clear, numbered framework for immediate implementation"
+      ]
+    };
+  }
+
+  // 4. Jokes & Lighthearted Fun
+  if (intent === "JOKE_OR_FUN") {
+    return {
+      understanding: `Understood user intent: Request for a lighthearted joke, riddle, or fun science/math break.`,
+      intent_category: "Educational Humor & Fun",
+      complexity: "Simple",
+      strategy: "Share a clever, clean, and memorable science/math/programming joke to bring a smile and lighten cognitive load.",
+      reflection: "Keep tone charming and upbeat, followed by an easy invitation to continue studying whenever ready.",
+      steps: [
+        "Detected casual humor request",
+        "Selected witty, student-friendly STEM joke",
+        "Delivered punchline with positive conversational tone"
+      ]
+    };
+  }
+
+  // 5. Capability or Model Identity Inquiry
+  if (intent === "CAPABILITY_INQUIRY" || intent === "MODEL_IDENTITY") {
+    return {
+      understanding: `Understood user intent: Inquiring about LearnX AI's capabilities, identity, model architecture, or how to use the app.`,
+      intent_category: "Assistant Identity & Capabilities",
+      complexity: "Simple",
+      strategy: `Clearly explain multimodal reasoning capabilities, curriculum calibration for ${educationLevel} (${streamBranch}), offline local models, and doubt-solving features.`,
+      reflection: "Be transparent, approachable, and encourage the user to test any topic right away.",
+      steps: [
+        "Identified self-referential / capability question",
+        "Summarized core features: concept mastery, code generation, math proofs, and MCQs",
+        "Presented clear guide on how student can get maximum value"
+      ]
+    };
+  }
+
+  // 6. Confusion & Re-Explanation ("I didn't understand")
+  if (intent === "REEXPLANATION" || isConfusionOrReexplanationQuery(qClean)) {
+    return {
+      understanding: `Understood user intent: Student expressed difficulty or confusion on previous explanation of "${concept}".`,
+      intent_category: "Intuitive Re-Explanation & Simplification (ELI5)",
+      complexity: "Moderate",
+      strategy: "Acknowledge the confusion with zero judgment. Completely discard heavy academic jargon, employ a fresh everyday analogy, and explain the core intuition in 3 simple steps.",
+      reflection: `Ensure the student's phrase (e.g. 'I didn't understand') is never treated as a concept name. Reset from first principles on ${concept}.`,
+      steps: [
+        "Detected confusion signal from student",
+        "Extracted target academic topic: " + concept,
+        "Constructed intuitive real-world picture (e.g., everyday analogy)",
+        "Distilled explanation into 3 crystal-clear takeaways"
+      ]
+    };
+  }
+
+  // 7. Clarification Request (Needs more details)
+  if (intent === "CLARIFICATION" || analysis.is_unclear) {
+    return {
+      understanding: `Understood user intent: Query is broad or lacks an explicit academic subject context ("${qClean.slice(0, 50)}").`,
+      intent_category: "Topic Clarification & Scope Discovery",
+      complexity: "Simple",
+      strategy: "Warmly invite the student to specify which topic, chapter, or problem they want to work through.",
+      reflection: "Keep the prompt welcoming, reassuring them that any question is welcome.",
+      steps: [
+        "Analyzed query specificity",
+        "Identified need for topic focus",
+        "Prompted student with friendly examples"
+      ]
+    };
+  }
+
+  // 8. Code Generation & Software Implementation
+  if (analysis.intent === "CODE_GENERATION" || analysis.is_code_generation) {
+    return {
+      understanding: `Understood user intent: Student requested working code implementation for: "${qClean.slice(0, 60)}${qClean.length > 60 ? "..." : ""}".`,
+      intent_category: "Software Engineering & Code Generation",
+      complexity: "Deep Reasoning",
+      strategy: "Generate clean, fully working, self-contained code. Provide step-by-step execution instructions and explain the core algorithmic logic.",
+      reflection: "Ensure zero syntax errors, include clear comments, and provide a single runnable solution.",
+      steps: [
+        "Parsed programming requirements and target environment",
+        "Formulated complete, self-contained code architecture",
+        "Included verified running instructions and functional breakdown"
+      ]
+    };
+  }
+
+  // 9. Mathematics & Numerical Derivation
+  if (subject.toLowerCase().includes("math") || qClean.includes("=") || /\d+\s*[\+\-\*\/]\s*\d+/.test(qClean)) {
+    return {
+      understanding: `Understood user intent: Mathematical calculation or numerical derivation detected on "${concept}".`,
+      intent_category: "Mathematical Problem Solving & Proof",
+      complexity: "Deep Reasoning",
+      strategy: "Verify all mathematical rules, state given parameters, apply step-by-step formula substitutions, and produce the verified final answer.",
+      reflection: "Check arithmetic and unit consistency at every single step.",
+      steps: [
+        "Extracted parameters, formulas, and constraints",
+        "Executed step-by-step mathematical substitution",
+        "Verified correctness against formal mathematical standards"
+      ]
+    };
+  }
+
+  // 10. Core Academic Concept (Default Academic)
+  return {
+    understanding: `Understood user intent: Student requested comprehensive explanation of "${concept}" in ${subject} (${topic}).`,
+    intent_category: "Curriculum Concept Explanation & Deep Mastery",
+    complexity: "Deep Reasoning",
+    strategy: `Calibrate for ${educationLevel} (${streamBranch}). Provide direct answer in plain English, an everyday intuitive analogy, structured mechanism breakdown, and high-yield exam takeaways.`,
+    reflection: "Ensure 100% scientific/technical accuracy aligned with syllabus expectations.",
+    steps: [
+      `Classified syllabus domain: ${subject} · ${topic}`,
+      `Selected intuitive real-world analogy for ${concept}`,
+      "Formulated verified pedagogical explanation with exam focus",
+      "Prepared targeted active-recall question for concept verification"
+    ]
+  };
+}
+
 // Friendly Dynamic Synthesizer for ANY concept across all domains
 export function synthesizeFriendlyExplanation(
   question: string,
@@ -1473,11 +1665,24 @@ export function synthesizeFriendlyExplanation(
   streamBranch?: string
 ): ExplanationResult {
   const qLower = question.toLowerCase();
+  const tp = generateThoughtProcess(
+    question,
+    {
+      intent: isConversationalQuery(question) ? "CASUAL_CONVERSATION" : (isConfusionOrReexplanationQuery(question) ? "REEXPLANATION" : "ACADEMIC_QUESTION"),
+      is_conversational: isConversationalQuery(question),
+      detected_subject: subject,
+      detected_topic: topic,
+      detected_concept: concept,
+    },
+    educationLevel,
+    streamBranch
+  );
 
   // 0. Fast conversational or identity query handling
   if (isConversationalQuery(question) || isConversationalQuery(concept) || isGreetingOrChitchat(question)) {
     return {
       explanation: handleConversationalResponse(question, educationLevel, streamBranch),
+      thought_process: tp,
       detected_subject: "LearnX Academic Assistant",
       detected_topic: "Conversational & Assistance",
       detected_concept: "LearnX Assistant",
@@ -1514,6 +1719,7 @@ Everything in **${targetTopic}** works just like building with LEGO bricks. If y
 ---
 
 Would you like me to walk you through a quick, 2-line practical example with numbers or code? Let me know!`,
+        thought_process: tp,
         detected_subject: subject || "Academic Studies",
         detected_topic: topic || "Core Syllabus",
         detected_concept: targetTopic,
@@ -1531,6 +1737,7 @@ I'm your personal study buddy, and my job is to make tough concepts feel super s
 2. Which part felt confusing or unclear?
 
 Just type the topic and I'll break it down with simple real-world stories and zero confusing jargon!`,
+        thought_process: tp,
         detected_subject: "LearnX Academic Assistant",
         detected_topic: "Study Guidance",
         detected_concept: "Topic Clarification",
@@ -1576,6 +1783,7 @@ Give one of these a try right now! What specific subject or topic are you workin
 
     return {
       explanation: tipsMarkdown,
+      thought_process: tp,
       detected_subject: "Study Strategies & Productivity",
       detected_topic: "Effective Learning",
       detected_concept: "Smart Study Techniques",
@@ -1636,6 +1844,7 @@ Want to see how to do this in JavaScript, C++, or Java too? Just let me know!`;
 
     return {
       explanation: codeMarkdown,
+      thought_process: tp,
       detected_subject: "Computer Science & Programming",
       detected_topic: "String Manipulation & Algorithms",
       detected_concept: "Reversing a String",
@@ -1659,6 +1868,7 @@ I'm your personal study buddy, and my job is to make tough concepts feel super s
 2. Which part felt confusing or unclear?
 
 Just type the topic and I'll break it down with simple real-world stories and zero confusing jargon!`,
+      thought_process: tp,
       detected_subject: "LearnX Academic Assistant",
       detected_topic: "Study Guidance",
       detected_concept: "Topic Clarification",
@@ -1881,6 +2091,7 @@ Hope that makes it super clear! Let me know if you want to explore any part of t
 
   return {
     explanation,
+    thought_process: tp,
     detected_subject: subject,
     detected_topic: topic,
     detected_concept: cleanConcept,
@@ -2198,18 +2409,26 @@ export async function generateValidatedExplanation(
   provider?: string,
   context?: ConversationContext
 ): Promise<ExplanationResult> {
-  // 1. If it is a pure greeting, chitchat, or clarification without an academic concept
+  const thoughtProcess = generateThoughtProcess(question, analysis, educationLevel, streamBranch, context);
+
+  // 1. If it is a pure greeting, chitchat, well-being, joke, study advice, or non-academic query
   const isPureConversational =
+    analysis.is_conversational ||
     analysis.intent === "GREETING" ||
     analysis.intent === "CAPABILITY_INQUIRY" ||
     analysis.intent === "MODEL_IDENTITY" ||
     analysis.intent === "CASUAL_CONVERSATION" ||
+    analysis.intent === "STUDENT_WELLBEING" ||
+    analysis.intent === "STUDY_STRATEGY" ||
+    analysis.intent === "JOKE_OR_FUN" ||
+    analysis.intent === "ACKNOWLEDGMENT" ||
     (analysis.intent === "CLARIFICATION" && !isGenuineAcademicConcept(analysis.detected_concept)) ||
     (isGreetingOrChitchat(question) && !isGenuineAcademicConcept(analysis.detected_concept));
 
   if (isPureConversational) {
     return {
       explanation: handleConversationalResponse(question, educationLevel, streamBranch),
+      thought_process: thoughtProcess,
       detected_subject: analysis.detected_subject || "LearnX Academic Assistant",
       detected_topic: analysis.detected_topic || "Conversational",
       detected_concept: analysis.detected_concept || "LearnX Assistant",
@@ -2224,6 +2443,7 @@ export async function generateValidatedExplanation(
   if (mathResult) {
     return {
       explanation: mathResult.solutionMarkdown,
+      thought_process: thoughtProcess,
       detected_subject: mathResult.subject,
       detected_topic: mathResult.topic,
       detected_concept: mathResult.concept,
@@ -2251,6 +2471,7 @@ INSTRUCTIONS:
         if (codeText && codeText.trim().length > 60) {
           return {
             explanation: codeText,
+            thought_process: thoughtProcess,
             detected_subject: analysis.detected_subject || "Computer Science & Programming",
             detected_topic: analysis.detected_topic || "Code Implementation",
             detected_concept: analysis.detected_concept || "Code Solution",
@@ -2273,6 +2494,7 @@ INSTRUCTIONS:
 
     return {
       explanation: tailored,
+      thought_process: thoughtProcess,
       detected_subject: analysis.detected_subject || "Computer Science & Programming",
       detected_topic: analysis.detected_topic || "Code Implementation",
       detected_concept: analysis.detected_concept || "Code Solution",
@@ -2315,6 +2537,7 @@ INSTRUCTIONS:
     if (tailored) {
       return {
         explanation: tailored,
+        thought_process: thoughtProcess,
         detected_subject: analysis.detected_subject,
         detected_topic: analysis.detected_topic,
         detected_concept: analysis.detected_concept,
@@ -2358,6 +2581,7 @@ ${isReexplanation ? `- The student is confused or didn't understand the previous
         if (groqResp && groqResp.trim().length > 50) {
           return {
             explanation: groqResp,
+            thought_process: thoughtProcess,
             detected_subject: analysis.detected_subject,
             detected_topic: analysis.detected_topic,
             detected_concept: analysis.detected_concept,
@@ -2418,6 +2642,7 @@ ${isReexplanation ? `- THE STUDENT DID NOT UNDERSTAND THE PREVIOUS EXPLANATION!
         if (explanationText && explanationText.trim().length > 50) {
           return {
             explanation: explanationText,
+            thought_process: thoughtProcess,
             detected_subject: analysis.detected_subject,
             detected_topic: analysis.detected_topic,
             detected_concept: analysis.detected_concept,
@@ -2483,6 +2708,7 @@ CRITICAL RULES:
       if (ollamaResponse && ollamaResponse.length > 50) {
         return {
           explanation: ollamaResponse,
+          thought_process: thoughtProcess,
           detected_subject: analysis.detected_subject,
           detected_topic: analysis.detected_topic,
           detected_concept: analysis.detected_concept,
@@ -2541,6 +2767,7 @@ Hope that makes it super clear! Let me know if you want to dive deeper into any 
 
     return {
       explanation: friendlyMarkdown,
+      thought_process: thoughtProcess,
       detected_subject: kbEntry.subject,
       detected_topic: kbEntry.topic,
       detected_concept: kbEntry.concept,

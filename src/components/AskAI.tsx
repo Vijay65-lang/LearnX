@@ -38,7 +38,8 @@ import {
   GeneratedMCQ,
   AttemptResult,
   AIModelType,
-  OllamaStatus
+  OllamaStatus,
+  ThoughtProcess
 } from "../types";
 import { FormattedMessage } from "./FormattedMessage";
 import {
@@ -55,6 +56,114 @@ import {
 } from "../api";
 import { ModelSettingsModal } from "./ModelSettingsModal";
 import { PomodoroTimer } from "./PomodoroTimer";
+
+function ThoughtProcessCard({ thought }: { thought?: ThoughtProcess | string }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!thought) return null;
+
+  if (typeof thought === "string") {
+    if (!thought.trim()) return null;
+    return (
+      <div className="mb-3 rounded-xl bg-slate-950/70 border border-indigo-500/20 overflow-hidden text-xs">
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          className="w-full px-3 py-2 flex items-center justify-between text-left text-slate-300 hover:text-white hover:bg-indigo-950/30 transition"
+        >
+          <div className="flex items-center gap-1.5 font-medium">
+            <span>🧠</span>
+            <span className="text-[11px] text-indigo-300 font-semibold tracking-wide uppercase">
+              Thought Process &amp; Understanding
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-400 font-mono">
+            {expanded ? "Hide ▲" : "View Reasoning ▼"}
+          </span>
+        </button>
+        {expanded && (
+          <div className="p-3 border-t border-slate-800/80 bg-slate-950/90 text-slate-300 leading-relaxed font-sans text-xs">
+            {thought}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-3.5 rounded-xl bg-slate-950/80 border border-indigo-500/30 overflow-hidden text-xs transition shadow-xs">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full px-3 py-2.5 flex items-center justify-between text-left text-slate-300 hover:text-white hover:bg-indigo-950/40 transition group"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-base shrink-0 animate-pulse">🧠</span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-indigo-300 font-bold text-[11px] uppercase tracking-wider">
+                Thinking &amp; Understanding
+              </span>
+              <span className="px-1.5 py-0.5 rounded bg-indigo-950/80 border border-indigo-500/30 text-[10px] font-mono text-indigo-300 shrink-0">
+                {thought.intent_category || "Understood"}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 truncate mt-0.5">
+              {thought.understanding}
+            </p>
+          </div>
+        </div>
+        <span className="text-[10px] font-mono text-indigo-400 group-hover:text-indigo-300 shrink-0 ml-2">
+          {expanded ? "Hide ▲" : "Reasoning ▼"}
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="p-3.5 border-t border-slate-800/80 bg-slate-950/90 space-y-2.5 text-xs">
+          <div>
+            <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-wider font-semibold block">
+              🎯 What LearnX Understood:
+            </span>
+            <p className="mt-0.5 text-slate-200 text-xs leading-relaxed font-sans">
+              {thought.understanding}
+            </p>
+          </div>
+
+          <div>
+            <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-semibold block">
+              💡 Response Strategy:
+            </span>
+            <p className="mt-0.5 text-slate-300 text-xs leading-relaxed font-sans">
+              {thought.strategy}
+            </p>
+          </div>
+
+          {thought.steps && thought.steps.length > 0 && (
+            <div>
+              <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-semibold block mb-1">
+                ⚙️ Cognitive Steps Evaluated:
+              </span>
+              <ul className="space-y-1">
+                {thought.steps.map((st, i) => (
+                  <li key={i} className="flex items-start gap-1.5 text-slate-300 text-xs">
+                    <span className="text-indigo-400 font-bold font-mono">{i + 1}.</span>
+                    <span>{st}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {thought.reflection && (
+            <div className="pt-2 border-t border-slate-800 text-[11px] text-slate-400 italic">
+              🛡️ Reflection: {thought.reflection}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface AskAIProps {
   student: StudentProfile;
@@ -331,6 +440,7 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
           detected_topic: res.detected_topic,
           detected_concept: res.detected_concept,
           timestamp: new Date().toISOString(),
+          thought_process: res.thought_process,
         };
         setMessages((prev) => [...prev, clarificationMsg]);
         return;
@@ -346,6 +456,7 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
         detected_concept: res.detected_concept,
         timestamp: new Date().toISOString(),
         mcq: res.mcq,
+        thought_process: res.thought_process,
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
@@ -374,6 +485,7 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
           detected_concept: fallbackRes.detected_concept,
           timestamp: new Date().toISOString(),
           mcq: fallbackRes.mcq,
+          thought_process: fallbackRes.thought_process,
         };
         setMessages((prev) => [...prev, fallbackMsg]);
       } catch {
@@ -871,6 +983,11 @@ export const AskAI: React.FC<AskAIProps> = ({ student, initialTopic }) => {
                           : "bg-slate-900 border border-slate-800 text-slate-100 rounded-bl-xs"
                       }`}
                     >
+                      {/* Thought Process & Reasoning Card */}
+                      {!isUser && msg.thought_process && (
+                        <ThoughtProcessCard thought={msg.thought_process} />
+                      )}
+
                       {/* Curriculum Metadata (Clean typography, zero pill enclosures) */}
                       {!isUser &&
                         msg.detected_subject &&

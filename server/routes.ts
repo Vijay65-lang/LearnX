@@ -734,9 +734,14 @@ apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) =
         );
 
         // Assistant message
+        const tpVal = explanationResult.thought_process
+          ? (typeof explanationResult.thought_process === "object"
+              ? JSON.stringify(explanationResult.thought_process)
+              : String(explanationResult.thought_process))
+          : null;
         run(
-          `INSERT INTO chat_messages (id, chat_id, student_id, sender, message_text, detected_subject, detected_topic, detected_concept)
-           VALUES (?, ?, ?, 'assistant', ?, ?, ?, ?)`,
+          `INSERT INTO chat_messages (id, chat_id, student_id, sender, message_text, detected_subject, detected_topic, detected_concept, thought_process)
+           VALUES (?, ?, ?, 'assistant', ?, ?, ?, ?, ?)`,
           [
             "msg_" + crypto.randomUUID(),
             chat_id,
@@ -744,7 +749,8 @@ apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) =
             explanationResult.explanation,
             explanationResult.detected_subject,
             explanationResult.detected_topic,
-            explanationResult.detected_concept
+            explanationResult.detected_concept,
+            tpVal
           ]
         );
 
@@ -772,6 +778,7 @@ apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) =
     return res.json({
       doubtId,
       explanation: explanationResult.explanation,
+      thought_process: explanationResult.thought_process,
       detected_subject: explanationResult.detected_subject,
       detected_topic: explanationResult.detected_topic,
       detected_concept: explanationResult.detected_concept,
@@ -798,6 +805,7 @@ apiRouter.post("/ai/ask", requireAuth, async (req: AuthRequest, res: Response) =
       return res.json({
         doubtId: "dbt_fallback_" + Date.now(),
         explanation: fallbackResult.explanation,
+        thought_process: fallbackResult.thought_process,
         detected_subject: fallbackResult.detected_subject,
         detected_topic: fallbackResult.detected_topic,
         detected_concept: fallbackResult.detected_concept,
@@ -1012,12 +1020,23 @@ apiRouter.get("/chat/sessions/:id", requireAuth, (req: AuthRequest, res: Respons
   }
 
   const messages = query(
-    `SELECT id, chat_id, sender, message_text, detected_subject, detected_topic, detected_concept, timestamp
+    `SELECT id, chat_id, sender, message_text, detected_subject, detected_topic, detected_concept, thought_process, timestamp
      FROM chat_messages
      WHERE chat_id = ?
      ORDER BY timestamp ASC`,
     [req.params.id]
-  );
+  ).map((m: any) => {
+    let tp = m.thought_process;
+    if (tp && typeof tp === "string" && (tp.trim().startsWith("{") || tp.trim().startsWith("["))) {
+      try {
+        tp = JSON.parse(tp);
+      } catch {}
+    }
+    return {
+      ...m,
+      thought_process: tp
+    };
+  });
 
   return res.json({ session, messages });
 });

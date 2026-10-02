@@ -13,24 +13,45 @@
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <script>
-      // Suppress expected sandbox WebSocket reconnection noise when HMR is disabled
-      window.addEventListener('unhandledrejection', function(event) {
-        if (
-          event.reason &&
-          (String(event.reason).includes('WebSocket') ||
-           String(event.reason?.message || '').includes('WebSocket closed without opened'))
-        ) {
-          event.preventDefault();
-        }
-      });
-      window.addEventListener('error', function(event) {
-        if (
-          event.message &&
-          (event.message.includes('WebSocket') || event.message.includes('[vite]'))
-        ) {
-          event.preventDefault();
-        }
-      });
+      // Suppress expected sandbox WebSocket reconnection noise when HMR is disabled in AI Studio
+      (function() {
+        var origConsoleError = console.error;
+        console.error = function() {
+          var str = '';
+          for (var i = 0; i < arguments.length; i++) {
+            str += ' ' + String(arguments[i]);
+          }
+          if (str.indexOf('WebSocket') !== -1 || str.indexOf('[vite]') !== -1 || str.indexOf('closed without opened') !== -1) {
+            return;
+          }
+          origConsoleError.apply(console, arguments);
+        };
+        var origConsoleWarn = console.warn;
+        console.warn = function() {
+          var str = '';
+          for (var i = 0; i < arguments.length; i++) {
+            str += ' ' + String(arguments[i]);
+          }
+          if (str.indexOf('WebSocket') !== -1 || str.indexOf('[vite]') !== -1) {
+            return;
+          }
+          origConsoleWarn.apply(console, arguments);
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+          var reason = event && event.reason ? (event.reason.message || String(event.reason)) : '';
+          if (reason.indexOf('WebSocket') !== -1 || reason.indexOf('closed without opened') !== -1) {
+            event.preventDefault();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+          }
+        }, true);
+        window.addEventListener('error', function(event) {
+          var msg = (event && (event.message || (event.error && event.error.message))) || '';
+          if (msg.indexOf('WebSocket') !== -1 || msg.indexOf('[vite]') !== -1 || msg.indexOf('closed without opened') !== -1) {
+            event.preventDefault();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+          }
+        }, true);
+      })();
     </script>
   </head>
   <body>

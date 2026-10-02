@@ -11,6 +11,10 @@ export type StudentIntent =
   | "CAPABILITY_INQUIRY"
   | "MODEL_IDENTITY"
   | "CASUAL_CONVERSATION"
+  | "STUDENT_WELLBEING"
+  | "STUDY_STRATEGY"
+  | "JOKE_OR_FUN"
+  | "ACKNOWLEDGMENT"
   | "CODE_GENERATION"
   | "ACADEMIC_QUESTION"
   | "CODE_QUESTION"
@@ -52,7 +56,7 @@ export interface IntentAnalysisResult {
 
 // 1. Pure greeting patterns (tolerates u, r u, typos, prefixes)
 const PURE_GREETING_REGEX =
-  /^(?:hi+|hello+|hey+|hii+|heyy+|heya|good\s*(?:morning|afternoon|evening|day)|namaste|namaskar|vanakkam|yo+|sup|hola|greetings)(?:\s+learnx|\s+there|\s+sir|\s+bro|\s+bhai|\s+ai|\s+buddy)?[\s!.,?]*$/i;
+  /^(?:hi+|hello+|hey+|hii+|heyy+|heya|good\s*(?:morning|afternoon|evening|day)|namaste|namaskar|vanakkam|yo+|sup|hola|greetings)(?:\s+(?:learnx|there|sir|bro|bhai|ai|buddy))?(?:[,\s!.-]*(?:how\s*(?:are|r)\s*(?:you|u)(?:\s*doing)?|how's\s*it\s*going|whats?\s*it\s*going|whats?\s*up|how\s*do\s*(?:you|u)\s*do))?[\s!.,?]*$/i;
 
 // 2. Capabilities and Help inquiries (e.g., 'what can u do', 'what can you do', 'what are your capabilities')
 const CAPABILITY_QUERY_REGEX =
@@ -64,7 +68,27 @@ const MODEL_IDENTITY_REGEX =
 
 // 4. Casual chitchat & pleasantries
 const CASUAL_CHITCHAT_REGEX =
-  /^(?:how\s*(?:are|r)\s*(?:you|u)|how\s*do\s*(?:you|u)\s*do|how's\s*it\s*going|hows\s*it\s*going|thank\s*(?:you|u)|thanks(?:\s*a\s*lot)?|thx|thanku|nice|awesome|cool|great|super|good\s*job|well\s*done|ok|okay|alright|bye|goodbye|see\s*(?:you|u)|cya|gn|good\s*night)[\s!.,?]*$/i;
+  /^(?:(?:hi+|hello+|hey+|hii+|heyy+|good\s*(?:morning|afternoon|evening))[,\s]+)?(?:how\s*(?:are|r)\s*(?:you|u)(?:\s*doing)?|how\s*do\s*(?:you|u)\s*do|how's\s*it\s*going|whats?\s*it\s*going|whats?\s*up|what\s*are\s*you\s*doing|thank\s*(?:you|u)(?:\s*(?:so\s*much|very\s*much|a\s*lot))?|thanks(?:\s*(?:a\s*lot|so\s*much|buddy|bro|bhai|sir))?|thx|ty|thanku|nice|awesome|cool|great|super|good\s*job|well\s*done|ok+|okay+|alright+|bye+|goodbye+|see\s*(?:you|u|ya)|cya|gn|good\s*night)[\s!.,?]*$/i;
+
+// 4a. Emotional states & well-being (e.g. 'i feel so tired', 'i am sleepy', 'i don't feel like studying', 'i feel stressed', 'motivate me')
+export const WELLBEING_EMOTION_REGEX =
+  /\b(?:i(?:'m|\s*am)?\s*(?:so\s*|very\s*|really\s*)?(?:tired|sleepy|bored|exhausted|stressed|anxious|nervous|scared|overwhelmed|depressed|sad|lazy|unmotivated|burnt\s*out|giving\s*up)|don't\s*feel\s*like\s*studying|dont\s*feel\s*like\s*studying|can't\s*focus|cant\s*focus|can't\s*concentrate|cant\s*concentrate|hate\s*(?:studying|exams|school)|give\s*me\s*motivation|motivate\s*me|i\s*need\s*motivation|inspire\s*me|cheer\s*me\s*up|cheer\s*up|so\s*tired|too\s*sleepy)\b/i;
+
+// 4b. Study strategy & productivity guidance (e.g. 'how should i study', 'how to prepare for exams', 'give me study tips')
+export const STUDY_STRATEGY_REGEX =
+  /\b(?:how\s*(?:to|should\s*i|can\s*i)\s*(?:study|prepare|revise|memorize|remember|focus|score|get\s*good\s*marks|pass)|study\s*(?:tips|advice|techniques|strategy|timetable|plan|routine)|how\s*to\s*stop\s*procrastinat|pomodoro\s*technique|feynman\s*technique|active\s*recall)\b/i;
+
+// 4c. Jokes, humor & riddles (e.g. 'tell me a joke', 'tell me a funny story', 'make me laugh')
+export const JOKE_FUN_REGEX =
+  /\b(?:tell\s*me\s*(?:a\s*)?(?:joke|riddle|funny\s*story|fun\s*fact)|say\s*something\s*funny|make\s*me\s*laugh|do\s*you\s*know\s*any\s*jokes?|tell\s*(?:me\s*)?another\s*joke)\b/i;
+
+// 4d. Friendship & personal conversational check-ins
+export const FRIENDSHIP_CONVERSATION_REGEX =
+  /\b(?:can\s*(?:we|you)\s*(?:talk|chat|be\s*friends?)|are\s*you\s*(?:my\s*friend|real|human|alive|single)|do\s*you\s*(?:have\s*feelings|sleep|eat|dream)|what\s*(?:do\s*you\s*think\s*about|is\s*your\s*favorite|are\s*you\s*doing)|i\s*love\s*(?:you|this\s*app)|you\s*are\s*(?:so\s*)?(?:smart|cool|awesome|great|funny|helpful|the\s*best))\b/i;
+
+// 4e. Quick pleasantries, closures & acknowledgments (e.g. 'ok', 'got it', 'thanks', 'bye', 'cool')
+export const ACKNOWLEDGMENT_REGEX =
+  /^(?:ok+|okay+|alright+|k+|cool+|got\s*it|i\s*got\s*it|understood|i\s*understand\s*now|nice|awesome|super|great|perfect|done|thank\s*(?:you|u)(?:\s*(?:so\s*much|very\s*much|a\s*lot))?|thanks(?:\s*(?:a\s*lot|so\s*much|buddy|bro|bhai|sir))?|thx|ty|thanku|good\s*job|well\s*done|bye+|goodbye+|see\s*(?:you|ya|u)|good\s*night|gn)[\s!.,?]*$/i;
 
 // 5. Leading greeting prefixes to strip cleanly from academic queries
 const LEADING_GREETING_PREFIX_REGEX =
@@ -101,12 +125,20 @@ export function isConfusionOrReexplanationQuery(q: string): boolean {
   );
 }
 
-// Helper to determine if a concept string is a genuine academic concept vs a placeholder/confusion phrase
+// Helper to determine if a concept string is a genuine academic concept vs a placeholder/confusion/chat phrase
 export function isGenuineAcademicConcept(c?: string): boolean {
   if (!c || typeof c !== "string") return false;
   const lower = c.toLowerCase().trim();
   if (lower.length < 2) return false;
   if (
+    /^(?:i|you|u|we|he|she|they|me|my|your|ur)\b/i.test(lower) ||
+    /\b(?:feel|feeling|tired|sleepy|bored|lazy|sad|happy|stressed|anxious|angry|depressed|nervous|scared|overwhelmed)\b/i.test(lower) ||
+    /\b(?:hello|hi|hey|greetings|good\s*(?:morning|afternoon|evening|night)|namaste|vanakkam|sup|yo)\b/i.test(lower) ||
+    /\b(?:how\s*(?:are|r)\s*(?:you|u)|who\s*(?:are|r)\s*(?:you|u)|what\s*is\s*your\s*name)\b/i.test(lower) ||
+    /\b(?:thank|thanks|thx|welcome|bye|goodbye|see\s*you|cya)\b/i.test(lower) ||
+    /\b(?:joke|funny|laugh|story|riddle|game|friend|buddy|bro|bhai)\b/i.test(lower) ||
+    /\b(?:talk|chat|speak|listen|hear)\b/i.test(lower) ||
+    /\b(?:understand|understood|understanded|confused|clear|clarify|clarification|repeat|again)\b/i.test(lower) ||
     lower === "learnx assistant" ||
     lower === "topic clarification" ||
     lower === "general topic" ||
@@ -118,12 +150,8 @@ export function isGenuineAcademicConcept(c?: string): boolean {
     lower === "general core syllabus" ||
     lower === "study guidance & doubts" ||
     lower === "study guidance" ||
-    isConfusionOrReexplanationQuery(lower) ||
-    lower.includes("understand") ||
-    lower.includes("confused") ||
-    lower.includes("didn't") ||
-    lower.includes("didnt") ||
-    lower.includes("clarification")
+    lower === "conversational" ||
+    isConfusionOrReexplanationQuery(lower)
   ) {
     return false;
   }
@@ -231,6 +259,86 @@ export function analyzeStudentIntent(
       is_pure_greeting: false,
       detected_subject: "General",
       detected_topic: "Conversational",
+      detected_concept: "LearnX Assistant",
+      requires_context: false,
+      context_applied: false
+    };
+  }
+
+  // D1. STUDENT WELL-BEING & EMOTIONAL SUPPORT (e.g. 'i feel so tired', 'i am stressed', 'motivate me')
+  if (WELLBEING_EMOTION_REGEX.test(lower)) {
+    return {
+      raw_input: trimmed,
+      cleaned_query: trimmed,
+      intent: "STUDENT_WELLBEING",
+      is_conversational: true,
+      is_pure_greeting: false,
+      detected_subject: "Student Life & Well-Being",
+      detected_topic: "Motivation, Focus & Emotional Reset",
+      detected_concept: "Student Well-Being & Mindset",
+      requires_context: false,
+      context_applied: false
+    };
+  }
+
+  // D2. STUDY STRATEGY & HIGH-EFFICIENCY TECHNIQUES
+  if (STUDY_STRATEGY_REGEX.test(lower)) {
+    return {
+      raw_input: trimmed,
+      cleaned_query: trimmed,
+      intent: "STUDY_STRATEGY",
+      is_conversational: true,
+      is_pure_greeting: false,
+      detected_subject: "Study Skills & Productivity",
+      detected_topic: "Effective Learning Strategies",
+      detected_concept: "High-Efficiency Study Framework",
+      requires_context: false,
+      context_applied: false
+    };
+  }
+
+  // D3. JOKES, HUMOR & FUN
+  if (JOKE_FUN_REGEX.test(lower)) {
+    return {
+      raw_input: trimmed,
+      cleaned_query: trimmed,
+      intent: "JOKE_OR_FUN",
+      is_conversational: true,
+      is_pure_greeting: false,
+      detected_subject: "LearnX Academic Assistant",
+      detected_topic: "Study Humor & Lighthearted Fun",
+      detected_concept: "Science & Math Humor",
+      requires_context: false,
+      context_applied: false
+    };
+  }
+
+  // D4. FRIENDSHIP & PERSONAL CONVERSATIONAL TALK
+  if (FRIENDSHIP_CONVERSATION_REGEX.test(lower)) {
+    return {
+      raw_input: trimmed,
+      cleaned_query: trimmed,
+      intent: "CASUAL_CONVERSATION",
+      is_conversational: true,
+      is_pure_greeting: false,
+      detected_subject: "LearnX Academic Assistant",
+      detected_topic: "Conversational Friendship",
+      detected_concept: "LearnX Assistant",
+      requires_context: false,
+      context_applied: false
+    };
+  }
+
+  // D5. QUICK ACKNOWLEDGMENTS & CLOSURES (e.g. 'ok', 'got it', 'thanks', 'bye')
+  if (ACKNOWLEDGMENT_REGEX.test(lower)) {
+    return {
+      raw_input: trimmed,
+      cleaned_query: trimmed,
+      intent: "ACKNOWLEDGMENT",
+      is_conversational: true,
+      is_pure_greeting: false,
+      detected_subject: "LearnX Academic Assistant",
+      detected_topic: "Conversational Acknowledgment",
       detected_concept: "LearnX Assistant",
       requires_context: false,
       context_applied: false
@@ -941,8 +1049,8 @@ function resolveSubjectAndTopic(
     };
   }
 
-  // Safety check: Never turn conversational follow-up / confusion words into a concept!
-  if (!isGenuineAcademicConcept(originalCleaned) || isConfusionOrReexplanationQuery(originalCleaned)) {
+  // Safety check: Never turn conversational follow-up / confusion words / casual chatting into an academic concept!
+  if (!isGenuineAcademicConcept(originalCleaned) || isConfusionOrReexplanationQuery(originalCleaned) || isConversationalQuery(originalCleaned)) {
     return {
       subject: "LearnX Academic Assistant",
       topic: "Study Guidance & Doubts",
@@ -1025,19 +1133,129 @@ What would you like to dive into today? Ask me any doubt or topic!`;
 How can I help you with your studies right now?`;
   }
 
-  // D. CASUAL CHITCHAT
+  // D. CASUAL CHITCHAT & FRIENDSHIP
   if (intent === "CASUAL_CONVERSATION") {
     const qLower = cleaned_query.toLowerCase();
     if (qLower.includes("thank")) {
       return `You're very welcome! 😊 I'm always here whenever you have another doubt or want to review a chapter. Keep up the awesome learning momentum! What shall we tackle next?`;
     }
-    if (qLower.includes("how are") || qLower.includes("how r u") || qLower.includes("how do you do")) {
-      return `I'm doing great, thank you for asking! 🚀 Ready to help you tackle any academic doubt, solve problems, or prep for upcoming exams. What's on your study list today?`;
+    if (qLower.includes("how are") || qLower.includes("how r u") || qLower.includes("how do you do") || qLower.includes("how's it going")) {
+      return `I'm doing wonderful, thank you for asking! 🚀 Ready and excited to help you learn, solve problems, or just chat. How is your day going?`;
+    }
+    if (qLower.includes("friend") || qLower.includes("can we talk")) {
+      return `Of course! Consider me your 24/7 study buddy and supportive friend. 😊 We can chat about whatever is on your mind, explore tricky questions, or prep for tests together. What would you like to talk about?`;
+    }
+    if (qLower.includes("who created") || qLower.includes("who made")) {
+      return `I was built for **LearnX** to be the ultimate student companion—combining conversational warmth, deep reasoning, and syllabus-aligned accuracy. How can I help you today?`;
     }
     if (qLower.includes("bye") || qLower.includes("see you") || qLower.includes("good night")) {
       return `Goodbye! 👋 Best of luck with your study session. Take regular breaks and come back anytime you need help!`;
     }
-    return `Hey! I'm here and ready to help you learn. Whether you're working through homework, preparing for board exams, JEE/EAMCET, or university papers, ask me any question!`;
+    return `Hey! I'm right here with you. Whether you want to talk about how your studies are going, discuss an interesting question, or take a quick break, let me know! What's on your mind?`;
+  }
+
+  // D1. STUDENT WELL-BEING & MOTIVATION
+  if (intent === "STUDENT_WELLBEING") {
+    const qLower = cleaned_query.toLowerCase();
+    if (qLower.includes("sleepy") || qLower.includes("tired") || qLower.includes("exhausted")) {
+      return `Hey! First of all, take a deep breath. 🌿 
+
+Feeling tired or sleepy is your body's completely normal signal that your brain needs a quick recharge. Real learning requires a fresh mind, and pushing through extreme exhaustion usually leads to frustration.
+
+Here is a super effective 10-minute reset plan:
+1. **Hydrate**: Drink a full glass of cold water right now—mild dehydration is the #1 hidden cause of fatigue during study sessions.
+2. **Move & Stretch**: Step away from your desk, stretch your shoulders and neck, and wash your face with cool water.
+3. **Power Nap or Fresh Air**: If it's been a long day, a 15-minute power nap (set an alarm!) or a 5-minute walk outside will completely restore your mental alertness.
+
+When you're ready, we can tackle just **one small, easy topic** together—no rush, no stress! How are you feeling now?`;
+    }
+
+    if (qLower.includes("stress") || qLower.includes("anxious") || qLower.includes("nervous") || qLower.includes("scared")) {
+      return `Hey, I hear you, and it is completely normal to feel stressed or anxious about studies and exams. 💛
+
+Almost every student feels this pressure. But remember: **an exam measures what you practiced on one specific day, not your intelligence, your value, or your future!**
+
+Here is how we turn stress into confidence:
+1. **Break it down**: Huge syllabi feel terrifying when viewed all at once. Pick just **one single chapter or concept** right now.
+2. **Focus on progress, not perfection**: Solving just 3 questions or understanding 1 concept today puts you ahead of yesterday.
+3. **I'm right here with you**: Whenever you hit a wall, ask me to explain it simply or give you an easy memory trick. You don't have to figure it out alone!
+
+What subject or chapter is causing the most stress right now? Let's take it apart together step-by-step!`;
+    }
+
+    if (qLower.includes("procrastinat") || qLower.includes("focus") || qLower.includes("don't feel like") || qLower.includes("bored") || qLower.includes("lazy")) {
+      return `Hey! We've all been there—staring at books or notes and feeling zero motivation to start. 🛋️
+
+The secret to beating lack of motivation is the **"5-Minute Rule"**:
+Tell yourself: *"I am only going to study for 5 minutes. If I still hate it after 5 minutes, I can stop."*
+90% of the battle is just getting started! Once you cross the 5-minute mark, your brain naturally enters the flow state.
+
+**Quick Challenge:**
+Give me just ONE topic or question you're supposed to study today. Let me give you a 60-second simple breakdown to get the momentum rolling! What shall we look at?`;
+    }
+
+    return `Hey! Remember why you started, and remember how far you've already come. 🚀
+
+Learning is a journey of small daily steps. Some days are high energy, and some days are low energy—both are part of becoming great at what you do. Be kind to yourself today, celebrate small wins, and keep going!
+
+Whenever you want to practice or review anything, I'm ready. How can I help make your day a little easier?`;
+  }
+
+  // D2. JOKES, HUMOR & LIGHTHEARTED FUN
+  if (intent === "JOKE_OR_FUN") {
+    const jokes = [
+      `😄 **Here's a good one for you:**\n\nWhy can't you trust atoms?\n\n*Because they make up everything!* ⚛️\n\nHope that brought a smile to your face! Ready to conquer some concepts, or want another fun fact?`,
+      `😄 **A little programmer humor for you:**\n\nThere are 10 types of people in the world:\n*Those who understand binary, and those who don't!* 💻\n\nGot you! What are you working on today?`,
+      `😄 **Here's a math classic:**\n\nWhy did the triangle feel sad?\n\n*Because it was never right!* 📐 *(Unless it had a 90° angle, of course!)*\n\nReady to dive back into your studies, or need another laugh?`,
+      `😄 **One more science joke:**\n\nWhat did one ion say to the other?\n\n*"I've got my ion you!"* ⚡\n\nKeep that energy up! What topic would you like to review next?`
+    ];
+    return jokes[Math.floor(Math.random() * jokes.length)];
+  }
+
+  // D3. STUDY STRATEGY & HIGH-EFFICIENCY TECHNIQUES
+  if (intent === "STUDY_STRATEGY") {
+    return `### 🎯 High-Performance Study Framework (Used by Top Rankers)
+
+Studying for 8 hours of passive reading is much less effective than **2 hours of active learning**. Here are the 4 scientifically backed study strategies:
+
+---
+
+#### 🧠 1. The Feynman Technique (True Understanding)
+- Explain the concept out loud in plain words as if teaching a 10-year-old.
+- Wherever you use complex jargon or get stuck, that's your exact knowledge gap. Go back and review only that specific gap!
+
+#### 🔄 2. Active Recall & The Testing Effect
+- Don't just re-read textbook highlights.
+- Close the book and ask yourself: *"What were the 3 main takeaways from that page?"*
+- Write down formulas, derivations, or diagrams completely from memory.
+
+#### ⏳ 3. The 25/5 Pomodoro Cadence
+- Study with zero phone notifications for **25 minutes**.
+- Take a strict **5-minute break** (stand up, drink water, look outside).
+- After 4 cycles, reward yourself with a 20-minute rest!
+
+#### 📅 4. Spaced Repetition Schedule
+- Review material after: **1 Day → 3 Days → 7 Days → 21 Days**.
+- This moves concepts from fragile short-term memory into permanent long-term memory.
+
+---
+
+Would you like to try practicing a specific chapter right now using Active Recall? Tell me the topic!`;
+  }
+
+  // D4. ACKNOWLEDGMENTS & PLEASANTRIES
+  if (intent === "ACKNOWLEDGMENT") {
+    const qLower = cleaned_query.toLowerCase();
+    if (qLower.includes("thank")) {
+      return `You're very welcome! 😊 I'm always happy to help. You're doing great—keep up that momentum! What shall we tackle next?`;
+    }
+    if (qLower.includes("ok") || qLower.includes("okay") || qLower.includes("got it") || qLower.includes("understood")) {
+      return `Awesome! 🌟 Glad that made sense. Would you like to try a quick practice question to test yourself, or explore the next topic?`;
+    }
+    if (qLower.includes("bye") || qLower.includes("night") || qLower.includes("see you")) {
+      return `Goodbye for now! 👋 Take care, rest well, and come back anytime you have another doubt!`;
+    }
+    return `Great! I'm right here whenever you're ready to learn something new. Ask away!`;
   }
 
   // E. CODE GENERATION (User asks to write code, create game, build calculator, etc.)
@@ -1271,7 +1489,7 @@ Think of this like a well-designed assembly line or chain reaction: when the sta
 }
 
 /**
- * Fast helper to test if a raw string is a greeting, chitchat, capability, or model inquiry
+ * Fast helper to test if a raw string is a greeting, chitchat, capability, model inquiry, emotional well-being, or study advice
  */
 export function isConversationalQuery(query: string): boolean {
   const clean = (query || "").trim().toLowerCase();
@@ -1280,7 +1498,14 @@ export function isConversationalQuery(query: string): boolean {
     PURE_GREETING_REGEX.test(clean) ||
     CAPABILITY_QUERY_REGEX.test(clean) ||
     MODEL_IDENTITY_REGEX.test(clean) ||
-    CASUAL_CHITCHAT_REGEX.test(clean)
+    CASUAL_CHITCHAT_REGEX.test(clean) ||
+    WELLBEING_EMOTION_REGEX.test(clean) ||
+    STUDY_STRATEGY_REGEX.test(clean) ||
+    JOKE_FUN_REGEX.test(clean) ||
+    FRIENDSHIP_CONVERSATION_REGEX.test(clean) ||
+    ACKNOWLEDGMENT_REGEX.test(clean) ||
+    /^(?:hi+|hello+|hey+|yo+|sup|namaste|vanakkam)[\s,!.]/i.test(clean) ||
+    /^(?:what's\s*up|whats\s*up|how's\s*it\s*going|hows\s*it\s*going|how\s*are\s*you|how\s*r\s*u)\b/i.test(clean)
   );
 }
 
